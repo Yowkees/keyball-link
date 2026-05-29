@@ -25,7 +25,83 @@ export const CMD = {
   SET_SETTINGS:  0x10,
   TEST_LED:      0x11,
   GET_MATRIX:    0x12,
+  GET_MACRO:     0x13,
+  SET_MACRO:     0x14,
 } as const;
+
+export const MACRO_SLOT_COUNT   = 10;
+export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（バイト）
+export const MACRO_CHUNK_SIZE   = 28;   // 1HIDパケットあたりのデータ量
+
+// バッファ内のアクションコード（VIA互換）
+export const MACRO_ACTION_TAP   = 0x01;
+export const MACRO_ACTION_DELAY = 0x04;
+export const MACRO_ACTION_END   = 0x00;
+
+export interface MacroStep {
+  keycode: number;   // タップするQMKキーコード
+  delayMs: number;   // このキーを押す前に待機するms（0=即座）
+}
+
+export interface MacroSlot {
+  steps: MacroStep[];  // 可変長（ステップ数に制限なし、バッファ容量のみ制約）
+}
+
+export function emptyMacroSlot(): MacroSlot {
+  return { steps: [] };
+}
+
+/** MacroSlot配列 → EEPROMバッファ（Uint8Array） */
+export function encodeMacroBuffer(slots: MacroSlot[]): Uint8Array {
+  const bytes: number[] = [];
+  for (let i = 0; i < MACRO_SLOT_COUNT; i++) {
+    const slot = slots[i] ?? emptyMacroSlot();
+    for (const step of slot.steps) {
+      if (step.keycode === 0) continue;
+      if (step.delayMs > 0) {
+        bytes.push(MACRO_ACTION_DELAY, (step.delayMs >> 8) & 0xFF, step.delayMs & 0xFF);
+      }
+      bytes.push(MACRO_ACTION_TAP, (step.keycode >> 8) & 0xFF, step.keycode & 0xFF);
+    }
+    bytes.push(MACRO_ACTION_END);
+    if (bytes.length >= MACRO_BUFFER_SIZE) break;
+  }
+  // バッファ末尾をゼロパディング
+  while (bytes.length < MACRO_BUFFER_SIZE) bytes.push(0);
+  return new Uint8Array(bytes.slice(0, MACRO_BUFFER_SIZE));
+}
+
+/** EEPROMバッファ → MacroSlot配列 */
+export function decodeMacroBuffer(buf: Uint8Array): MacroSlot[] {
+  const slots: MacroSlot[] = [];
+  let pos = 0;
+  // バッファ先頭が不正値なら未初期化として全スロットを空で返す
+  const firstByte = buf[0] ?? 0;
+  if (firstByte !== MACRO_ACTION_TAP && firstByte !== MACRO_ACTION_DELAY && firstByte !== MACRO_ACTION_END) {
+    return Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot);
+  }
+  for (let m = 0; m < MACRO_SLOT_COUNT && pos < buf.length; m++) {
+    const steps: MacroStep[] = [];
+    let pendingDelay = 0;
+    while (pos < buf.length) {
+      const action = buf[pos++];
+      if (action === MACRO_ACTION_END) break;
+      if (action !== MACRO_ACTION_TAP && action !== MACRO_ACTION_DELAY) break;
+      const hi = buf[pos++] ?? 0;
+      const lo = buf[pos++] ?? 0;
+      const val = (hi << 8) | lo;
+      if (action === MACRO_ACTION_DELAY) {
+        pendingDelay += val;
+      } else {
+        steps.push({ keycode: val, delayMs: pendingDelay });
+        pendingDelay = 0;
+      }
+    }
+    slots.push({ steps });
+  }
+  while (slots.length < MACRO_SLOT_COUNT) slots.push(emptyMacroSlot());
+  return slots;
+}
 
 export const STATUS = {
   OK:    0x00,

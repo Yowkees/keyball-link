@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import type { KbSettings } from '../../lib/protocol';
+import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
+import type { KeyLayout } from '../../lib/keycodes';
 
 interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
   onChange: (s: KbSettings) => Promise<void>;
+  keyLayout: KeyLayout;
+  onKeyLayoutChange: (layout: KeyLayout) => void;
 }
 
 interface ToggleRowProps {
@@ -34,7 +38,7 @@ function ToggleRow({ label, desc, checked, disabled, onChange }: ToggleRowProps)
   );
 }
 
-export function SettingsTab({ settings, isConnected, onChange }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyLayoutChange }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
 
   const apply = async (patch: Partial<KbSettings>) => {
@@ -60,7 +64,7 @@ export function SettingsTab({ settings, isConnected, onChange }: SettingsTabProp
         <h2>Tapping Term <span className="settings-unit">長押し判定時間</span></h2>
         <p className="settings-desc">
           タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
-          タップダンス・Mod-Tap・Auto Shift すべてに影響します。
+          Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
         </p>
         <div className="tapping-term-row">
           <input
@@ -85,16 +89,18 @@ export function SettingsTab({ settings, isConnected, onChange }: SettingsTabProp
       <section className="settings-card">
         <h2>キー動作オプション</h2>
         <div className="setting-rows">
-          <ToggleRow
-            label="Auto Shift"
-            desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
-            checked={settings.autoShift}
-            disabled={disabled}
-            onChange={v => apply({ autoShift: v })}
-          />
+          {FIRMWARE_FEATURES.autoShift && (
+            <ToggleRow
+              label="Auto Shift"
+              desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
+              checked={settings.autoShift}
+              disabled={disabled}
+              onChange={v => apply({ autoShift: v })}
+            />
+          )}
           <ToggleRow
             label="Permissive Hold"
-            desc="Mod-Tap / タップダンスのホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
+            desc="Mod-Tap のホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
             checked={settings.permissiveHold}
             disabled={disabled}
             onChange={v => apply({ permissiveHold: v })}
@@ -108,6 +114,34 @@ export function SettingsTab({ settings, isConnected, onChange }: SettingsTabProp
           />
         </div>
         {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+      </section>
+
+      <section className="settings-card">
+        <h2>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></h2>
+        <p className="settings-desc">
+          キーマップ画面のキーに表示される文字を切り替えます。<br />
+          実際にキーボードから入力される文字は変わりません。入力文字を変えるにはmacOSのシステム設定でキーボードの種類を変更してください。
+        </p>
+        <div className="layout-toggle-row">
+          <button
+            className={`layout-toggle-btn ${keyLayout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
+            onClick={() => onKeyLayoutChange('JIS')}
+          >
+            JIS配列
+            <span className="layout-toggle-example">Shift+2 = "</span>
+          </button>
+          <button
+            className={`layout-toggle-btn ${keyLayout === 'US' ? 'layout-toggle-btn--active' : ''}`}
+            onClick={() => onKeyLayoutChange('US')}
+          >
+            US配列
+            <span className="layout-toggle-example">Shift+2 = @</span>
+          </button>
+        </div>
+        <p className="layout-toggle-note">
+          現在: <strong>{keyLayout === 'JIS' ? 'JIS配列（日本語キーボード）' : 'US配列（英語キーボード）'}</strong>
+          　→ キーマップ画面の表示に反映されます
+        </p>
       </section>
     </div>
   );

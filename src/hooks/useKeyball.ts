@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings } from '../lib/protocol';
-import { KB_SETTINGS_DEFAULT } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from '../lib/protocol';
+import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
 
@@ -18,6 +18,7 @@ export interface KeyballState {
   led: LedConfig | null;
   tdSlots: TdSlot[];
   kbSettings: KbSettings;
+  macroSlots: MacroSlot[];
   currentLayer: number;
   isLoading: boolean;
   isWebHIDSupported: boolean;
@@ -43,6 +44,7 @@ export function useKeyball() {
     led: null,
     tdSlots: [],
     kbSettings: KB_SETTINGS_DEFAULT,
+    macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
     currentLayer: 0,
     isLoading: false,
     isWebHIDSupported: isWebHIDSupported(),
@@ -65,6 +67,8 @@ export function useKeyball() {
       try { tdSlots = await hid.current.getAllTdSlots(); } catch { /* 旧FWは非対応 */ }
       let kbSettings: KbSettings = KB_SETTINGS_DEFAULT;
       try { kbSettings = await hid.current.getSettings(); } catch { /* 旧FWは非対応 */ }
+      let macroSlots: MacroSlot[] = Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot);
+      try { macroSlots = await hid.current.getAllMacroSlots(); } catch { /* 旧FWは非対応 */ }
       setPartial({
         connectionState: 'connected',
         deviceName: hid.current.deviceName,
@@ -75,6 +79,7 @@ export function useKeyball() {
         led,
         tdSlots,
         kbSettings,
+        macroSlots,
         isLoading: false,
       });
     } catch (e) {
@@ -115,6 +120,21 @@ export function useKeyball() {
   const setLed = useCallback(async (cfg: LedConfig) => {
     await hid.current.setLed(cfg);
     setPartial({ led: cfg });
+  }, []);
+
+  const setMacroSlot = useCallback(async (idx: number, slot: MacroSlot, allSlots: MacroSlot[]) => {
+    const updated = allSlots.map((s, i) => i === idx ? slot : s);
+    await hid.current.writeMacroBuffer(encodeMacroBuffer(updated));
+    setState(prev => {
+      const macroSlots = [...prev.macroSlots];
+      macroSlots[idx] = slot;
+      return { ...prev, macroSlots };
+    });
+  }, []);
+
+  const setAllMacroSlots = useCallback(async (slots: MacroSlot[]) => {
+    await hid.current.writeMacroBuffer(encodeMacroBuffer(slots));
+    setState(prev => ({ ...prev, macroSlots: slots }));
   }, []);
 
   const setTdSlot = useCallback(async (idx: number, slot: TdSlot) => {
@@ -191,5 +211,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
 }

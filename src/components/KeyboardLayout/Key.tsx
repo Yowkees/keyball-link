@@ -1,25 +1,29 @@
 import { useState } from 'react';
-import type { KeyLayout } from '../../layouts/types';
-import { findKeycode } from '../../lib/keycodes';
+import type { KeyLayout as LayoutDef } from '../../layouts/types';
+import { findKeycode, getKeyDisplayLabel, getShiftLabel } from '../../lib/keycodes';
+import type { KeyLayout } from '../../lib/keycodes';
 
 const KEY_SIZE = 52;
 const GAP = 4;
 
 interface KeyProps {
-  layout: KeyLayout;
+  layout: LayoutDef;
   keycode: number;
   selected: boolean;
   ballSide: 'left' | 'right';
+  keyLayout: KeyLayout;
   xExtra: number;
   onClick: () => void;
   onDrop: (keycode: number) => void;
 }
 
-export function Key({ layout, keycode, selected, ballSide, xExtra, onClick, onDrop }: KeyProps) {
+export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, onClick, onDrop }: KeyProps) {
   const [dragOver, setDragOver] = useState(false);
 
-  const isBall = layout.ball === ballSide;
-  const entry = findKeycode(keycode);
+  const isBall     = layout.ball === ballSide;
+  const entry      = findKeycode(keycode);
+  const label      = getKeyDisplayLabel(keycode, keyLayout);
+  const shiftLabel = getShiftLabel(keycode, keyLayout);
   const w = (layout.w ?? 1) * KEY_SIZE + ((layout.w ?? 1) - 1) * GAP;
   const h = KEY_SIZE;
   const x = layout.x * (KEY_SIZE + GAP) + xExtra;
@@ -32,7 +36,7 @@ export function Key({ layout, keycode, selected, ballSide, xExtra, onClick, onDr
       onClick={onClick}
       title={entry.short}
       style={{ position: 'absolute', left: x, top: y, width: w, height: h }}
-      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''}`}
+      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''}`}
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={e => {
@@ -42,7 +46,14 @@ export function Key({ layout, keycode, selected, ballSide, xExtra, onClick, onDr
         if (!isNaN(code)) onDrop(code);
       }}
     >
-      <span className="key__label">{entry.label}</span>
+      {shiftLabel ? (
+        <div className="key__dual-wrapper">
+          <span className="key__shift">{shiftLabel}</span>
+          <span className="key__main">{label}</span>
+        </div>
+      ) : (
+        <span className="key__label">{label}</span>
+      )}
     </button>
   );
 }

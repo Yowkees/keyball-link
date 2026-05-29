@@ -67,11 +67,11 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00E0, 'LCtrl',  'LCTL', '修飾'),
   K(0x00E1, 'LShift', 'LSFT', '修飾'),
   K(0x00E2, 'LAlt',   'LALT', '修飾'),
-  K(0x00E3, 'LGui',   'LGUI', '修飾'),
+  K(0x00E3, 'LWin(⌘)', 'LGUI', '修飾'),
   K(0x00E4, 'RCtrl',  'RCTL', '修飾'),
   K(0x00E5, 'RShift', 'RSFT', '修飾'),
   K(0x00E6, 'RAlt',   'RALT', '修飾'),
-  K(0x00E7, 'RGui',   'RGUI', '修飾'),
+  K(0x00E7, 'RWin(⌘)', 'RGUI', '修飾'),
 
   // 記号
   K(0x002D, '-',  'MINS', '記号'), K(0x002E, '=',  'EQL',  '記号'),
@@ -248,25 +248,43 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x5508, 'OSM(GUI)',   'OSM_G', 'ワンショット'),
 
   // マクロ（QK_MACRO = 0x7700）
-  K(0x7700, 'Macro 0',  'M0',  'マクロ'),
-  K(0x7701, 'Macro 1',  'M1',  'マクロ'),
-  K(0x7702, 'Macro 2',  'M2',  'マクロ'),
-  K(0x7703, 'Macro 3',  'M3',  'マクロ'),
-  K(0x7704, 'Macro 4',  'M4',  'マクロ'),
-  K(0x7705, 'Macro 5',  'M5',  'マクロ'),
-  K(0x7706, 'Macro 6',  'M6',  'マクロ'),
-  K(0x7707, 'Macro 7',  'M7',  'マクロ'),
-  K(0x7708, 'Macro 8',  'M8',  'マクロ'),
-  K(0x7709, 'Macro 9',  'M9',  'マクロ'),
-  K(0x770A, 'Macro 10', 'M10', 'マクロ'),
-  K(0x770B, 'Macro 11', 'M11', 'マクロ'),
-  K(0x770C, 'Macro 12', 'M12', 'マクロ'),
-  K(0x770D, 'Macro 13', 'M13', 'マクロ'),
-  K(0x770E, 'Macro 14', 'M14', 'マクロ'),
-  K(0x770F, 'Macro 15', 'M15', 'マクロ'),
+  K(0x7700, 'Macro 0', 'M0', 'マクロ'),
+  K(0x7701, 'Macro 1', 'M1', 'マクロ'),
+  K(0x7702, 'Macro 2', 'M2', 'マクロ'),
+  K(0x7703, 'Macro 3', 'M3', 'マクロ'),
+  K(0x7704, 'Macro 4', 'M4', 'マクロ'),
+  K(0x7705, 'Macro 5', 'M5', 'マクロ'),
+  K(0x7706, 'Macro 6', 'M6', 'マクロ'),
+  K(0x7707, 'Macro 7', 'M7', 'マクロ'),
+  K(0x7708, 'Macro 8', 'M8', 'マクロ'),
+  K(0x7709, 'Macro 9', 'M9', 'マクロ'),
 ];
 
 const codeMap = new Map<number, KeycodeEntry>(KEYCODES.map(e => [e.code, e]));
+
+// JIS配列で US配列と異なる文字を出力するキーコードのマッピング
+const JIS_CHAR_MAP: Record<number, string> = {
+  // 基本記号キー（unshifted）
+  0x002E: '^',    // KC_EQL  → US:= / JIS:^
+  0x002F: '@',    // KC_LBRC → US:[ / JIS:@
+  0x0030: '[',    // KC_RBRC → US:] / JIS:[
+  0x0031: ']',    // KC_BSLS → US:\\ / JIS:]
+  0x0034: ':',    // KC_QUOT → US:' / JIS::
+  0x0035: '半角', // KC_GRV  → US:` / JIS:半角/全角
+  // Shiftキー組み合わせ
+  0x021F: '"',    // S+2 → US:@ / JIS:"
+  0x0223: '&',    // S+6 → US:^ / JIS:&
+  0x0224: "'",    // S+7 → US:& / JIS:'
+  0x0225: '(',    // S+8 → US:* / JIS:(
+  0x0226: ')',    // S+9 → US:( / JIS:)
+  0x022D: '=',    // S+MINS → US:_ / JIS:=
+  0x022E: '~',    // S+EQL  → US:+ / JIS:~
+  0x022F: '`',    // S+LBRC → US:{ / JIS:`
+  0x0230: '{',    // S+RBRC → US:} / JIS:{
+  0x0231: '}',    // S+BSLS → US:| / JIS:}
+  0x0233: '+',    // S+SCLN → US:: / JIS:+
+  0x0234: '*',    // S+QUOT → US:" / JIS:*
+};
 
 const MOD_NAMES: Record<number, string> = {
   0x01: 'Ctrl', 0x02: 'Sft', 0x04: 'Alt', 0x08: 'GUI',
@@ -320,6 +338,52 @@ export function findKeycode(code: number): KeycodeEntry {
 }
 
 export const KEYCODE_GROUPS = [...new Set(KEYCODES.map(e => e.group))];
+
+export type KeyLayout = 'JIS' | 'US';
+
+// Shift押下時の文字を返す（数字・記号キーのみ。なければ null）
+export function getShiftLabel(code: number, layout: KeyLayout): string | null {
+  const isNumber = code >= 0x001E && code <= 0x0027;
+  const isSymbol = code >= 0x002D && code <= 0x0038;
+  if (!isNumber && !isSymbol) return null;
+
+  const shiftCode = code + 0x0200;
+  if (layout === 'JIS' && JIS_CHAR_MAP[shiftCode] !== undefined) {
+    return JIS_CHAR_MAP[shiftCode];
+  }
+  return codeMap.get(shiftCode)?.label ?? null;
+}
+
+// キーコードを配列設定に応じた表示文字に変換する
+export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
+  // JIS配列オーバーライド（直接マップに存在するキー）
+  if (layout === 'JIS' && JIS_CHAR_MAP[code] !== undefined) {
+    return JIS_CHAR_MAP[code];
+  }
+
+  // LT (Layer-Tap): 0x4000–0x4FFF
+  if (code >= 0x4000 && code <= 0x4FFF) {
+    const layer = (code >> 8) & 0xF;
+    const kc    = code & 0xFF;
+    const tapCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined)
+      ? JIS_CHAR_MAP[kc]
+      : (codeMap.get(kc)?.label ?? `0x${kc.toString(16)}`);
+    return `${tapCh}\nL${layer}`;
+  }
+
+  // MT (Mod-Tap): 0x2000–0x3FFF
+  if (code >= 0x2000 && code <= 0x3FFF) {
+    const mod    = (code >> 8) & 0x1F;
+    const kc     = code & 0xFF;
+    const tapCh  = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined)
+      ? JIS_CHAR_MAP[kc]
+      : (codeMap.get(kc)?.label ?? `0x${kc.toString(16)}`);
+    const modName = MOD_NAMES[mod] ?? `M${mod}`;
+    return `${tapCh}\n${modName}`;
+  }
+
+  return findKeycode(code).label;
+}
 
 // JIS配列記号: macOS日本語キーボード設定で出力される文字 → 対応する基本キーコード
 // いずれも 0xFF 以下の有効な基本キーコードなので MT/LT のタップキーに使用可能

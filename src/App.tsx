@@ -9,11 +9,15 @@ import { FirmwareFlasher } from './components/FirmwareFlasher/FirmwareFlasher';
 import { SettingsTab } from './components/SettingsTab/SettingsTab';
 import { LedTestPanel } from './components/LedTestPanel/LedTestPanel';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
-import type { KbSettings } from './lib/protocol';
+import { MacroEditor } from './components/MacroEditor/MacroEditor';
+import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
+import type { KbSettings, MacroSlot } from './lib/protocol';
+import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
 import { PRESETS } from './lib/presets';
+import type { KeyLayout } from './lib/keycodes';
 import './index.css';
 
-type Tab = 'keymap' | 'settings' | 'firmware';
+type Tab = 'keymap' | 'macro' | 'settings' | 'firmware';
 type BallSide = 'left' | 'right';
 type Theme = 'dark' | 'light';
 
@@ -23,7 +27,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
@@ -32,15 +36,42 @@ export default function App() {
   const [ballSide, setBallSide] = useState<BallSide>(() =>
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
   );
+  const [keyLayout, setKeyLayout] = useState<KeyLayout>(() =>
+    (localStorage.getItem('keyLayout') as KeyLayout) ?? 'JIS'
+  );
   const [toast, setToast] = useState<Toast | null>(null);
   const [presetProgress, setPresetProgress] = useState<{ done: number; total: number } | null>(null);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
+  // ガイドの進捗（接続後に初回のみ表示）
+  const [guideStep, setGuideStep] = useState<'click' | 'assign' | 'save' | 'done'>('click');
+  const [showGuide, setShowGuide] = useState(false);
+  const everAssignedRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // 接続状態の変化でガイド表示を制御
+  useEffect(() => {
+    if (state.connectionState === 'connected') {
+      const seen = localStorage.getItem('keyball_guide_done');
+      if (!seen) { setShowGuide(true); setGuideStep('click'); }
+      setHasUnsaved(false);
+    } else if (state.connectionState === 'disconnected') {
+      setShowGuide(false);
+      setHasUnsaved(false);
+      everAssignedRef.current = false;
+    }
+  }, [state.connectionState]);
+
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  const toggleKeyLayout = () => {
+    const next: KeyLayout = keyLayout === 'JIS' ? 'US' : 'JIS';
+    setKeyLayout(next);
+    localStorage.setItem('keyLayout', next);
+  };
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -64,13 +95,21 @@ export default function App() {
     ? layout.map(k => state.keymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0)
     : [];
 
-  const handleKeyClick = (index: number) => setSelectedKeyIndex(index);
+  const handleKeyClick = (index: number) => {
+    setSelectedKeyIndex(index);
+    setGuideStep(prev => prev === 'click' ? 'assign' : prev);
+  };
 
   const assignKey = async (index: number, keycode: number) => {
     if (!layout) return;
     const k = layout[index];
     try {
       await setKeycode(state.currentLayer, k.row, k.col, keycode);
+      setHasUnsaved(true);
+      if (!everAssignedRef.current) {
+        everAssignedRef.current = true;
+        setGuideStep(prev => prev === 'assign' ? 'save' : prev);
+      }
     } catch (e) {
       showToast(`キーコード書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -118,6 +157,70 @@ export default function App() {
     }
   };
 
+  const handleMacroSave = async (idx: number, slot: MacroSlot) => {
+    try {
+      await setMacroSlot(idx, slot, state.macroSlots);
+      showToast(`Macro ${idx} を保存しました`, 'success');
+    } catch (e) {
+      showToast(`マクロ保存失敗: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const handleExportJSON = () => {
+    const data = {
+      version: 1,
+      model: state.model,
+      keymap: state.keymap,
+      macros: state.macroSlots,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `keyball_${state.model ?? 'keymap'}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('JSONをエクスポートしました', 'success');
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (!data.keymap || !Array.isArray(data.keymap)) throw new Error('keymap が見つかりません');
+        if (!confirm('キーマップ（とマクロ）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
+        const { info } = state;
+        if (!info || !layout) return;
+        let count = 0;
+        for (let l = 0; l < Math.min(data.keymap.length, info.layers); l++) {
+          for (let r = 0; r < info.rows; r++) {
+            for (let c = 0; c < info.cols; c++) {
+              const kc = data.keymap[l]?.[r]?.[c];
+              if (kc !== undefined) { await setKeycode(l, r, c, kc); count++; }
+            }
+          }
+        }
+        if (data.macros && Array.isArray(data.macros)) {
+          const imported: MacroSlot[] = Array.from(
+            { length: MACRO_SLOT_COUNT },
+            (_, i) => (data.macros[i] as MacroSlot) ?? emptyMacroSlot(),
+          );
+          await setAllMacroSlots(imported);
+        }
+        setHasUnsaved(false);
+        await save();
+        showToast(`インポート完了（${count}キー書き込み）`, 'success');
+      } catch (err) {
+        showToast(`インポート失敗: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const handleResetKeymap = async () => {
     if (!confirm('キーマップをファームウェアのデフォルトに戻します。よろしいですか？')) return;
     try {
@@ -131,6 +234,8 @@ export default function App() {
   const handleSave = async () => {
     try {
       await save();
+      setHasUnsaved(false);
+      setGuideStep(prev => prev === 'save' ? 'done' : prev);
       showToast('EEPROMに保存しました', 'success');
     } catch (e) {
       showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`);
@@ -172,7 +277,18 @@ export default function App() {
                     : 'プリセット読込'}
                 </button>
               ))}
-              <button className="btn btn--primary" onClick={handleSave}>保存</button>
+              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップとマクロをJSONファイルに保存">エクスポート</button>
+              <label className="btn btn--ghost" title="JSONファイルからキーマップとマクロを読み込む" style={{ cursor: 'pointer' }}>
+                インポート
+                <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />
+              </label>
+              <button
+                className={`btn btn--primary ${hasUnsaved ? 'btn--unsaved' : ''}`}
+                onClick={handleSave}
+                title={hasUnsaved ? '未保存の変更があります' : '設定をキーボードに保存'}
+              >
+                {hasUnsaved ? '● 保存する' : '保存'}
+              </button>
             </>
           ) : (
             <>
@@ -204,6 +320,7 @@ export default function App() {
           <>
             <div className="tabs">
               <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} onClick={() => setActiveTab('keymap')}>キーマップ</button>
+              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} onClick={() => setActiveTab('firmware')}>ファームウェア</button>
             </div>
@@ -220,6 +337,16 @@ export default function App() {
                 <p className="placeholder-text">モデルID {state.info?.model} は未対応です</p>
                 <p className="placeholder-note">keyball39 / 44 / 61 のみサポートしています</p>
               </div>
+            )}
+
+            {activeTab === 'keymap' && isConnected && layout && showGuide && (
+              <WelcomeGuide
+                step={guideStep}
+                onDismiss={() => {
+                  setShowGuide(false);
+                  localStorage.setItem('keyball_guide_done', '1');
+                }}
+              />
             )}
 
             {activeTab === 'keymap' && isConnected && layout && (
@@ -247,6 +374,7 @@ export default function App() {
                     keycodes={layerKeycodes}
                     selectedIndex={selectedKeyIndex}
                     ballSide={ballSide}
+                    keyLayout={keyLayout}
                     onKeyClick={handleKeyClick}
                     onKeyDrop={handleKeyDrop}
                   />
@@ -265,6 +393,15 @@ export default function App() {
               </div>
             )}
 
+            {activeTab === 'macro' && (
+              <MacroEditor
+                slots={state.macroSlots}
+                keyLayout={keyLayout}
+                isConnected={isConnected}
+                onSave={handleMacroSave}
+              />
+            )}
+
             {activeTab === 'firmware' && (
               <FirmwareFlasher detectedModel={state.model} isHIDConnected={isConnected} onReboot={reboot} />
             )}
@@ -275,6 +412,11 @@ export default function App() {
                   settings={state.kbSettings}
                   isConnected={isConnected}
                   onChange={handleKbSettingsChange}
+                  keyLayout={keyLayout}
+                  onKeyLayoutChange={layout => {
+                    setKeyLayout(layout);
+                    localStorage.setItem('keyLayout', layout);
+                  }}
                 />
                 {isConnected && layout && (
                   <LedTestPanel layout={layout} ballSide={ballSide} onTestLed={testLed} />
@@ -292,6 +434,7 @@ export default function App() {
         <KeyConfigModal
           keyIndex={selectedKeyIndex}
           currentCode={currentCode}
+          keyLayout={keyLayout}
           onSelect={handleModalSelect}
           onClose={() => setSelectedKeyIndex(null)}
         />

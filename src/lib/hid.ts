@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -195,6 +195,48 @@ export class KeyballHID {
       slots.push(await this.getTdSlot(i));
     }
     return slots;
+  }
+
+  // バッファ全体をEEPROMから読み込む（複数パケット）
+  async readMacroBuffer(): Promise<Uint8Array> {
+    const buffer = new Uint8Array(MACRO_BUFFER_SIZE);
+    for (let offset = 0; offset < MACRO_BUFFER_SIZE; offset += MACRO_CHUNK_SIZE) {
+      const r = await this.sendCommand(makePacket(
+        CMD.GET_MACRO, (offset >> 8) & 0xFF, offset & 0xFF,
+      ));
+      const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
+      buffer.set(r.slice(3, 3 + len), offset);
+    }
+    return buffer;
+  }
+
+  // バッファ全体をEEPROMに書き込む（複数パケット）
+  async writeMacroBuffer(buffer: Uint8Array): Promise<void> {
+    for (let offset = 0; offset < MACRO_BUFFER_SIZE; offset += MACRO_CHUNK_SIZE) {
+      const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
+      const chunk = buffer.slice(offset, offset + len);
+      await this.sendCommand(makePacket(
+        CMD.SET_MACRO,
+        (offset >> 8) & 0xFF, offset & 0xFF,
+        len,
+        ...chunk,
+      ));
+    }
+  }
+
+  async getAllMacroSlots(): Promise<MacroSlot[]> {
+    try {
+      const buf = await this.readMacroBuffer();
+      return decodeMacroBuffer(buf);
+    } catch {
+      return Array.from({ length: 10 }, emptyMacroSlot);
+    }
+  }
+
+  async setMacroSlot(idx: number, slot: MacroSlot, allSlots: MacroSlot[]): Promise<void> {
+    const updated = allSlots.map((s, i) => i === idx ? slot : s);
+    const buffer = encodeMacroBuffer(updated);
+    await this.writeMacroBuffer(buffer);
   }
 }
 

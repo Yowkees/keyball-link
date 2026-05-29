@@ -1,0 +1,1 @@
+cd ~/keyball-configurator && npm run copy-firmware && npm run dev

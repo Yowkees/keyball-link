@@ -3,6 +3,7 @@ import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
+import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -160,5 +161,35 @@ export function useKeyball() {
     return hid.current.getMatrixState();
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState };
+  const loadPreset = useCallback(async (
+    preset: Preset,
+    onProgress?: (done: number, total: number) => void,
+  ) => {
+    const info = await hid.current.getInfo();
+    const entries: Array<{ layer: number; row: number; col: number; kc: number }> = [];
+
+    for (let layer = 0; layer < Math.min(preset.layers.length, info.layers); layer++) {
+      const layerMap = preset.layers[layer];
+      for (const rowStr of Object.keys(layerMap)) {
+        const row = Number(rowStr);
+        if (row >= info.rows) continue;
+        for (const colStr of Object.keys(layerMap[row])) {
+          const col = Number(colStr);
+          if (col >= info.cols) continue;
+          entries.push({ layer, row, col, kc: layerMap[row][col] });
+        }
+      }
+    }
+
+    for (let i = 0; i < entries.length; i++) {
+      const { layer, row, col, kc } = entries[i];
+      await hid.current.setKeycode(layer, row, col, kc);
+      onProgress?.(i + 1, entries.length);
+    }
+
+    const keymap = await hid.current.getFullKeymap(info.layers, info.rows, info.cols);
+    setPartial({ keymap });
+  }, []);
+
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
 }

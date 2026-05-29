@@ -153,6 +153,117 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x5705, 'TD(5)', 'TD5', 'タップダンス'),
   K(0x5706, 'TD(6)', 'TD6', 'タップダンス'),
   K(0x5707, 'TD(7)', 'TD7', 'タップダンス'),
+
+  // システムキー
+  K(0x0046, 'PrtSc',  'PSCR',  'システム'),
+  K(0x0047, 'ScrLk',  'SCRL',  'システム'),
+  K(0x0048, 'Pause',  'PAUS',  'システム'),
+  K(0x0053, 'NumLk',  'NUM',   'システム'),
+  K(0x0065, 'App',    'APP',   'システム'),
+
+  // テンキー
+  K(0x0054, 'KP /',   'KP_SL', 'テンキー'),
+  K(0x0055, 'KP *',   'KP_AS', 'テンキー'),
+  K(0x0056, 'KP -',   'KP_MN', 'テンキー'),
+  K(0x0057, 'KP +',   'KP_PL', 'テンキー'),
+  K(0x0058, 'KP Ent', 'KP_EN', 'テンキー'),
+  K(0x0059, 'KP 1',   'KP1',   'テンキー'),
+  K(0x005A, 'KP 2',   'KP2',   'テンキー'),
+  K(0x005B, 'KP 3',   'KP3',   'テンキー'),
+  K(0x005C, 'KP 4',   'KP4',   'テンキー'),
+  K(0x005D, 'KP 5',   'KP5',   'テンキー'),
+  K(0x005E, 'KP 6',   'KP6',   'テンキー'),
+  K(0x005F, 'KP 7',   'KP7',   'テンキー'),
+  K(0x0060, 'KP 8',   'KP8',   'テンキー'),
+  K(0x0061, 'KP 9',   'KP9',   'テンキー'),
+  K(0x0062, 'KP 0',   'KP0',   'テンキー'),
+  K(0x0063, 'KP .',   'KP_DT', 'テンキー'),
+
+  // メディア
+  K(0x00A8, 'Mute',   'MUTE',  'メディア'),
+  K(0x00A9, 'Vol+',   'VOLU',  'メディア'),
+  K(0x00AA, 'Vol-',   'VOLD',  'メディア'),
+  K(0x00AB, 'Next',   'MNXT',  'メディア'),
+  K(0x00AC, 'Prev',   'MPRV',  'メディア'),
+  K(0x00AD, 'Stop',   'MSTP',  'メディア'),
+  K(0x00AE, 'Play',   'MPLY',  'メディア'),
+  K(0x00AF, 'Select', 'MSEL',  'メディア'),
+
+  // マウス移動・ホイール（既存 MB1〜MB5 に追加）
+  K(0x00CD, 'M↑',    'MS_U',  'マウス'),
+  K(0x00CE, 'M↓',    'MS_D',  'マウス'),
+  K(0x00CF, 'M←',    'MS_L',  'マウス'),
+  K(0x00D0, 'M→',    'MS_R',  'マウス'),
+  K(0x00D9, 'WH↑',   'WH_U',  'マウス'),
+  K(0x00DA, 'WH↓',   'WH_D',  'マウス'),
+  K(0x00DB, 'WH←',   'WH_L',  'マウス'),
+  K(0x00DC, 'WH→',   'WH_R',  'マウス'),
+  K(0x00DD, 'ACL0',  'ACL0',  'マウス'),
+  K(0x00DE, 'ACL1',  'ACL1',  'マウス'),
+  K(0x00DF, 'ACL2',  'ACL2',  'マウス'),
+
+  // RGB / LED（QK_UNDERGLOW = 0x5B00）
+  K(0x5B00, 'UG Toggle',    'UG_TOG',  'RGB'),
+  K(0x5B01, 'RGB Mod+',     'RGB_MOD', 'RGB'),
+  K(0x5B02, 'RGB Mod-',     'RGB_RMD', 'RGB'),
+  K(0x5B03, 'Hue+',         'RGB_HUI', 'RGB'),
+  K(0x5B04, 'Hue-',         'RGB_HUD', 'RGB'),
+  K(0x5B05, 'Sat+',         'RGB_SAI', 'RGB'),
+  K(0x5B06, 'Sat-',         'RGB_SAD', 'RGB'),
+  K(0x5B07, 'Val+',         'RGB_VAI', 'RGB'),
+  K(0x5B08, 'Val-',         'RGB_VAD', 'RGB'),
+  K(0x5B09, 'Speed+',       'RGB_SPI', 'RGB'),
+  K(0x5B0A, 'Speed-',       'RGB_SPD', 'RGB'),
+  K(0x5B0B, 'RGB Plain',    'RGB_M_P', 'RGB'),
+  K(0x5B0C, 'RGB Breathe',  'RGB_M_B', 'RGB'),
+  K(0x5B0D, 'RGB Rainbow',  'RGB_M_R', 'RGB'),
+  K(0x5B0E, 'RGB Swirl',    'RGB_M_SW','RGB'),
+  K(0x5B0F, 'RGB Snake',    'RGB_M_SN','RGB'),
+  K(0x5B10, 'RGB Knight',   'RGB_M_K', 'RGB'),
+  K(0x5B11, 'RGB Xmas',     'RGB_M_X', 'RGB'),
+  K(0x5B12, 'RGB Gradient', 'RGB_M_G', 'RGB'),
+  K(0x5B13, 'RGB Twinkle',  'RGB_M_T', 'RGB'),
+
+  // Keyball 拡張（Kb10〜Kb12）
+  K(0x7E0A, 'Kb 10', 'KB10', 'Keyball'),
+  K(0x7E0B, 'Kb 11', 'KB11', 'Keyball'),
+  K(0x7E0C, 'Kb 12', 'KB12', 'Keyball'),
+
+  // レイヤー拡張（DF / OSL / TT）
+  K(0x5300, 'DF(0)', 'DF0', 'レイヤー'),
+  K(0x5301, 'DF(1)', 'DF1', 'レイヤー'),
+  K(0x5302, 'DF(2)', 'DF2', 'レイヤー'),
+  K(0x5303, 'DF(3)', 'DF3', 'レイヤー'),
+  K(0x5401, 'OSL(1)', 'OSL1', 'レイヤー'),
+  K(0x5402, 'OSL(2)', 'OSL2', 'レイヤー'),
+  K(0x5403, 'OSL(3)', 'OSL3', 'レイヤー'),
+  K(0x5801, 'TT(1)', 'TT1', 'レイヤー'),
+  K(0x5802, 'TT(2)', 'TT2', 'レイヤー'),
+  K(0x5803, 'TT(3)', 'TT3', 'レイヤー'),
+
+  // ワンショット修飾（OSM: QK_ONE_SHOT_MOD = 0x5500）
+  K(0x5501, 'OSM(Ctrl)',  'OSM_C', 'ワンショット'),
+  K(0x5502, 'OSM(Shift)', 'OSM_S', 'ワンショット'),
+  K(0x5504, 'OSM(Alt)',   'OSM_A', 'ワンショット'),
+  K(0x5508, 'OSM(GUI)',   'OSM_G', 'ワンショット'),
+
+  // マクロ（QK_MACRO = 0x7700）
+  K(0x7700, 'Macro 0',  'M0',  'マクロ'),
+  K(0x7701, 'Macro 1',  'M1',  'マクロ'),
+  K(0x7702, 'Macro 2',  'M2',  'マクロ'),
+  K(0x7703, 'Macro 3',  'M3',  'マクロ'),
+  K(0x7704, 'Macro 4',  'M4',  'マクロ'),
+  K(0x7705, 'Macro 5',  'M5',  'マクロ'),
+  K(0x7706, 'Macro 6',  'M6',  'マクロ'),
+  K(0x7707, 'Macro 7',  'M7',  'マクロ'),
+  K(0x7708, 'Macro 8',  'M8',  'マクロ'),
+  K(0x7709, 'Macro 9',  'M9',  'マクロ'),
+  K(0x770A, 'Macro 10', 'M10', 'マクロ'),
+  K(0x770B, 'Macro 11', 'M11', 'マクロ'),
+  K(0x770C, 'Macro 12', 'M12', 'マクロ'),
+  K(0x770D, 'Macro 13', 'M13', 'マクロ'),
+  K(0x770E, 'Macro 14', 'M14', 'マクロ'),
+  K(0x770F, 'Macro 15', 'M15', 'マクロ'),
 ];
 
 const codeMap = new Map<number, KeycodeEntry>(KEYCODES.map(e => [e.code, e]));
@@ -169,8 +280,25 @@ function baseLabel(kc: number): string {
 export function findKeycode(code: number): KeycodeEntry {
   if (codeMap.has(code)) return codeMap.get(code)!;
 
-  // MT (Mod-Tap): 0x2000–0x2FFF  例: MT(LSFT, 英数) = 0x2291
-  if (code >= 0x2000 && code <= 0x2FFF) {
+  // MODS (mod+key): 0x0100–0x1FFF  例: LCTL(KC_A) = 0x0104
+  if (code >= 0x0100 && code <= 0x1FFF) {
+    const mod = (code >> 8) & 0x1F;
+    const kc  = code & 0xFF;
+    const right = (mod & 0x10) !== 0;
+    const m = mod & 0x0F;
+    const parts: string[] = [];
+    if (m & 0x01) parts.push(right ? 'RCtrl' : 'Ctrl');
+    if (m & 0x02) parts.push(right ? 'RSft'  : 'Sft');
+    if (m & 0x04) parts.push(right ? 'RAlt'  : 'Alt');
+    if (m & 0x08) parts.push(right ? 'RGUI'  : 'GUI');
+    const modStr = parts.join('+');
+    const kcName = baseLabel(kc);
+    const label  = `${modStr}(${kcName})`;
+    return { code, label, short: label, group: 'Mod+Key' };
+  }
+
+  // MT (Mod-Tap): 0x2000–0x3FFF  例: MT(LSFT, 英数) = 0x2291
+  if (code >= 0x2000 && code <= 0x3FFF) {
     const mod = (code >> 8) & 0x1F;
     const kc  = code & 0xFF;
     const modName = MOD_NAMES[mod] ?? `M${mod}`;

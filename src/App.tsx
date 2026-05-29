@@ -10,6 +10,7 @@ import { SettingsTab } from './components/SettingsTab/SettingsTab';
 import { LedTestPanel } from './components/LedTestPanel/LedTestPanel';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import type { KbSettings } from './lib/protocol';
+import { PRESETS } from './lib/presets';
 import './index.css';
 
 type Tab = 'keymap' | 'settings' | 'firmware';
@@ -22,7 +23,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
@@ -32,6 +33,7 @@ export default function App() {
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
   );
   const [toast, setToast] = useState<Toast | null>(null);
+  const [presetProgress, setPresetProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -100,6 +102,22 @@ export default function App() {
     catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
+  const handleLoadPreset = async (presetId: string) => {
+    const preset = PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    if (!confirm(`「${preset.name}」をキーボードに書き込みます。現在のキーマップは上書きされます。よろしいですか？`)) return;
+    try {
+      setPresetProgress({ done: 0, total: 1 });
+      await loadPreset(preset, (done, total) => setPresetProgress({ done, total }));
+      await save();
+      showToast(`「${preset.name}」を書き込み・保存しました`, 'success');
+    } catch (e) {
+      showToast(`プリセット書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setPresetProgress(null);
+    }
+  };
+
   const handleResetKeymap = async () => {
     if (!confirm('キーマップをファームウェアのデフォルトに戻します。よろしいですか？')) return;
     try {
@@ -141,6 +159,19 @@ export default function App() {
               <span className="status status--connected">● {state.deviceName}</span>
               <button className="btn btn--ghost" onClick={disconnect}>切断</button>
               <button className="btn btn--ghost" onClick={handleResetKeymap}>初期化</button>
+              {PRESETS.map(p => (
+                <button
+                  key={p.id}
+                  className="btn btn--ghost"
+                  onClick={() => handleLoadPreset(p.id)}
+                  disabled={presetProgress !== null}
+                  title={p.description}
+                >
+                  {presetProgress !== null
+                    ? `書込中 ${presetProgress.done}/${presetProgress.total}`
+                    : 'プリセット読込'}
+                </button>
+              ))}
               <button className="btn btn--primary" onClick={handleSave}>保存</button>
             </>
           ) : (

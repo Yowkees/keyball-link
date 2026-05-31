@@ -86,9 +86,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix }: MatrixTestPan
   useEffect(() => () => { activeRef.current = false; }, []);
 
   return (
-    <div className="led-test-panel">
-      <h2 className="settings-card-title">テストマトリクス</h2>
-
+    <div className="led-test-panel led-test-panel--embedded">
       <div className="led-test-controls">
         {!active ? (
           <button className="btn btn--primary" onClick={startTest}>テスト開始</button>

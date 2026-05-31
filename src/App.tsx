@@ -11,6 +11,7 @@ import { LedTestPanel } from './components/LedTestPanel/LedTestPanel';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import { MacroEditor } from './components/MacroEditor/MacroEditor';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
+import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import type { KbSettings, MacroSlot } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
 import { PRESETS } from './lib/presets';
@@ -67,11 +68,6 @@ export default function App() {
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
-  const toggleKeyLayout = () => {
-    const next: KeyLayout = keyLayout === 'JIS' ? 'US' : 'JIS';
-    setKeyLayout(next);
-    localStorage.setItem('keyLayout', next);
-  };
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -407,24 +403,27 @@ export default function App() {
             )}
 
             {activeTab === 'settings' && (
-              <>
-                <SettingsTab
-                  settings={state.kbSettings}
-                  isConnected={isConnected}
-                  onChange={handleKbSettingsChange}
-                  keyLayout={keyLayout}
-                  onKeyLayoutChange={layout => {
-                    setKeyLayout(layout);
-                    localStorage.setItem('keyLayout', layout);
-                  }}
-                />
+              <SettingsTab
+                settings={state.kbSettings}
+                isConnected={isConnected}
+                onChange={handleKbSettingsChange}
+                keyLayout={keyLayout}
+                onKeyLayoutChange={layout => {
+                  setKeyLayout(layout);
+                  localStorage.setItem('keyLayout', layout);
+                }}
+              >
                 {isConnected && layout && (
-                  <LedTestPanel layout={layout} ballSide={ballSide} onTestLed={testLed} />
+                  <CollapsibleCard title={<>LED診断 <span className="settings-unit">各LEDを1つずつ点灯して位置を確認</span></>}>
+                    <LedTestPanel layout={layout} ballSide={ballSide} onTestLed={testLed} />
+                  </CollapsibleCard>
                 )}
                 {isConnected && layout && (
-                  <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} />
+                  <CollapsibleCard title={<>テストマトリクス <span className="settings-unit">キーが正しく反応するか確認</span></>}>
+                    <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} />
+                  </CollapsibleCard>
                 )}
-              </>
+              </SettingsTab>
             )}
           </>
         )}

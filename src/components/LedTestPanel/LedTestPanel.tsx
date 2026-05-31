@@ -207,9 +207,7 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
     });
 
   return (
-    <div className="led-test-panel">
-      <h2 className="settings-card-title">LED診断</h2>
-
+    <div className="led-test-panel led-test-panel--embedded">
       {active === null ? (
         <>
           <p className="led-test-desc">

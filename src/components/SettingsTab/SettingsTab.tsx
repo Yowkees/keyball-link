@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { KbSettings } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
+import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
 
 interface SettingsTabProps {
   settings: KbSettings;
@@ -9,6 +10,7 @@ interface SettingsTabProps {
   onChange: (s: KbSettings) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
+  children?: React.ReactNode;
 }
 
 interface ToggleRowProps {
@@ -38,7 +40,93 @@ function ToggleRow({ label, desc, checked, disabled, onChange }: ToggleRowProps)
   );
 }
 
-export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyLayoutChange }: SettingsTabProps) {
+// macOS用キーボードタイプ設定セクション
+// plistのキー: "ProductID-VendorID-0" (Keyball39: 512-22871-0)
+const MACOS_PLIST_JIS_CMD =
+  'sudo /usr/libexec/PlistBuddy -c "Set :keyboardtype:512-22871-0 42" ' +
+  '/Library/Preferences/com.apple.keyboardtype.plist 2>/dev/null || ' +
+  'sudo /usr/libexec/PlistBuddy -c "Add :keyboardtype:512-22871-0 integer 42" ' +
+  '/Library/Preferences/com.apple.keyboardtype.plist && ' +
+  'echo "設定完了。Macを再起動してください。"';
+
+const MACOS_PLIST_US_CMD =
+  'sudo /usr/libexec/PlistBuddy -c "Set :keyboardtype:512-22871-0 40" ' +
+  '/Library/Preferences/com.apple.keyboardtype.plist 2>/dev/null || ' +
+  'sudo /usr/libexec/PlistBuddy -c "Add :keyboardtype:512-22871-0 integer 40" ' +
+  '/Library/Preferences/com.apple.keyboardtype.plist && ' +
+  'echo "設定完了。Macを再起動してください。"';
+
+function MacOSKeyboardSetup({ defaultLayout }: { defaultLayout: KeyLayout }) {
+  const [layout, setLayout] = useState<KeyLayout>(defaultLayout);
+  const [copied, setCopied] = useState(false);
+
+  const command = layout === 'JIS' ? MACOS_PLIST_JIS_CMD : MACOS_PLIST_US_CMD;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div>
+      <p className="settings-desc">
+        macOSはKeyballの配列（JIS/US）を自動判定できない場合があります。<br />
+        以下のコマンドを一度実行することで、@キーなどの記号が正しく入力できるようになります。
+      </p>
+
+      <div className="macos-layout-toggle">
+        <span className="macos-layout-label">使用する配列：</span>
+        <button
+          className={`layout-toggle-btn macos-toggle-btn ${layout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
+          onClick={() => setLayout('JIS')}
+        >
+          JIS配列
+          <span className="layout-toggle-example">@ は独立キー</span>
+        </button>
+        <button
+          className={`layout-toggle-btn macos-toggle-btn ${layout === 'US' ? 'layout-toggle-btn--active' : ''}`}
+          onClick={() => setLayout('US')}
+        >
+          US配列
+          <span className="layout-toggle-example">@ は Shift+2</span>
+        </button>
+      </div>
+
+      <div className="macos-steps">
+        <div className="macos-step">
+          <span className="macos-step__num">①</span>
+          <span>ターミナルを開く（Finder → アプリケーション → ユーティリティ → ターミナル）</span>
+        </div>
+        <div className="macos-step">
+          <span className="macos-step__num">②</span>
+          <span>以下のコマンドをコピーして貼り付け、Enterを押す</span>
+        </div>
+      </div>
+
+      <div className="macos-command-block">
+        <code className="macos-command-text">{command}</code>
+        <button
+          className={`macos-copy-btn ${copied ? 'macos-copy-btn--done' : ''}`}
+          onClick={handleCopy}
+        >
+          {copied ? '✅ コピー済み' : '📋 コピー'}
+        </button>
+      </div>
+
+      <div className="macos-step" style={{ marginTop: 8 }}>
+        <span className="macos-step__num">③</span>
+        <span>Macを再起動する（再起動後から有効になります）</span>
+      </div>
+
+      <p className="macos-setup-note">
+        ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。
+      </p>
+    </div>
+  );
+}
+
+export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
 
   const apply = async (patch: Partial<KbSettings>) => {
@@ -51,6 +139,7 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
   };
 
   const disabled = !isConnected || saving;
+  const isMacOS = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent);
 
   return (
     <div className="settings-tab">
@@ -60,20 +149,15 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
         </div>
       )}
 
-      <section className="settings-card">
-        <h2>Tapping Term <span className="settings-unit">長押し判定時間</span></h2>
+      <CollapsibleCard title={<>Tapping Term <span className="settings-unit">長押し判定時間</span></>}>
         <p className="settings-desc">
           タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
           Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
         </p>
         <div className="tapping-term-row">
           <input
-            type="range"
-            min={50}
-            max={500}
-            step={10}
-            value={settings.tappingTerm}
-            disabled={disabled}
+            type="range" min={50} max={500} step={10}
+            value={settings.tappingTerm} disabled={disabled}
             onChange={e => apply({ tappingTerm: Number(e.target.value) })}
             className="tapping-term-slider"
           />
@@ -84,65 +168,66 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
           <span>デフォルト: 200ms</span>
           <span>500ms（ゆっくり）</span>
         </div>
-      </section>
+      </CollapsibleCard>
 
-      <section className="settings-card">
-        <h2>キー動作オプション</h2>
+      <CollapsibleCard title="キー動作オプション">
         <div className="setting-rows">
           {FIRMWARE_FEATURES.autoShift && (
             <ToggleRow
               label="Auto Shift"
               desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
-              checked={settings.autoShift}
-              disabled={disabled}
+              checked={settings.autoShift} disabled={disabled}
               onChange={v => apply({ autoShift: v })}
             />
           )}
           <ToggleRow
             label="Permissive Hold"
             desc="Mod-Tap のホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
-            checked={settings.permissiveHold}
-            disabled={disabled}
+            checked={settings.permissiveHold} disabled={disabled}
             onChange={v => apply({ permissiveHold: v })}
           />
           <ToggleRow
             label="Retro Tapping"
             desc="Mod-Tap キーをホールドして離したとき（他のキーを押さなかった場合）にタップも送信します。"
-            checked={settings.retroTapping}
-            disabled={disabled}
+            checked={settings.retroTapping} disabled={disabled}
             onChange={v => apply({ retroTapping: v })}
           />
         </div>
         {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
-      </section>
+      </CollapsibleCard>
 
-      <section className="settings-card">
-        <h2>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></h2>
+      <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>
         <p className="settings-desc">
           キーマップ画面のキーに表示される文字を切り替えます。<br />
-          実際にキーボードから入力される文字は変わりません。入力文字を変えるにはmacOSのシステム設定でキーボードの種類を変更してください。
+          実際にキーボードから入力される文字は変わりません。入力文字を変えるには下の「macOS キーボードタイプ設定」をご利用ください。
         </p>
         <div className="layout-toggle-row">
           <button
             className={`layout-toggle-btn ${keyLayout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
             onClick={() => onKeyLayoutChange('JIS')}
           >
-            JIS配列
-            <span className="layout-toggle-example">Shift+2 = "</span>
+            JIS配列<span className="layout-toggle-example">Shift+2 = "</span>
           </button>
           <button
             className={`layout-toggle-btn ${keyLayout === 'US' ? 'layout-toggle-btn--active' : ''}`}
             onClick={() => onKeyLayoutChange('US')}
           >
-            US配列
-            <span className="layout-toggle-example">Shift+2 = @</span>
+            US配列<span className="layout-toggle-example">Shift+2 = @</span>
           </button>
         </div>
         <p className="layout-toggle-note">
           現在: <strong>{keyLayout === 'JIS' ? 'JIS配列（日本語キーボード）' : 'US配列（英語キーボード）'}</strong>
           　→ キーマップ画面の表示に反映されます
         </p>
-      </section>
+      </CollapsibleCard>
+
+      {isMacOS && (
+        <CollapsibleCard title={<>macOS キーボードタイプ設定 <span className="settings-unit">初回のみ必要</span></>}>
+          <MacOSKeyboardSetup defaultLayout={keyLayout} />
+        </CollapsibleCard>
+      )}
+
+      {children}
     </div>
   );
 }

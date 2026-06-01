@@ -7,14 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build && npm run copy-firmware",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "copy-firmware": "cp ~/qmk_firmware/keyball_keyball39_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball44_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball61_web_configurator.hex public/firmware/ 2>/dev/null || true"
+    "preview": "npm run build && wrangler dev",
+    "copy-firmware": "cp ~/qmk_firmware/keyball_keyball39_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball44_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball61_web_configurator.hex public/firmware/ 2>/dev/null || true",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.39.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
@@ -28,6 +30,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wrangler": "^4.95.0"
   }
 }

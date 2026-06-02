@@ -381,7 +381,14 @@ export default function App() {
                 </p>
 
                 {state.trackball && (
-                  <TrackballSettings config={state.trackball} onChange={handleTrackballChange} onSave={handleSave} />
+                  <TrackballSettings
+                    config={state.trackball}
+                    onChange={handleTrackballChange}
+                    onSave={handleSave}
+                    scrollInvertV={state.kbSettings.scrollInvertV}
+                    scrollInvertH={state.kbSettings.scrollInvertH}
+                    onScrollInvertChange={(v, h) => handleKbSettingsChange({ ...state.kbSettings, scrollInvertV: v, scrollInvertH: h })}
+                  />
                 )}
                 {state.led && (
                   <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />

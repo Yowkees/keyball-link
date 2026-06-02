@@ -403,6 +403,25 @@ body { background: var(--bg); }
   flex-wrap: wrap;
 }
 
+.trackball-bar__select {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.trackball-bar__select:focus { outline: none; border-color: var(--accent); }
+
+.trackball-bar__item--invert {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.trackball-bar__item--invert .btn {
+  min-width: 56px;
+}
+
 .trackball-bar__title {
   font-size: 12px;
   font-weight: 600;

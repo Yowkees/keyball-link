@@ -137,7 +137,15 @@ export interface TrackballConfig {
   cpiIndex:  number;  // 0〜127（ファームウェア内部インデックス）
   scrollDiv: number;  // スクロール分割値（1〜7）
   accel:     number;  // ポインターアクセラレーション（0=オフ、1〜10）
+  scrollMode: number; // スクロール方向: 0=縦のみ 1=横のみ 2=自由（縦横両方）
 }
+
+// スクロールスナップモード
+export const SCROLL_MODE = {
+  VERTICAL:   0,  // 縦のみ
+  HORIZONTAL: 1,  // 横のみ
+  FREE:       2,  // 自由（縦横両方）
+} as const;
 
 // CPI インデックス → 実際の CPI 値（QMK の keyball_set_cpi に対応）
 export function cpiIndexToValue(index: number): number {
@@ -217,17 +225,23 @@ export interface KbSettings {
   autoShift:      boolean;
   permissiveHold: boolean;
   retroTapping:   boolean;
+  scrollInvertV:  boolean;  // 縦スクロール反転
+  scrollInvertH:  boolean;  // 横スクロール反転
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
 export const KB_FLAG_PERMISSIVE_HOLD = 1 << 2;
 export const KB_FLAG_RETRO_TAPPING   = 1 << 3;
+export const KB_FLAG_SCROLL_INV_V    = 1 << 4;
+export const KB_FLAG_SCROLL_INV_H    = 1 << 5;
 
 export const KB_SETTINGS_DEFAULT: KbSettings = {
   tappingTerm:    200,
   autoShift:      false,
   permissiveHold: false,
   retroTapping:   false,
+  scrollInvertV:  false,
+  scrollInvertH:  false,
 };
 
 // 32バイトのパケットを作成するヘルパー

@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from './protocol';
 
 export class KeyballHID {
@@ -96,11 +96,11 @@ export class KeyballHID {
     } catch {
       // 旧ファームウェアはGET_ACCELに対応していないためデフォルト0を使用
     }
-    return { cpiIndex: r[1], scrollDiv: r[2], accel };
+    return { cpiIndex: r[1], scrollDiv: r[2], scrollMode: r[3] ?? 0, accel };
   }
 
   async setTrackball(cfg: TrackballConfig): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_TRACKBALL, cfg.cpiIndex, cfg.scrollDiv));
+    await this.sendCommand(makePacket(CMD.SET_TRACKBALL, cfg.cpiIndex, cfg.scrollDiv, cfg.scrollMode));
     await this.sendCommand(makePacket(CMD.SET_ACCEL, cfg.accel));
   }
 
@@ -157,6 +157,8 @@ export class KeyballHID {
       autoShift:      (flags & KB_FLAG_AUTO_SHIFT)      !== 0,
       permissiveHold: (flags & KB_FLAG_PERMISSIVE_HOLD) !== 0,
       retroTapping:   (flags & KB_FLAG_RETRO_TAPPING)   !== 0,
+      scrollInvertV:  (flags & KB_FLAG_SCROLL_INV_V)    !== 0,
+      scrollInvertH:  (flags & KB_FLAG_SCROLL_INV_H)    !== 0,
     };
   }
 
@@ -165,6 +167,8 @@ export class KeyballHID {
     if (s.autoShift)      flags |= KB_FLAG_AUTO_SHIFT;
     if (s.permissiveHold) flags |= KB_FLAG_PERMISSIVE_HOLD;
     if (s.retroTapping)   flags |= KB_FLAG_RETRO_TAPPING;
+    if (s.scrollInvertV)  flags |= KB_FLAG_SCROLL_INV_V;
+    if (s.scrollInvertH)  flags |= KB_FLAG_SCROLL_INV_H;
     await this.sendCommand(makePacket(
       CMD.SET_SETTINGS,
       (s.tappingTerm >> 8) & 0xFF,

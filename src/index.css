@@ -1955,6 +1955,26 @@ body { background: var(--bg); }
   min-width: 28px;
   text-align: center;
 }
+.mstep-hold-btn {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.mstep-hold-btn:hover { border-color: var(--accent); color: var(--text); }
+.mstep-hold-btn--on {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg2));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .mstep-delete {
   background: none;
   border: none;

@@ -17,10 +17,11 @@ interface MacroEditorProps {
 
 type EditorState = 'idle' | 'recording' | 'editing';
 
-function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDelay, onChangeKey }: {
+function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDelay, onChangeKey, onToggleHold }: {
   step: MacroStep; index: number; keyLayout: KeyLayout;
   onDelete: () => void; onToggleDelay: () => void;
   onChangeDelay: (ms: number) => void; onChangeKey: (kc: number) => void;
+  onToggleHold: () => void;
 }) {
   const label = step.keycode ? getKeyDisplayLabel(step.keycode, keyLayout) : '（キーなし）';
   return (
@@ -52,6 +53,13 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
           ))}
         </select>
         <span className="mstep-key-label">{label}</span>
+        <button
+          className={`mstep-hold-btn ${step.hold ? 'mstep-hold-btn--on' : ''}`}
+          onClick={onToggleHold}
+          title={step.hold ? 'マクロキーを押している間ずっと押し続けます' : '押して離します'}
+        >
+          {step.hold ? '🔒 ホールド' : 'タップ'}
+        </button>
         <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
       </div>
     </div>
@@ -89,7 +97,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
       const delayMs = lastKeyTimeRef.current !== null
         ? Math.min(9999, Math.round(now - lastKeyTimeRef.current)) : 0;
       lastKeyTimeRef.current = now;
-      const newStep: MacroStep = { keycode: kc, delayMs: prev.steps.length === 0 ? 0 : delayMs };
+      const newStep: MacroStep = { keycode: kc, delayMs: prev.steps.length === 0 ? 0 : delayMs, hold: false };
       return { steps: [...prev.steps, newStep] };
     });
   }, []);
@@ -129,7 +137,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
 
   const addStep = () => {
     if (!draft) return;
-    setDraft({ steps: [...draft.steps, { keycode: 0x002C, delayMs: 0 }] });
+    setDraft({ steps: [...draft.steps, { keycode: 0x002C, delayMs: 0, hold: false }] });
   };
 
   const removeAllDelays = () => {
@@ -242,7 +250,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
                     onDelete={() => deleteStep(i)}
                     onToggleDelay={() => updateStep(i, { delayMs: step.delayMs > 0 ? 0 : 200 })}
                     onChangeDelay={ms => updateStep(i, { delayMs: ms })}
-                    onChangeKey={kc => updateStep(i, { keycode: kc })} />
+                    onChangeKey={kc => updateStep(i, { keycode: kc })}
+                    onToggleHold={() => updateStep(i, { hold: !step.hold })} />
                 )
               )}
             </div>

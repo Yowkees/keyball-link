@@ -35,12 +35,14 @@ export const MACRO_CHUNK_SIZE   = 28;   // 1HIDパケットあたりのデータ
 
 // バッファ内のアクションコード（VIA互換）
 export const MACRO_ACTION_TAP   = 0x01;
+export const MACRO_ACTION_DOWN  = 0x02;  // 押し続ける（マクロキー解放時に自動UP）
 export const MACRO_ACTION_DELAY = 0x04;
 export const MACRO_ACTION_END   = 0x00;
 
 export interface MacroStep {
-  keycode: number;   // タップするQMKキーコード
+  keycode: number;   // QMKキーコード
   delayMs: number;   // このキーを押す前に待機するms（0=即座）
+  hold:    boolean;  // true=押し続ける（ホールド）, false=タップ
 }
 
 export interface MacroSlot {
@@ -61,7 +63,8 @@ export function encodeMacroBuffer(slots: MacroSlot[]): Uint8Array {
       if (step.delayMs > 0) {
         bytes.push(MACRO_ACTION_DELAY, (step.delayMs >> 8) & 0xFF, step.delayMs & 0xFF);
       }
-      bytes.push(MACRO_ACTION_TAP, (step.keycode >> 8) & 0xFF, step.keycode & 0xFF);
+      const action = step.hold ? MACRO_ACTION_DOWN : MACRO_ACTION_TAP;
+      bytes.push(action, (step.keycode >> 8) & 0xFF, step.keycode & 0xFF);
     }
     bytes.push(MACRO_ACTION_END);
     if (bytes.length >= MACRO_BUFFER_SIZE) break;
@@ -77,7 +80,7 @@ export function decodeMacroBuffer(buf: Uint8Array): MacroSlot[] {
   let pos = 0;
   // バッファ先頭が不正値なら未初期化として全スロットを空で返す
   const firstByte = buf[0] ?? 0;
-  if (firstByte !== MACRO_ACTION_TAP && firstByte !== MACRO_ACTION_DELAY && firstByte !== MACRO_ACTION_END) {
+  if (firstByte !== MACRO_ACTION_TAP && firstByte !== MACRO_ACTION_DOWN && firstByte !== MACRO_ACTION_DELAY && firstByte !== MACRO_ACTION_END) {
     return Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot);
   }
   for (let m = 0; m < MACRO_SLOT_COUNT && pos < buf.length; m++) {
@@ -86,14 +89,14 @@ export function decodeMacroBuffer(buf: Uint8Array): MacroSlot[] {
     while (pos < buf.length) {
       const action = buf[pos++];
       if (action === MACRO_ACTION_END) break;
-      if (action !== MACRO_ACTION_TAP && action !== MACRO_ACTION_DELAY) break;
+      if (action !== MACRO_ACTION_TAP && action !== MACRO_ACTION_DOWN && action !== MACRO_ACTION_DELAY) break;
       const hi = buf[pos++] ?? 0;
       const lo = buf[pos++] ?? 0;
       const val = (hi << 8) | lo;
       if (action === MACRO_ACTION_DELAY) {
         pendingDelay += val;
       } else {
-        steps.push({ keycode: val, delayMs: pendingDelay });
+        steps.push({ keycode: val, delayMs: pendingDelay, hold: action === MACRO_ACTION_DOWN });
         pendingDelay = 0;
       }
     }

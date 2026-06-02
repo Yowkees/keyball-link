@@ -196,6 +196,53 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
         {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
       </CollapsibleCard>
 
+      <CollapsibleCard title={<>自動マウスレイヤー <span className="settings-unit">トラックボール操作で自動レイヤー切替</span></>}>
+        <p className="settings-desc">
+          トラックボールを動かすと自動で指定レイヤーに切り替わり、操作をやめて一定時間たつと元に戻ります。
+          マウス操作用のキー（クリックなど）を別レイヤーに置いている場合に便利です。
+        </p>
+        <div className="setting-rows">
+          <ToggleRow
+            label="自動マウスレイヤーを使う"
+            desc="トラックボールを動かしたとき、自動的に下記のレイヤーへ切り替えます。"
+            checked={settings.autoMouseEnable}
+            disabled={disabled}
+            onChange={v => apply({ autoMouseEnable: v })}
+          />
+          <div className={`setting-row ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
+            <div className="setting-row__text">
+              <span className="setting-row__label">切り替わるレイヤー</span>
+              <span className="setting-row__desc">トラックボール操作中に有効になるレイヤーです。</span>
+            </div>
+            <select
+              className="trackball-bar__select"
+              value={settings.autoMouseLayer}
+              disabled={disabled || !settings.autoMouseEnable}
+              onChange={e => apply({ autoMouseLayer: Number(e.target.value) })}
+            >
+              <option value={1}>Layer 1</option>
+              <option value={2}>Layer 2</option>
+              <option value={3}>Layer 3</option>
+            </select>
+          </div>
+        </div>
+        <div className="tapping-term-row" style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
+          <input
+            type="range" min={100} max={2000} step={50}
+            value={settings.autoMouseTimeout}
+            disabled={disabled || !settings.autoMouseEnable}
+            onChange={e => apply({ autoMouseTimeout: Number(e.target.value) })}
+            className="tapping-term-slider"
+          />
+          <span className="tapping-term-value">{settings.autoMouseTimeout} ms</span>
+        </div>
+        <div className="tapping-term-hints">
+          <span>100ms（すぐ戻る）</span>
+          <span>デフォルト: 650ms</span>
+          <span>2000ms（長く維持）</span>
+        </div>
+      </CollapsibleCard>
+
       <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>
         <p className="settings-desc">
           キーマップ画面のキーに表示される文字を切り替えます。<br />

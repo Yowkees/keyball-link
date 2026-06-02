@@ -222,6 +222,22 @@ export const MOD_TAP_MODS = [
   { value: 0x18, label: 'GUI (右)' },
 ] as const;
 
+// MODS（修飾＋キー同時送信）キーコード: 0x0100 | (mod5 << 8) | kc
+// 例: Ctrl+C = makeModsKeycode(0x01, KC_C)
+// mod5 ビット: bit0=Ctrl, bit1=Shift, bit2=Alt, bit3=GUI, bit4=右側
+export function makeModsKeycode(mods: number, kc: number): number {
+  return 0x0100 | ((mods & 0x1F) << 8) | (kc & 0xFF);
+}
+
+// 通常キーに付加できる修飾キー（左右はトグルで切替）
+export const MODIFIER_BITS = [
+  { bit: 0x01, label: 'Ctrl' },
+  { bit: 0x02, label: 'Shift' },
+  { bit: 0x04, label: 'Alt' },
+  { bit: 0x08, label: 'GUI' },
+] as const;
+export const MOD_RIGHT_BIT = 0x10;
+
 // キーボード詳細設定
 export interface KbSettings {
   tappingTerm:    number;   // 50-1000ms
@@ -230,6 +246,9 @@ export interface KbSettings {
   retroTapping:   boolean;
   scrollInvertV:  boolean;  // 縦スクロール反転
   scrollInvertH:  boolean;  // 横スクロール反転
+  autoMouseEnable:  boolean;  // 自動マウスレイヤー有効
+  autoMouseLayer:   number;   // 切り替わる対象レイヤー（0-3）
+  autoMouseTimeout: number;   // 戻るまでの時間(ms)
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
@@ -237,6 +256,7 @@ export const KB_FLAG_PERMISSIVE_HOLD = 1 << 2;
 export const KB_FLAG_RETRO_TAPPING   = 1 << 3;
 export const KB_FLAG_SCROLL_INV_V    = 1 << 4;
 export const KB_FLAG_SCROLL_INV_H    = 1 << 5;
+export const KB_FLAG_AML_DISABLE     = 1 << 6;  // セットでAML無効（0=有効）
 
 export const KB_SETTINGS_DEFAULT: KbSettings = {
   tappingTerm:    200,
@@ -245,6 +265,9 @@ export const KB_SETTINGS_DEFAULT: KbSettings = {
   retroTapping:   false,
   scrollInvertV:  false,
   scrollInvertH:  false,
+  autoMouseEnable:  true,
+  autoMouseLayer:   1,
+  autoMouseTimeout: 650,
 };
 
 // 32バイトのパケットを作成するヘルパー

@@ -12,13 +12,14 @@ import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import { MacroEditor } from './components/MacroEditor/MacroEditor';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
+import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
 import { PRESETS } from './lib/presets';
 import type { KeyLayout } from './lib/keycodes';
 import './index.css';
 
-type Tab = 'keymap' | 'macro' | 'settings' | 'firmware';
+type Tab = 'keymap' | 'macro' | 'settings' | 'firmware' | 'feedback';
 type BallSide = 'left' | 'right';
 type Theme = 'dark' | 'light';
 
@@ -319,6 +320,7 @@ export default function App() {
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} onClick={() => setActiveTab('firmware')}>ファームウェア</button>
+              <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
             </div>
 
             {activeTab === 'keymap' && !isConnected && (
@@ -408,6 +410,8 @@ export default function App() {
             {activeTab === 'firmware' && (
               <FirmwareFlasher detectedModel={state.model} isHIDConnected={isConnected} onReboot={reboot} />
             )}
+
+            {activeTab === 'feedback' && <FeedbackTab />}
 
             {activeTab === 'settings' && (
               <SettingsTab

@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from './protocol';
 
 export class KeyballHID {
@@ -159,21 +159,28 @@ export class KeyballHID {
       retroTapping:   (flags & KB_FLAG_RETRO_TAPPING)   !== 0,
       scrollInvertV:  (flags & KB_FLAG_SCROLL_INV_V)    !== 0,
       scrollInvertH:  (flags & KB_FLAG_SCROLL_INV_H)    !== 0,
+      autoMouseEnable:  (flags & KB_FLAG_AML_DISABLE)   === 0,
+      autoMouseLayer:   (r[4] >= 1 && r[4] <= 7) ? r[4] : 1,
+      autoMouseTimeout: (((r[5] << 8) | r[6]) >= 100) ? ((r[5] << 8) | r[6]) : 650,
     };
   }
 
   async setSettings(s: KbSettings): Promise<void> {
     let flags = 0;
-    if (s.autoShift)      flags |= KB_FLAG_AUTO_SHIFT;
-    if (s.permissiveHold) flags |= KB_FLAG_PERMISSIVE_HOLD;
-    if (s.retroTapping)   flags |= KB_FLAG_RETRO_TAPPING;
-    if (s.scrollInvertV)  flags |= KB_FLAG_SCROLL_INV_V;
-    if (s.scrollInvertH)  flags |= KB_FLAG_SCROLL_INV_H;
+    if (s.autoShift)        flags |= KB_FLAG_AUTO_SHIFT;
+    if (s.permissiveHold)   flags |= KB_FLAG_PERMISSIVE_HOLD;
+    if (s.retroTapping)     flags |= KB_FLAG_RETRO_TAPPING;
+    if (s.scrollInvertV)    flags |= KB_FLAG_SCROLL_INV_V;
+    if (s.scrollInvertH)    flags |= KB_FLAG_SCROLL_INV_H;
+    if (!s.autoMouseEnable) flags |= KB_FLAG_AML_DISABLE;
     await this.sendCommand(makePacket(
       CMD.SET_SETTINGS,
       (s.tappingTerm >> 8) & 0xFF,
       s.tappingTerm & 0xFF,
       flags,
+      s.autoMouseLayer & 0xFF,
+      (s.autoMouseTimeout >> 8) & 0xFF,
+      s.autoMouseTimeout & 0xFF,
     ));
   }
 

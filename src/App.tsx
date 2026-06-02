@@ -13,13 +13,15 @@ import { MacroEditor } from './components/MacroEditor/MacroEditor';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
+import { KeyPalette } from './components/KeyPalette/KeyPalette';
 import type { KbSettings, MacroSlot } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
-import { PRESETS } from './lib/presets';
 import type { KeyLayout } from './lib/keycodes';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'settings' | 'firmware' | 'feedback';
+// キー変更1回分（Undo/Redo用）
+interface EditOp { layer: number; row: number; col: number; prev: number; next: number }
 type BallSide = 'left' | 'right';
 type Theme = 'dark' | 'light';
 
@@ -29,7 +31,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
@@ -42,7 +44,9 @@ export default function App() {
     (localStorage.getItem('keyLayout') as KeyLayout) ?? 'JIS'
   );
   const [toast, setToast] = useState<Toast | null>(null);
-  const [presetProgress, setPresetProgress] = useState<{ done: number; total: number } | null>(null);
+  // Undo/Redo用：キー変更の履歴
+  const [undoStack, setUndoStack] = useState<EditOp[]>([]);
+  const [redoStack, setRedoStack] = useState<EditOp[]>([]);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
   const [guideStep, setGuideStep] = useState<'click' | 'assign' | 'save' | 'done'>('click');
@@ -64,6 +68,8 @@ export default function App() {
       setShowGuide(false);
       setHasUnsaved(false);
       everAssignedRef.current = false;
+      setUndoStack([]);
+      setRedoStack([]);
     }
   }, [state.connectionState]);
 
@@ -100,8 +106,12 @@ export default function App() {
   const assignKey = async (index: number, keycode: number) => {
     if (!layout) return;
     const k = layout[index];
+    const prev = state.keymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0;
+    if (prev === keycode) return;  // 変化なしなら何もしない
     try {
       await setKeycode(state.currentLayer, k.row, k.col, keycode);
+      setUndoStack(s => [...s, { layer: state.currentLayer, row: k.row, col: k.col, prev, next: keycode }]);
+      setRedoStack([]);  // 新しい操作で「やり直し」履歴は無効化
       setHasUnsaved(true);
       if (!everAssignedRef.current) {
         everAssignedRef.current = true;
@@ -111,6 +121,50 @@ export default function App() {
       showToast(`キーコード書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
+
+  const handleUndo = async () => {
+    if (undoStack.length === 0 || !layout) return;
+    const op = undoStack[undoStack.length - 1];
+    try {
+      await setKeycode(op.layer, op.row, op.col, op.prev);
+      setUndoStack(s => s.slice(0, -1));
+      setRedoStack(r => [...r, op]);
+      setHasUnsaved(true);
+      if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
+    } catch (e) {
+      showToast(`元に戻す操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (redoStack.length === 0 || !layout) return;
+    const op = redoStack[redoStack.length - 1];
+    try {
+      await setKeycode(op.layer, op.row, op.col, op.next);
+      setRedoStack(r => r.slice(0, -1));
+      setUndoStack(s => [...s, op]);
+      setHasUnsaved(true);
+      if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
+    } catch (e) {
+      showToast(`やり直し操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  // Cmd/Ctrl+Z で元に戻す、Cmd/Ctrl+Shift+Z でやり直し（入力欄・モーダル表示中は無効）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z')) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (selectedKeyIndex !== null) return;  // キー設定モーダル表示中
+      e.preventDefault();
+      if (e.shiftKey) void handleRedo();
+      else void handleUndo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoStack, redoStack, selectedKeyIndex, layout, state.currentLayer, state.keymap]);
 
   const handleModalSelect = async (keycode: number) => {
     if (selectedKeyIndex === null) return;
@@ -136,22 +190,6 @@ export default function App() {
   const handleKbSettingsChange = async (s: KbSettings) => {
     try { await setKbSettings(s); }
     catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
-  };
-
-  const handleLoadPreset = async (presetId: string) => {
-    const preset = PRESETS.find(p => p.id === presetId);
-    if (!preset) return;
-    if (!confirm(`「${preset.name}」をキーボードに書き込みます。現在のキーマップは上書きされます。よろしいですか？`)) return;
-    try {
-      setPresetProgress({ done: 0, total: 1 });
-      await loadPreset(preset, (done, total) => setPresetProgress({ done, total }));
-      await save();
-      showToast(`「${preset.name}」を書き込み・保存しました`, 'success');
-    } catch (e) {
-      showToast(`プリセット書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setPresetProgress(null);
-    }
   };
 
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
@@ -261,19 +299,22 @@ export default function App() {
               <span className="status status--connected">● {state.deviceName}</span>
               <button className="btn btn--ghost" onClick={disconnect}>切断</button>
               <button className="btn btn--ghost" onClick={handleResetKeymap}>初期化</button>
-              {PRESETS.map(p => (
-                <button
-                  key={p.id}
-                  className="btn btn--ghost"
-                  onClick={() => handleLoadPreset(p.id)}
-                  disabled={presetProgress !== null}
-                  title={p.description}
-                >
-                  {presetProgress !== null
-                    ? `書込中 ${presetProgress.done}/${presetProgress.total}`
-                    : 'プリセット読込'}
-                </button>
-              ))}
+              <button
+                className="btn btn--ghost"
+                onClick={handleUndo}
+                disabled={undoStack.length === 0}
+                title={undoStack.length === 0 ? '元に戻す操作がありません' : '直前のキー変更を元に戻す (Cmd/Ctrl+Z)'}
+              >
+                ↩ 元に戻す
+              </button>
+              <button
+                className="btn btn--ghost"
+                onClick={handleRedo}
+                disabled={redoStack.length === 0}
+                title={redoStack.length === 0 ? 'やり直す操作がありません' : '元に戻した変更をやり直す (Cmd/Ctrl+Shift+Z)'}
+              >
+                ↪ やり直し
+              </button>
               <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップとマクロをJSONファイルに保存">エクスポート</button>
               <label className="btn btn--ghost" title="JSONファイルからキーマップとマクロを読み込む" style={{ cursor: 'pointer' }}>
                 インポート
@@ -383,18 +424,24 @@ export default function App() {
                 </p>
 
                 {state.trackball && (
-                  <TrackballSettings
-                    config={state.trackball}
-                    onChange={handleTrackballChange}
-                    onSave={handleSave}
-                    scrollInvertV={state.kbSettings.scrollInvertV}
-                    scrollInvertH={state.kbSettings.scrollInvertH}
-                    onScrollInvertChange={(v, h) => handleKbSettingsChange({ ...state.kbSettings, scrollInvertV: v, scrollInvertH: h })}
-                  />
+                  <CollapsibleCard title="トラックボール設定">
+                    <TrackballSettings
+                      config={state.trackball}
+                      onChange={handleTrackballChange}
+                      onSave={handleSave}
+                      scrollInvertV={state.kbSettings.scrollInvertV}
+                      scrollInvertH={state.kbSettings.scrollInvertH}
+                      onScrollInvertChange={(v, h) => handleKbSettingsChange({ ...state.kbSettings, scrollInvertV: v, scrollInvertH: h })}
+                    />
+                  </CollapsibleCard>
                 )}
                 {state.led && (
-                  <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
+                  <CollapsibleCard title="LED設定">
+                    <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
+                  </CollapsibleCard>
                 )}
+
+                <KeyPalette keyLayout={keyLayout} />
               </div>
             )}
 

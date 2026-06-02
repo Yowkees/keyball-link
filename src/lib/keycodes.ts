@@ -394,3 +394,85 @@ export const JIS_TAP_KEYS: KeycodeEntry[] = [
   { code: 0x0031, label: '] (JIS)', short: '] (JIS)', group: 'JIS記号' },
   { code: 0x0034, label: ': (JIS)', short: ': (JIS)', group: 'JIS記号' },
 ];
+
+// 修飾キーの日本語名（MODS/Mod-Tap説明用）
+function modBitsToJa(mod: number): string {
+  const right = (mod & 0x10) !== 0;
+  const pre = right ? '右' : '';
+  const parts: string[] = [];
+  if (mod & 0x01) parts.push(pre + 'Ctrl');
+  if (mod & 0x02) parts.push(pre + 'Shift');
+  if (mod & 0x04) parts.push(pre + 'Alt');
+  if (mod & 0x08) parts.push(pre + 'GUI(⌘)');
+  return parts.join('+');
+}
+
+// グループごとの大まかな説明
+const GROUP_DESC: Record<string, string> = {
+  '文字': '文字を入力します',
+  '数字': '数字を入力します',
+  '記号': '記号を入力します',
+  'Shift記号': 'Shift＋キーの記号を入力します',
+  '基本': '基本的な操作キーです',
+  '修飾': '押している間だけ効く修飾キーです',
+  '矢印': 'カーソルを移動します',
+  'F': 'ファンクションキーです',
+  'システム': 'システム操作キーです',
+  'テンキー': 'テンキーの入力です',
+  'メディア': '音量・再生などのメディア操作です',
+  '日本語': '日本語入力の切り替えなどに使います',
+};
+
+// キーが「何をするか」の説明文を返す（ホバー時のツールチップ用）
+export function getKeyDescription(code: number, layout: KeyLayout): string {
+  const disp = getKeyDisplayLabel(code, layout).replace('\n', ' / ');
+
+  if (code === KC_NO)   return '何も割り当てられていません';
+  if (code === KC_TRNS) return '透過：下のレイヤーのキーがそのまま使われます';
+
+  // MODS（修飾＋キー同時送信）
+  if (code >= 0x0100 && code <= 0x1FFF) {
+    const mod = (code >> 8) & 0x1F;
+    const kc  = code & 0xFF;
+    const kcCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
+    return `${modBitsToJa(mod)} を押しながら ${kcCh} を入力します`;
+  }
+  // Mod-Tap
+  if (code >= 0x2000 && code <= 0x3FFF) {
+    const mod = (code >> 8) & 0x1F;
+    const kc  = code & 0xFF;
+    const kcCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
+    return `タップ：${kcCh} を入力 ／ 長押し：${modBitsToJa(mod)} として動作します`;
+  }
+  // Layer-Tap
+  if (code >= 0x4000 && code <= 0x4FFF) {
+    const layer = (code >> 8) & 0xF;
+    const kc    = code & 0xFF;
+    const kcCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
+    return `タップ：${kcCh} を入力 ／ 長押し：レイヤー${layer} に切り替えます`;
+  }
+  // レイヤー操作（MO/TO/TG/DF/OSL/TT）
+  if (code >= 0x5100 && code <= 0x511F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
+  if (code >= 0x5000 && code <= 0x501F) return `レイヤー${code & 0x1F}に切り替えて固定します（TO）`;
+  if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
+  if (code >= 0x5300 && code <= 0x531F) return `標準レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
+  if (code >= 0x5400 && code <= 0x541F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;
+  if (code >= 0x5500 && code <= 0x551F) return `次の1キーだけ効く修飾キーです（ワンショット）`;
+  if (code >= 0x5800 && code <= 0x581F) return `タップでレイヤー切替、連打で固定します（TT）`;
+  // マクロ
+  if (code >= 0x7700 && code <= 0x770F) return `マクロ ${code - 0x7700} を実行します（マクロタブで内容を設定）`;
+  // タップダンス
+  if (code >= 0x5700 && code <= 0x5707) return `タップダンス ${code - 0x5700}：連打回数で動作が変わります`;
+
+  // グループ説明
+  const entry = findKeycode(code);
+  if (GROUP_DESC[entry.group]) {
+    return `${disp}：${GROUP_DESC[entry.group]}`;
+  }
+  if (entry.group === 'マウス')   return `${disp}：マウス操作（クリック・移動・ホイール）`;
+  if (entry.group === 'Keyball')  return `${disp}：Keyball独自機能（CPI・スクロール等の調整）`;
+  if (entry.group === 'RGB')      return `${disp}：LED（RGB）の操作`;
+  if (entry.group === '特殊')     return `${disp}：特殊キー`;
+
+  return disp;
+}

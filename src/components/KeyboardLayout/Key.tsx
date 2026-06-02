@@ -15,9 +15,11 @@ interface KeyProps {
   xExtra: number;
   onClick: () => void;
   onDrop: (keycode: number) => void;
+  onHover?: () => void;
+  onHoverEnd?: () => void;
 }
 
-export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, onClick, onDrop }: KeyProps) {
+export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, onClick, onDrop, onHover, onHoverEnd }: KeyProps) {
   const [dragOver, setDragOver] = useState(false);
 
   const isBall     = layout.ball === ballSide;
@@ -35,6 +37,8 @@ export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, on
     <button
       onClick={onClick}
       title={entry.short}
+      onMouseEnter={onHover}
+      onMouseLeave={onHoverEnd}
       style={{ position: 'absolute', left: x, top: y, width: w, height: h }}
       className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''}`}
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}

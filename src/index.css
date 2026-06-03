@@ -218,7 +218,7 @@ body { background: var(--bg); }
 /* ===== キーボードレイアウト ===== */
 .layout-scroll {
   overflow-x: auto;
-  padding-bottom: 16px;
+  padding: 28px 0;
   display: flex;
   justify-content: center;
 }

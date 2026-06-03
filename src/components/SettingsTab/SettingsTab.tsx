@@ -1,8 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { KbSettings } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
+
+// ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
+function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
+  value: number; min: number; max: number; step: number;
+  disabled: boolean; unit: string; onCommit: (v: number) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => { setLocal(value); }, [value]);
+
+  const commit = () => { if (local !== value) onCommit(local); };
+
+  return (
+    <div className="tapping-term-row">
+      <input
+        type="range" min={min} max={max} step={step} value={local} disabled={disabled}
+        onChange={e => setLocal(Number(e.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
+        className="tapping-term-slider"
+      />
+      <span className="tapping-term-value">{local} {unit}</span>
+    </div>
+  );
+}
 
 interface SettingsTabProps {
   settings: KbSettings;
@@ -154,15 +178,11 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
           タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
           Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
         </p>
-        <div className="tapping-term-row">
-          <input
-            type="range" min={50} max={500} step={10}
-            value={settings.tappingTerm} disabled={disabled}
-            onChange={e => apply({ tappingTerm: Number(e.target.value) })}
-            className="tapping-term-slider"
-          />
-          <span className="tapping-term-value">{settings.tappingTerm} ms</span>
-        </div>
+        <SliderControl
+          value={settings.tappingTerm} min={50} max={500} step={10}
+          disabled={disabled} unit="ms"
+          onCommit={v => apply({ tappingTerm: v })}
+        />
         <div className="tapping-term-hints">
           <span>50ms（素早く）</span>
           <span>デフォルト: 200ms</span>
@@ -226,15 +246,12 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
             </select>
           </div>
         </div>
-        <div className="tapping-term-row" style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
-          <input
-            type="range" min={100} max={2000} step={50}
-            value={settings.autoMouseTimeout}
-            disabled={disabled || !settings.autoMouseEnable}
-            onChange={e => apply({ autoMouseTimeout: Number(e.target.value) })}
-            className="tapping-term-slider"
+        <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
+          <SliderControl
+            value={settings.autoMouseTimeout} min={100} max={2000} step={50}
+            disabled={disabled || !settings.autoMouseEnable} unit="ms"
+            onCommit={v => apply({ autoMouseTimeout: v })}
           />
-          <span className="tapping-term-value">{settings.autoMouseTimeout} ms</span>
         </div>
         <div className="tapping-term-hints">
           <span>100ms（すぐ戻る）</span>

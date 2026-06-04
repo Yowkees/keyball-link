@@ -258,6 +258,22 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
           <span>デフォルト: 650ms</span>
           <span>2000ms（長く維持）</span>
         </div>
+
+        <p className="settings-desc" style={{ marginTop: 16 }}>
+          <strong>切り替わり感度</strong>：トラックボールをどれくらい動かしたらレイヤーが切り替わるかです。小さいほど少しの動きで切り替わり（敏感）、大きいほど大きく動かさないと切り替わりません（鈍感）。
+        </p>
+        <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
+          <SliderControl
+            value={settings.autoMouseThreshold} min={1} max={40} step={1}
+            disabled={disabled || !settings.autoMouseEnable} unit=""
+            onCommit={v => apply({ autoMouseThreshold: v })}
+          />
+        </div>
+        <div className="tapping-term-hints">
+          <span>1（とても敏感）</span>
+          <span>デフォルト: 10</span>
+          <span>40（鈍感）</span>
+        </div>
       </CollapsibleCard>
 
       <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
@@ -49,6 +49,22 @@ export function useKeyball() {
     isLoading: false,
     isWebHIDSupported: isWebHIDSupported(),
   });
+
+  // 物理切断（ケーブル抜き差し等）を検知して接続前の状態に戻す
+  useEffect(() => {
+    hid.current.onDisconnect = () => {
+      setState(prev => ({
+        ...prev,
+        connectionState: 'disconnected',
+        deviceName: '',
+        info: null,
+        model: null,
+        keymap: [],
+        trackball: null,
+        led: null,
+      }));
+    };
+  }, []);
 
   const setPartial = (patch: Partial<KeyballState>) =>
     setState(prev => ({ ...prev, ...patch }));

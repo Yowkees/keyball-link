@@ -5,6 +5,8 @@ import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, Kb
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
+  // 物理的に切断（ケーブル抜き等）されたときに呼ばれる
+  onDisconnect: (() => void) | null = null;
 
   get connected(): boolean {
     return this.device !== null && this.device.opened;
@@ -14,6 +16,13 @@ export class KeyballHID {
     return this.device?.productName ?? '';
   }
 
+  private handleDeviceDisconnect = (e: HIDConnectionEvent) => {
+    if (this.device && e.device === this.device) {
+      this.device = null;
+      this.onDisconnect?.();
+    }
+  };
+
   async connect(): Promise<void> {
     const devices = await navigator.hid.requestDevice({
       filters: [{ vendorId: KEYBALL_VID, usagePage: KEYBALL_USAGE_PAGE, usage: KEYBALL_USAGE_ID }],
@@ -21,9 +30,11 @@ export class KeyballHID {
     if (devices.length === 0) throw new Error('デバイスが選択されませんでした');
     this.device = devices[0];
     if (!this.device.opened) await this.device.open();
+    navigator.hid.addEventListener('disconnect', this.handleDeviceDisconnect);
   }
 
   async disconnect(): Promise<void> {
+    navigator.hid.removeEventListener('disconnect', this.handleDeviceDisconnect);
     if (this.device?.opened) await this.device.close();
     this.device = null;
   }
@@ -159,9 +170,10 @@ export class KeyballHID {
       retroTapping:   (flags & KB_FLAG_RETRO_TAPPING)   !== 0,
       scrollInvertV:  (flags & KB_FLAG_SCROLL_INV_V)    !== 0,
       scrollInvertH:  (flags & KB_FLAG_SCROLL_INV_H)    !== 0,
-      autoMouseEnable:  (flags & KB_FLAG_AML_DISABLE)   === 0,
-      autoMouseLayer:   (r[4] >= 1 && r[4] <= 7) ? r[4] : 1,
-      autoMouseTimeout: (((r[5] << 8) | r[6]) >= 100) ? ((r[5] << 8) | r[6]) : 650,
+      autoMouseEnable:   (flags & KB_FLAG_AML_DISABLE)  === 0,
+      autoMouseLayer:    (r[4] >= 1 && r[4] <= 7) ? r[4] : 1,
+      autoMouseTimeout:  (((r[5] << 8) | r[6]) >= 100) ? ((r[5] << 8) | r[6]) : 650,
+      autoMouseThreshold: (r[7] >= 1 && r[7] <= 100) ? r[7] : 10,
     };
   }
 
@@ -181,6 +193,7 @@ export class KeyballHID {
       s.autoMouseLayer & 0xFF,
       (s.autoMouseTimeout >> 8) & 0xFF,
       s.autoMouseTimeout & 0xFF,
+      s.autoMouseThreshold & 0xFF,
     ));
   }
 

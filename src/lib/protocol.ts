@@ -226,7 +226,9 @@ export const MOD_TAP_MODS = [
 // 例: Ctrl+C = makeModsKeycode(0x01, KC_C)
 // mod5 ビット: bit0=Ctrl, bit1=Shift, bit2=Alt, bit3=GUI, bit4=右側
 export function makeModsKeycode(mods: number, kc: number): number {
-  return 0x0100 | ((mods & 0x1F) << 8) | (kc & 0xFF);
+  // mod各ビットを8bitシフトするとQMKのQK_MODS表現になる
+  // （Ctrl=0x0100, Shift=0x0200, Alt=0x0400, GUI=0x0800, 右=0x1000）
+  return ((mods & 0x1F) << 8) | (kc & 0xFF);
 }
 
 // 通常キーに付加できる修飾キー（左右はトグルで切替）
@@ -246,9 +248,10 @@ export interface KbSettings {
   retroTapping:   boolean;
   scrollInvertV:  boolean;  // 縦スクロール反転
   scrollInvertH:  boolean;  // 横スクロール反転
-  autoMouseEnable:  boolean;  // 自動マウスレイヤー有効
-  autoMouseLayer:   number;   // 切り替わる対象レイヤー（0-3）
-  autoMouseTimeout: number;   // 戻るまでの時間(ms)
+  autoMouseEnable:   boolean;  // 自動マウスレイヤー有効
+  autoMouseLayer:    number;   // 切り替わる対象レイヤー（0-3）
+  autoMouseTimeout:  number;   // 戻るまでの時間(ms)
+  autoMouseThreshold: number;  // 発動しきい値（移動量。小さいほど敏感）
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
@@ -265,9 +268,10 @@ export const KB_SETTINGS_DEFAULT: KbSettings = {
   retroTapping:   false,
   scrollInvertV:  false,
   scrollInvertH:  false,
-  autoMouseEnable:  true,
-  autoMouseLayer:   1,
-  autoMouseTimeout: 650,
+  autoMouseEnable:   true,
+  autoMouseLayer:    1,
+  autoMouseTimeout:  650,
+  autoMouseThreshold: 10,
 };
 
 // 32バイトのパケットを作成するヘルパー

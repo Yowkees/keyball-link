@@ -96,16 +96,16 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x0091, '英数(Mac推奨)','LANG2(英数)', '日本語'),
 
   // レイヤー切替
-  K(0x5101, 'MO(1)', 'MO1', 'レイヤー'),
-  K(0x5102, 'MO(2)', 'MO2', 'レイヤー'),
-  K(0x5103, 'MO(3)', 'MO3', 'レイヤー'),
-  K(0x5000, 'TO(0)', 'TO0', 'レイヤー'),
-  K(0x5001, 'TO(1)', 'TO1', 'レイヤー'),
-  K(0x5002, 'TO(2)', 'TO2', 'レイヤー'),
-  K(0x5003, 'TO(3)', 'TO3', 'レイヤー'),
-  K(0x5201, 'TG(1)', 'TG1', 'レイヤー'),
-  K(0x5202, 'TG(2)', 'TG2', 'レイヤー'),
-  K(0x5203, 'TG(3)', 'TG3', 'レイヤー'),
+  K(0x5221, 'MO(1)', 'MO1', 'レイヤー'),
+  K(0x5222, 'MO(2)', 'MO2', 'レイヤー'),
+  K(0x5223, 'MO(3)', 'MO3', 'レイヤー'),
+  K(0x5200, 'TO(0)', 'TO0', 'レイヤー'),
+  K(0x5201, 'TO(1)', 'TO1', 'レイヤー'),
+  K(0x5202, 'TO(2)', 'TO2', 'レイヤー'),
+  K(0x5203, 'TO(3)', 'TO3', 'レイヤー'),
+  K(0x5261, 'TG(1)', 'TG1', 'レイヤー'),
+  K(0x5262, 'TG(2)', 'TG2', 'レイヤー'),
+  K(0x5263, 'TG(3)', 'TG3', 'レイヤー'),
 
   // Keyball 独自キー
   K(0x7E00, 'KB RST',  'KBC_RST',  'Keyball'),
@@ -231,16 +231,16 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0C, 'Kb 12', 'KB12', 'Keyball'),
 
   // レイヤー拡張（DF / OSL / TT）
-  K(0x5300, 'DF(0)', 'DF0', 'レイヤー'),
-  K(0x5301, 'DF(1)', 'DF1', 'レイヤー'),
-  K(0x5302, 'DF(2)', 'DF2', 'レイヤー'),
-  K(0x5303, 'DF(3)', 'DF3', 'レイヤー'),
-  K(0x5401, 'OSL(1)', 'OSL1', 'レイヤー'),
-  K(0x5402, 'OSL(2)', 'OSL2', 'レイヤー'),
-  K(0x5403, 'OSL(3)', 'OSL3', 'レイヤー'),
-  K(0x5801, 'TT(1)', 'TT1', 'レイヤー'),
-  K(0x5802, 'TT(2)', 'TT2', 'レイヤー'),
-  K(0x5803, 'TT(3)', 'TT3', 'レイヤー'),
+  K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),
+  K(0x5241, 'DF(1)', 'DF1', 'レイヤー'),
+  K(0x5242, 'DF(2)', 'DF2', 'レイヤー'),
+  K(0x5243, 'DF(3)', 'DF3', 'レイヤー'),
+  K(0x5281, 'OSL(1)', 'OSL1', 'レイヤー'),
+  K(0x5282, 'OSL(2)', 'OSL2', 'レイヤー'),
+  K(0x5283, 'OSL(3)', 'OSL3', 'レイヤー'),
+  K(0x52C1, 'TT(1)', 'TT1', 'レイヤー'),
+  K(0x52C2, 'TT(2)', 'TT2', 'レイヤー'),
+  K(0x52C3, 'TT(3)', 'TT3', 'レイヤー'),
 
   // ワンショット修飾（OSM: QK_ONE_SHOT_MOD = 0x5500）
   K(0x5501, 'OSM(Ctrl)',  'OSM_C', 'ワンショット'),
@@ -453,13 +453,13 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
     return `タップ：${kcCh} を入力 ／ 長押し：レイヤー${layer} に切り替えます`;
   }
   // レイヤー操作（MO/TO/TG/DF/OSL/TT）
-  if (code >= 0x5100 && code <= 0x511F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
-  if (code >= 0x5000 && code <= 0x501F) return `レイヤー${code & 0x1F}に切り替えます（他のレイヤーは自動で解除・TO）`;
-  if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
-  if (code >= 0x5300 && code <= 0x531F) return `標準レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
-  if (code >= 0x5400 && code <= 0x541F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;
-  if (code >= 0x5500 && code <= 0x551F) return `次の1キーだけ効く修飾キーです（ワンショット）`;
-  if (code >= 0x5800 && code <= 0x581F) return `タップでレイヤー切替、連打で固定します（TT）`;
+  if (code >= 0x5220 && code <= 0x523F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
+  if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}に切り替えます（他のレイヤーは自動で解除・TO）`;
+  if (code >= 0x5260 && code <= 0x527F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
+  if (code >= 0x5240 && code <= 0x525F) return `標準レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
+  if (code >= 0x5280 && code <= 0x529F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;
+  if (code >= 0x52A0 && code <= 0x52BF) return `次の1キーだけ効く修飾キーです（ワンショット）`;
+  if (code >= 0x52C0 && code <= 0x52DF) return `タップでレイヤー切替、連打で固定します（TT）`;
   // マクロ
   if (code >= 0x7700 && code <= 0x770F) return `マクロ ${code - 0x7700} を実行します（マクロタブで内容を設定）`;
   // タップダンス

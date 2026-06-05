@@ -227,18 +227,27 @@ body { background: var(--bg); }
 
 /* ===== 全レイヤー表示 ===== */
 .all-layers-view {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+.all-layers-view > p {
+  grid-column: 1 / -1;
 }
 .all-layers-item {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg2);
   padding: 4px 8px 8px;
+  min-width: 0;
 }
 .all-layers-item .layout-scroll {
   padding: 8px 0;
+}
+@media (max-width: 900px) {
+  .all-layers-view {
+    grid-template-columns: 1fr;
+  }
 }
 .all-layers-label {
   font-size: 13px;

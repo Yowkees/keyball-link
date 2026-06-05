@@ -20,9 +20,10 @@ interface KeyboardLayoutProps {
   keyLayout: KeyLayout;
   onKeyClick: (index: number) => void;
   onKeyDrop: (index: number, keycode: number) => void;
+  showDescBar?: boolean;
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   const maxX = Math.max(...layout.map(k => {
@@ -51,9 +52,11 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
           />
         ))}
       </div>
-      <div className="key-desc-bar">
-        {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
-      </div>
+      {showDescBar && (
+        <div className="key-desc-bar">
+          {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
+        </div>
+      )}
     </div>
   );
 }

@@ -431,6 +431,7 @@ export default function App() {
                               keyLayout={keyLayout}
                               onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
                               onKeyDrop={() => {}}
+                              showDescBar={false}
                             />
                           </div>
                         </div>

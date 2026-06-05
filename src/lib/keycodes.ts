@@ -99,6 +99,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x5101, 'MO(1)', 'MO1', 'レイヤー'),
   K(0x5102, 'MO(2)', 'MO2', 'レイヤー'),
   K(0x5103, 'MO(3)', 'MO3', 'レイヤー'),
+  K(0x5000, 'TO(0)', 'TO0', 'レイヤー'),
   K(0x5001, 'TO(1)', 'TO1', 'レイヤー'),
   K(0x5002, 'TO(2)', 'TO2', 'レイヤー'),
   K(0x5003, 'TO(3)', 'TO3', 'レイヤー'),
@@ -453,7 +454,7 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   }
   // レイヤー操作（MO/TO/TG/DF/OSL/TT）
   if (code >= 0x5100 && code <= 0x511F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
-  if (code >= 0x5000 && code <= 0x501F) return `レイヤー${code & 0x1F}に切り替えて固定します（TO）`;
+  if (code >= 0x5000 && code <= 0x501F) return `レイヤー${code & 0x1F}に切り替えます（他のレイヤーは自動で解除・TO）`;
   if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
   if (code >= 0x5300 && code <= 0x531F) return `標準レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
   if (code >= 0x5400 && code <= 0x541F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;

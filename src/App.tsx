@@ -33,6 +33,7 @@ interface Toast {
 export default function App() {
   const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
+  const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
     (localStorage.getItem('theme') as Theme) ?? 'dark'
@@ -394,12 +395,19 @@ export default function App() {
                   {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => (
                     <button
                       key={i}
-                      className={`btn btn--layer ${state.currentLayer === i ? 'btn--layer-active' : ''}`}
-                      onClick={() => { setCurrentLayer(i); setSelectedKeyIndex(null); }}
+                      className={`btn btn--layer ${!showAllLayers && state.currentLayer === i ? 'btn--layer-active' : ''}`}
+                      onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
                     >
                       Layer {i}
                     </button>
                   ))}
+                  <button
+                    className={`btn btn--layer ${showAllLayers ? 'btn--layer-active' : ''}`}
+                    onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
+                    title="すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）"
+                  >
+                    全レイヤー
+                  </button>
                   <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-dim)' }}>
                     ボール位置:
                     <button className={`btn btn--small btn--layer ${ballSide === 'left' ? 'btn--layer-active' : ''}`} onClick={() => handleBallSide('left')}>左</button>
@@ -407,21 +415,50 @@ export default function App() {
                   </span>
                 </div>
 
-                <div className="layout-scroll">
-                  <KeyboardLayout
-                    layout={layout}
-                    keycodes={layerKeycodes}
-                    selectedIndex={selectedKeyIndex}
-                    ballSide={ballSide}
-                    keyLayout={keyLayout}
-                    onKeyClick={handleKeyClick}
-                    onKeyDrop={handleKeyDrop}
-                  />
-                </div>
+                {showAllLayers ? (
+                  <div className="all-layers-view">
+                    {Array.from({ length: state.info?.layers ?? 4 }, (_, li) => {
+                      const codes = layout.map(k => state.keymap[li]?.[k.row]?.[k.col] ?? 0);
+                      return (
+                        <div key={li} className="all-layers-item">
+                          <div className="all-layers-label">Layer {li}</div>
+                          <div className="layout-scroll">
+                            <KeyboardLayout
+                              layout={layout}
+                              keycodes={codes}
+                              selectedIndex={null}
+                              ballSide={ballSide}
+                              keyLayout={keyLayout}
+                              onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
+                              onKeyDrop={() => {}}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
+                      キーをクリックすると、そのレイヤーに移動して編集できます
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="layout-scroll">
+                      <KeyboardLayout
+                        layout={layout}
+                        keycodes={layerKeycodes}
+                        selectedIndex={selectedKeyIndex}
+                        ballSide={ballSide}
+                        keyLayout={keyLayout}
+                        onKeyClick={handleKeyClick}
+                        onKeyDrop={handleKeyDrop}
+                      />
+                    </div>
 
-                <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
-                  キーをクリックで設定 ／ マウスを乗せると説明が表示されます
-                </p>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
+                      キーをクリックで設定 ／ マウスを乗せると説明が表示されます
+                    </p>
+                  </>
+                )}
 
                 {state.trackball && (
                   <CollapsibleCard title="トラックボール設定">

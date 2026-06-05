@@ -199,6 +199,8 @@ body { background: var(--bg); }
 /* ===== レイヤーセレクター ===== */
 .layer-selector {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 20px;
 }
@@ -221,6 +223,28 @@ body { background: var(--bg); }
   padding: 28px 0;
   display: flex;
   justify-content: center;
+}
+
+/* ===== 全レイヤー表示 ===== */
+.all-layers-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.all-layers-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg2);
+  padding: 4px 8px 8px;
+}
+.all-layers-item .layout-scroll {
+  padding: 8px 0;
+}
+.all-layers-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 2px 0;
 }
 
 .keyboard-layout {

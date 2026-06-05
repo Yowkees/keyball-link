@@ -473,7 +473,13 @@ export default function App() {
                     />
                   </CollapsibleCard>
                 )}
-                {state.led && (
+                {(state.model === 'keyball44' || state.model === 'keyball61') ? (
+                  <CollapsibleCard title="LED設定">
+                    <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, lineHeight: 1.7 }}>
+                      このモデルでは、メディアキー（音量・再生など）の機能を有効にするための容量を確保するため、<strong>LED（RGBライト）機能を無効にしています</strong>。そのため、このモデルではLEDの設定はできません。
+                    </p>
+                  </CollapsibleCard>
+                ) : state.led && (
                   <CollapsibleCard title="LED設定">
                     <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
                   </CollapsibleCard>

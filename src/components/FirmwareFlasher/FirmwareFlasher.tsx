@@ -8,6 +8,11 @@ const BUILTIN_FIRMWARE: Record<ModelKey, string> = {
   keyball44: '/firmware/keyball_keyball44_web_configurator.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator.hex',
 };
+// LED版（44/61のみ）。LED有効・メディアキー無効・一部機能（タッピング詳細/加速）を削減
+const BUILTIN_FIRMWARE_LED: Partial<Record<ModelKey, string>> = {
+  keyball44: '/firmware/keyball_keyball44_web_configurator_led.hex',
+  keyball61: '/firmware/keyball_keyball61_web_configurator_led.hex',
+};
 const MODEL_LABELS: Record<ModelKey, string> = {
   keyball39: 'Keyball39',
   keyball44: 'Keyball44',
@@ -26,6 +31,7 @@ interface FirmwareFlasherProps {
 export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: FirmwareFlasherProps) {
   const [source, setSource] = useState<FirmwareSource>('builtin');
   const [selectedModel, setSelectedModel] = useState<ModelKey>(detectedModel ?? 'keyball39');
+  const [ledVersion, setLedVersion] = useState(false);
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState(0);
@@ -37,7 +43,9 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
 
   const loadFirmware = async (): Promise<Uint8Array> => {
     if (source === 'builtin') {
-      const res = await fetch(BUILTIN_FIRMWARE[selectedModel]);
+      const ledPath = BUILTIN_FIRMWARE_LED[selectedModel];
+      const path = ledVersion && ledPath ? ledPath : BUILTIN_FIRMWARE[selectedModel];
+      const res = await fetch(path);
       if (!res.ok) throw new Error(`ファームウェア取得失敗: ${res.status}`);
       return parseIntelHex(await res.text());
     }
@@ -160,6 +168,29 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
                   {detectedModel === selectedModel ? '✓ 接続中と一致' : `⚠ 接続中: ${MODEL_LABELS[detectedModel]}`}
                 </span>
               )}
+            </div>
+          )}
+
+          {source === 'builtin' && BUILTIN_FIRMWARE_LED[selectedModel] && (
+            <div className="version-selector" style={{ marginTop: 12 }}>
+              <p className="flash-step-label" style={{ marginBottom: 6 }}>
+                バージョン（この機種は容量の都合で2種類あります）
+              </p>
+              <div className="fw-source-tabs">
+                <button className={`fw-source-tab ${!ledVersion ? 'fw-source-tab--active' : ''}`}
+                  onClick={() => setLedVersion(false)} disabled={isWorking}>
+                  通常版（音量キーあり・LEDなし）
+                </button>
+                <button className={`fw-source-tab ${ledVersion ? 'fw-source-tab--active' : ''}`}
+                  onClick={() => setLedVersion(true)} disabled={isWorking}>
+                  LED版（LEDあり・音量キーなし）
+                </button>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>
+                {ledVersion
+                  ? 'LEDが光ります。音量キー・タッピング詳細設定・トラックボール加速は無効です。'
+                  : '音量などのメディアキーが使えます。LEDは光りません。'}
+              </p>
             </div>
           )}
 

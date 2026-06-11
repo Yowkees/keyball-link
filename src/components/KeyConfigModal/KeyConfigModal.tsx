@@ -68,6 +68,7 @@ function TapKeyPicker({ value, keyLayout, onChange }: {
 
   const filtered = allKeys.filter(k => {
     if (activeGroup !== 'すべて' && k.groupLabel !== activeGroup) return false;
+    if (k.layout && k.layout !== keyLayout) return false;
     if (search) {
       const q = search.toLowerCase();
       const disp = getKeyDisplayLabel(k.code, keyLayout).toLowerCase();
@@ -129,6 +130,7 @@ function NormalPanel({ currentCode, keyLayout, onSelect }: {
   const baseKeys = KEYCODES.filter(k => k.group !== 'タップダンス' || FIRMWARE_FEATURES.tapDance);
 
   const filtered = baseKeys.filter(k => {
+    if (k.layout && k.layout !== keyLayout) return false;
     if (activeCategory !== 'すべて') {
       const cat = GROUP_CATEGORIES.find(c => c.label === activeCategory);
       if (cat && cat.groups.length > 0 && !cat.groups.includes(k.group)) return false;

@@ -31,6 +31,7 @@ export function KeyPalette({ keyLayout }: KeyPaletteProps) {
   const cat = CATEGORIES.find(c => c.label === activeCategory);
   const filtered = KEYCODES.filter((k: KeycodeEntry) => {
     if (k.group === 'タップダンス' && !FIRMWARE_FEATURES.tapDance) return false;
+    if (k.layout && k.layout !== keyLayout) return false;
     if (search) {
       const q = search.toLowerCase();
       const disp = getKeyDisplayLabel(k.code, keyLayout).toLowerCase();

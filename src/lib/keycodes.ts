@@ -5,6 +5,7 @@ export interface KeycodeEntry {
   label:   string;   // キーキャップ表示
   short:   string;   // 短い表示名
   group:   string;   // カテゴリ
+  layout?: 'JIS' | 'US';  // 指定がある場合、その配列でのみパレットに表示
 }
 
 export const KC_NO    = 0x0000;
@@ -12,6 +13,8 @@ export const KC_TRNS  = 0x0001;  // _______（透過）
 
 const K = (code: number, label: string, short: string, group: string): KeycodeEntry =>
   ({ code, label, short, group });
+const KL = (code: number, label: string, short: string, group: string, layout: 'JIS' | 'US'): KeycodeEntry =>
+  ({ code, label, short, group, layout });
 
 export const KEYCODES: KeycodeEntry[] = [
   // 特殊
@@ -133,8 +136,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x0225, '*',  'ASTR', 'Shift記号'),
   K(0x0226, '(',  'LPRN', 'Shift記号'),
   K(0x0227, ')',  'RPRN', 'Shift記号'),
-  K(0x0287, '_',  'S_INT1', 'Shift記号'),  // JIS: Shift+ろ（macのJIS配列で _ が出る）
-  K(0x022D, '_ (US)', 'UNDS', 'Shift記号'),  // US配列用（JISでは別の文字になる）
+  KL(0x0287, '_', 'S_INT1', 'Shift記号', 'JIS'),  // JIS: Shift+ろ
+  KL(0x022D, '_', 'UNDS',  'Shift記号', 'US'),   // US: Shift+-
   K(0x022E, '+',  'PLUS', 'Shift記号'),
   K(0x022F, '{',  'LCBR', 'Shift記号'),
   K(0x0230, '}',  'RCBR', 'Shift記号'),

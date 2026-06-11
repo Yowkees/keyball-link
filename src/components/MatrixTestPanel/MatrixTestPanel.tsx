@@ -3,7 +3,7 @@ import type { KeyLayout } from '../../layouts/types';
 
 const KEY_SIZE = 38;
 const GAP = 3;
-const SPLIT_GAP_PX = 20;
+const SPLIT_GAP_PX = 36;
 const POLL_DELAY_MS = 60;
 
 function isRight(k: KeyLayout): boolean { return k.id.startsWith('R'); }

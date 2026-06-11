@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { KbSettings } from '../../lib/protocol';
+import type { KbSettings, GestureConfig } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
+import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
+import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
 function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
@@ -32,6 +34,8 @@ interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
   onChange: (s: KbSettings) => Promise<void>;
+  gesture: GestureConfig | null;
+  onGestureChange: (g: GestureConfig) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   children?: React.ReactNode;
@@ -150,8 +154,9 @@ function MacOSKeyboardSetup({ defaultLayout }: { defaultLayout: KeyLayout }) {
   );
 }
 
-export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
+  const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -276,6 +281,33 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
         </div>
       </CollapsibleCard>
 
+      <CollapsibleCard title={<>ジェスチャー <span className="settings-unit">トラックボールを振って操作</span></>}>
+        {gesture === null ? (
+          <p className="settings-desc">
+            このファーム（機種・バージョン）は<strong>ジェスチャー非対応</strong>です。対応版を書き込むと設定できます。
+          </p>
+        ) : (
+          <>
+            <p className="settings-desc">
+              パレットの「Keyball」にある<strong>「ジェスチャー」キー</strong>をキーマップに置き、<strong>押しながらトラックボールを上下左右に振る</strong>と、各方向に割り当てた操作が実行されます（押している間は何度でも反応）。
+            </p>
+            <div className="gesture-grid">
+              {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
+                <div key={dir} className="gesture-row">
+                  <span className="gesture-dir">{label}</span>
+                  <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
+                    {getKeyDisplayLabel(gesture[dir], keyLayout) || '未設定'}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="settings-desc" style={{ marginTop: 8 }}>
+              初期設定: 左=戻る / 右=進む / 上=前のタブ / 下=次のタブ（macブラウザ標準）
+            </p>
+          </>
+        )}
+      </CollapsibleCard>
+
       <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>
         <p className="settings-desc">
           キーマップ画面のキーに表示される文字を切り替えます。<br />
@@ -308,6 +340,17 @@ export function SettingsTab({ settings, isConnected, onChange, keyLayout, onKeyL
       )}
 
       {children}
+
+      {editDir && gesture && (
+        <KeyConfigModal
+          keyIndex={-1}
+          currentCode={gesture[editDir]}
+          keyLayout={keyLayout}
+          defaultPanel="カスタム"
+          onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
+          onClose={() => setEditDir(null)}
+        />
+      )}
     </div>
   );
 }

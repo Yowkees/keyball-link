@@ -14,7 +14,7 @@ import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import { KeyPalette } from './components/KeyPalette/KeyPalette';
-import type { KbSettings, MacroSlot } from './lib/protocol';
+import type { KbSettings, MacroSlot, GestureConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
 import type { KeyLayout } from './lib/keycodes';
 import './index.css';
@@ -31,7 +31,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -191,6 +191,11 @@ export default function App() {
   const handleKbSettingsChange = async (s: KbSettings) => {
     try { await setKbSettings(s); }
     catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleGestureChange = async (g: GestureConfig) => {
+    try { await setGesture(g); }
+    catch (e) { showToast(`ジェスチャー設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
@@ -509,6 +514,8 @@ export default function App() {
                 settings={state.kbSettings}
                 isConnected={isConnected}
                 onChange={handleKbSettingsChange}
+                gesture={state.gesture}
+                onGestureChange={handleGestureChange}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {
                   setKeyLayout(layout);

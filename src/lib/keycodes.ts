@@ -133,7 +133,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x0225, '*',  'ASTR', 'Shift記号'),
   K(0x0226, '(',  'LPRN', 'Shift記号'),
   K(0x0227, ')',  'RPRN', 'Shift記号'),
-  K(0x022D, '_',  'UNDS', 'Shift記号'),
+  K(0x0287, '_',  'S_INT1', 'Shift記号'),  // JIS: Shift+ろ（macのJIS配列で _ が出る）
+  K(0x022D, '_ (US)', 'UNDS', 'Shift記号'),  // US配列用（JISでは別の文字になる）
   K(0x022E, '+',  'PLUS', 'Shift記号'),
   K(0x022F, '{',  'LCBR', 'Shift記号'),
   K(0x0230, '}',  'RCBR', 'Shift記号'),
@@ -229,6 +230,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0A, 'Kb 10', 'KB10', 'Keyball'),
   K(0x7E0B, 'Kb 11', 'KB11', 'Keyball'),
   K(0x7E0C, 'Kb 12', 'KB12', 'Keyball'),
+  K(0x7E10, 'ジェスチャー', 'GST_HOLD', 'Keyball'),  // 押しながらトラックボールを振るとジェスチャー
 
   // レイヤー拡張（DF / OSL / TT）
   K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),

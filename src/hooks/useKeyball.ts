@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
@@ -18,6 +18,7 @@ export interface KeyballState {
   led: LedConfig | null;
   tdSlots: TdSlot[];
   kbSettings: KbSettings;
+  gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
   macroSlots: MacroSlot[];
   currentLayer: number;
   isLoading: boolean;
@@ -44,6 +45,7 @@ export function useKeyball() {
     led: null,
     tdSlots: [],
     kbSettings: KB_SETTINGS_DEFAULT,
+    gesture: null,
     macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
     currentLayer: 0,
     isLoading: false,
@@ -85,6 +87,8 @@ export function useKeyball() {
       try { kbSettings = await hid.current.getSettings(); } catch { /* 旧FWは非対応 */ }
       let macroSlots: MacroSlot[] = Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot);
       try { macroSlots = await hid.current.getAllMacroSlots(); } catch { /* 旧FWは非対応 */ }
+      let gesture: GestureConfig | null = null;
+      try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
       setPartial({
         connectionState: 'connected',
         deviceName: hid.current.deviceName,
@@ -96,6 +100,7 @@ export function useKeyball() {
         tdSlots,
         kbSettings,
         macroSlots,
+        gesture,
         isLoading: false,
       });
     } catch (e) {
@@ -167,6 +172,11 @@ export function useKeyball() {
     setPartial({ kbSettings: s });
   }, []);
 
+  const setGesture = useCallback(async (g: GestureConfig) => {
+    await hid.current.setGesture(g);
+    setPartial({ gesture: g });
+  }, []);
+
   const save = useCallback(async () => {
     await hid.current.save();
   }, []);
@@ -227,5 +237,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
 }

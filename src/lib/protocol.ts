@@ -27,6 +27,8 @@ export const CMD = {
   GET_MATRIX:    0x12,
   GET_MACRO:     0x13,
   SET_MACRO:     0x14,
+  GET_GESTURE:   0x15,
+  SET_GESTURE:   0x16,
 } as const;
 
 export const MACRO_SLOT_COUNT   = 10;
@@ -252,6 +254,14 @@ export interface KbSettings {
   autoMouseLayer:    number;   // 切り替わる対象レイヤー（0-3）
   autoMouseTimeout:  number;   // 戻るまでの時間(ms)
   autoMouseThreshold: number;  // 発動しきい値（移動量。小さいほど敏感）
+}
+
+// ジェスチャー設定（GST_HOLD押下中のトラックボール方向に割り当てるキーコード）
+export interface GestureConfig {
+  up:    number;
+  down:  number;
+  left:  number;
+  right: number;
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;

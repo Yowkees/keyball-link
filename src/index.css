@@ -1638,6 +1638,18 @@ body { background: var(--bg); }
   padding: 14px;
 }
 
+/* ===== ジェスチャー設定 ===== */
+.gesture-grid { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.gesture-row { display: flex; align-items: center; gap: 12px; }
+.gesture-dir { width: 60px; font-weight: 600; color: var(--text); }
+.gesture-key-btn {
+  flex: 1; padding: 8px 12px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); cursor: pointer; text-align: left; font-size: 14px;
+}
+.gesture-key-btn:hover:not(:disabled) { background: var(--bg3); border-color: var(--accent); }
+.gesture-key-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .modal-search {
   position: relative;
   margin-bottom: 10px;

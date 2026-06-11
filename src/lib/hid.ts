@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -194,6 +194,28 @@ export class KeyballHID {
       (s.autoMouseTimeout >> 8) & 0xFF,
       s.autoMouseTimeout & 0xFF,
       s.autoMouseThreshold & 0xFF,
+    ));
+  }
+
+  // ジェスチャー設定取得（GESTURE_ENABLE非対応FWでは応答コードが異なるため例外）
+  async getGesture(): Promise<GestureConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE));
+    if (r[0] !== CMD.GET_GESTURE) throw new Error('ジェスチャー非対応のファームです');
+    return {
+      up:    (r[1] << 8) | r[2],
+      down:  (r[3] << 8) | r[4],
+      left:  (r[5] << 8) | r[6],
+      right: (r[7] << 8) | r[8],
+    };
+  }
+
+  async setGesture(g: GestureConfig): Promise<void> {
+    await this.sendCommand(makePacket(
+      CMD.SET_GESTURE,
+      (g.up >> 8) & 0xFF,    g.up & 0xFF,
+      (g.down >> 8) & 0xFF,  g.down & 0xFF,
+      (g.left >> 8) & 0xFF,  g.left & 0xFF,
+      (g.right >> 8) & 0xFF, g.right & 0xFF,
     ));
   }
 

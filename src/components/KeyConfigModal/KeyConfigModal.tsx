@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { KEYCODES, findKeycode, getKeyDisplayLabel, JIS_TAP_KEYS } from '../../lib/keycodes';
+import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS } from '../../lib/keycodes';
 import type { KeycodeEntry, KeyLayout } from '../../lib/keycodes';
 import {
   makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, LAYER_TAP_LAYERS,
@@ -62,6 +62,7 @@ function TapKeyPicker({ value, keyLayout, onChange }: {
 }) {
   const [search, setSearch] = useState('');
   const [activeGroup, setActiveGroup] = useState('すべて');
+  const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   const groups = ['すべて', ...TAP_KEY_GROUPS.map(g => g.label)];
   const allKeys = TAP_KEY_GROUPS.flatMap(g => g.keys.map(k => ({ ...k, groupLabel: g.label })));
@@ -94,7 +95,7 @@ function TapKeyPicker({ value, keyLayout, onChange }: {
         </div>
       )}
       <div className="tap-picker__grid">
-        <button className={`picker-key ${value === 0 ? 'picker-key--current' : ''}`} onClick={() => onChange(0)} title="なし">
+        <button className={`picker-key ${value === 0 ? 'picker-key--current' : ''}`} onClick={() => onChange(0)} onMouseEnter={() => setHoverDesc(null)} title="なし">
           <span className="picker-key__char">—</span>
           <span className="picker-key__name">なし</span>
         </button>
@@ -103,6 +104,8 @@ function TapKeyPicker({ value, keyLayout, onChange }: {
             key={k.code}
             className={`picker-key ${k.code === value ? 'picker-key--current' : ''}`}
             onClick={() => onChange(k.code)}
+            onMouseEnter={() => setHoverDesc(getKeyDescription(k.code, keyLayout))}
+            onMouseLeave={() => setHoverDesc(null)}
             title={`${k.short} (0x${k.code.toString(16).toUpperCase()})`}
           >
             <span className="picker-key__char">{getKeyDisplayLabel(k.code, keyLayout)}</span>
@@ -110,6 +113,9 @@ function TapKeyPicker({ value, keyLayout, onChange }: {
           </button>
         ))}
         {filtered.length === 0 && <p className="picker-empty">一致するキーが見つかりません</p>}
+      </div>
+      <div className="key-desc-bar" style={{ marginTop: 8 }}>
+        {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
       </div>
     </div>
   );
@@ -123,6 +129,7 @@ function NormalPanel({ currentCode, keyLayout, onSelect }: {
 }) {
   const [activeCategory, setActiveCategory] = useState('すべて');
   const [search, setSearch] = useState('');
+  const [hoverDesc, setHoverDesc] = useState<string | null>(null);
   // 現在のコードがMODSなら修飾を復元
   const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
   const [mods, setMods] = useState(isMods ? (currentCode >> 8) & 0x1F : 0);
@@ -202,6 +209,9 @@ function NormalPanel({ currentCode, keyLayout, onSelect }: {
           ))}
         </div>
       )}
+      <div className="key-desc-bar" style={{ marginBottom: 8 }}>
+        {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
+      </div>
       <div className="modal-panel__grid">
         {filtered.map((e: KeycodeEntry) => {
           const dimmed = modsActive && !isBasicKey(e.code);
@@ -212,6 +222,8 @@ function NormalPanel({ currentCode, keyLayout, onSelect }: {
               draggable
               onDragStart={ev => ev.dataTransfer.setData('text/plain', String(modsActive && isBasicKey(e.code) ? makeModsKeycode(mods, e.code) : e.code))}
               onClick={() => handleKey(e.code)}
+              onMouseEnter={() => setHoverDesc(dimmed ? null : getKeyDescription(e.code, keyLayout))}
+              onMouseLeave={() => setHoverDesc(null)}
               title={dimmed ? '修飾キーと組み合わせできません' : `${e.short} (0x${e.code.toString(16).toUpperCase()})`}
             >
               <span className="picker-key__char">{getKeyDisplayLabel(e.code, keyLayout)}</span>

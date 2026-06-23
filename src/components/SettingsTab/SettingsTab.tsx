@@ -5,6 +5,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
+import type { ModelKey } from '../../layouts';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
 function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
@@ -33,6 +34,7 @@ function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
 interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
+  model: ModelKey | null;
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
@@ -68,29 +70,39 @@ function ToggleRow({ label, desc, checked, disabled, onChange }: ToggleRowProps)
   );
 }
 
-// macOS用キーボードタイプ設定セクション
-// plistのキー: "ProductID-VendorID-0" (Keyball39: 512-22871-0)
-const MACOS_PLIST_JIS_CMD =
-  'sudo /usr/libexec/PlistBuddy -c "Set :keyboardtype:512-22871-0 42" ' +
-  '/Library/Preferences/com.apple.keyboardtype.plist 2>/dev/null || ' +
-  'sudo /usr/libexec/PlistBuddy -c "Add :keyboardtype:512-22871-0 integer 42" ' +
-  '/Library/Preferences/com.apple.keyboardtype.plist && ' +
-  'echo "設定完了。Macを再起動してください。"';
+// モデルごとのProductID（VendorIDは共通: 22871）
+const MODEL_PIDS: Record<ModelKey, number> = {
+  keyball39: 512,
+  keyball44: 1024,
+  keyball61: 256,
+};
+const KEYBALL_VID = 22871;
 
-const MACOS_PLIST_US_CMD =
-  'sudo /usr/libexec/PlistBuddy -c "Set :keyboardtype:512-22871-0 40" ' +
-  '/Library/Preferences/com.apple.keyboardtype.plist 2>/dev/null || ' +
-  'sudo /usr/libexec/PlistBuddy -c "Add :keyboardtype:512-22871-0 integer 40" ' +
-  '/Library/Preferences/com.apple.keyboardtype.plist && ' +
-  'echo "設定完了。Macを再起動してください。"';
+// Python1行コマンドでplistを安全に書き換える（型が必ず整数になる）
+function buildMacOSCommand(pid: number, kbType: 40 | 42): string {
+  const typeVal = kbType;
+  const keys = [`${pid}-${KEYBALL_VID}-0`, `${pid}-${KEYBALL_VID}-15`];
+  const assignments = keys.map(k => `d['keyboardtype']['${k}']=${typeVal}`).join(';');
+  return (
+    `sudo python3 -c "import plistlib,pathlib;` +
+    `p=pathlib.Path('/Library/Preferences/com.apple.keyboardtype.plist');` +
+    `d=plistlib.loads(p.read_bytes());d.setdefault('keyboardtype',{});` +
+    `${assignments};` +
+    `p.write_bytes(plistlib.dumps(d,fmt=plistlib.FMT_BINARY))" && ` +
+    `sudo killall cfprefsd && ` +
+    `echo "完了。キーボードを一度抜き差ししてください。"`
+  );
+}
 
-function MacOSKeyboardSetup({ defaultLayout }: { defaultLayout: KeyLayout }) {
+function MacOSKeyboardSetup({ defaultLayout, model }: { defaultLayout: KeyLayout; model: ModelKey | null }) {
   const [layout, setLayout] = useState<KeyLayout>(defaultLayout);
   const [copied, setCopied] = useState(false);
 
-  const command = layout === 'JIS' ? MACOS_PLIST_JIS_CMD : MACOS_PLIST_US_CMD;
+  const pid = model ? MODEL_PIDS[model] : null;
+  const command = pid ? buildMacOSCommand(pid, layout === 'JIS' ? 42 : 40) : null;
 
   const handleCopy = async () => {
+    if (!command) return;
     await navigator.clipboard.writeText(command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -121,40 +133,52 @@ function MacOSKeyboardSetup({ defaultLayout }: { defaultLayout: KeyLayout }) {
         </button>
       </div>
 
-      <div className="macos-steps">
-        <div className="macos-step">
-          <span className="macos-step__num">①</span>
-          <span>ターミナルを開く（Finder → アプリケーション → ユーティリティ → ターミナル）</span>
-        </div>
-        <div className="macos-step">
-          <span className="macos-step__num">②</span>
-          <span>以下のコマンドをコピーして貼り付け、Enterを押す</span>
-        </div>
-      </div>
+      {!model ? (
+        <p className="settings-desc" style={{ marginTop: 8 }}>
+          キーボードを接続すると、そのモデル専用のコマンドが表示されます。
+        </p>
+      ) : (
+        <>
+          <p className="settings-desc" style={{ marginTop: 4, marginBottom: 4 }}>
+            対象モデル: <strong>{model}</strong>
+          </p>
 
-      <div className="macos-command-block">
-        <code className="macos-command-text">{command}</code>
-        <button
-          className={`macos-copy-btn ${copied ? 'macos-copy-btn--done' : ''}`}
-          onClick={handleCopy}
-        >
-          {copied ? '✅ コピー済み' : '📋 コピー'}
-        </button>
-      </div>
+          <div className="macos-steps">
+            <div className="macos-step">
+              <span className="macos-step__num">①</span>
+              <span>ターミナルを開く（Finder → アプリケーション → ユーティリティ → ターミナル）</span>
+            </div>
+            <div className="macos-step">
+              <span className="macos-step__num">②</span>
+              <span>以下のコマンドをコピーして貼り付け、Enterを押す</span>
+            </div>
+          </div>
 
-      <div className="macos-step" style={{ marginTop: 8 }}>
-        <span className="macos-step__num">③</span>
-        <span>Macを再起動する（再起動後から有効になります）</span>
-      </div>
+          <div className="macos-command-block">
+            <code className="macos-command-text">{command}</code>
+            <button
+              className={`macos-copy-btn ${copied ? 'macos-copy-btn--done' : ''}`}
+              onClick={handleCopy}
+            >
+              {copied ? '✅ コピー済み' : '📋 コピー'}
+            </button>
+          </div>
 
-      <p className="macos-setup-note">
-        ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。
-      </p>
+          <div className="macos-step" style={{ marginTop: 8 }}>
+            <span className="macos-step__num">③</span>
+            <span>コマンド実行後、キーボードを一度抜き差しする（再起動は不要）</span>
+          </div>
+
+          <p className="macos-setup-note">
+            ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
-export function SettingsTab({ settings, isConnected, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
 
@@ -335,7 +359,7 @@ export function SettingsTab({ settings, isConnected, onChange, gesture, onGestur
 
       {isMacOS && (
         <CollapsibleCard title={<>macOS キーボードタイプ設定 <span className="settings-unit">初回のみ必要</span></>}>
-          <MacOSKeyboardSetup defaultLayout={keyLayout} />
+          <MacOSKeyboardSetup defaultLayout={keyLayout} model={model} />
         </CollapsibleCard>
       )}
 

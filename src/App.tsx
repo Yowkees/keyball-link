@@ -513,6 +513,7 @@ export default function App() {
               <SettingsTab
                 settings={state.kbSettings}
                 isConnected={isConnected}
+                model={state.model}
                 onChange={handleKbSettingsChange}
                 gesture={state.gesture}
                 onGestureChange={handleGestureChange}

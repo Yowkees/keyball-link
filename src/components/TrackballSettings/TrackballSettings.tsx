@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import type { TrackballConfig } from '../../lib/protocol';
 import { cpiIndexToValue, SCROLL_MODE } from '../../lib/protocol';
 
@@ -14,51 +15,79 @@ const MAX_CPI_INDEX = 17;
 const MAX_SCROLL_DIV = 7;
 const MAX_ACCEL = 10;
 
-export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange }: TrackballSettingsProps) {
-  const cpiValue = cpiIndexToValue(config.cpiIndex);
+// スライダーはドラッグ中にローカル表示のみ更新し、離したときだけ親に通知する
+function TrackballSlider({
+  label,
+  value,
+  min,
+  max,
+  renderLabel,
+  scale,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  renderLabel: (v: number) => string;
+  scale: string;
+  onCommit: (v: number) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => { setLocal(value); }, [value]);
 
+  return (
+    <div className="trackball-bar__item">
+      <span className="trackball-bar__label">{label}: <strong>{renderLabel(local)}</strong></span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={local}
+        onChange={e => setLocal(Number(e.target.value))}
+        onPointerUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
+        onKeyUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
+        className="slider"
+      />
+      <span className="trackball-bar__scale">{scale}</span>
+    </div>
+  );
+}
+
+export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange }: TrackballSettingsProps) {
   return (
     <div className="trackball-bar">
       <span className="trackball-bar__title">トラックボール</span>
 
-      <div className="trackball-bar__item">
-        <span className="trackball-bar__label">CPI: <strong>{cpiValue}</strong></span>
-        <input
-          type="range"
-          min={0}
-          max={MAX_CPI_INDEX}
-          value={config.cpiIndex}
-          onChange={e => onChange({ ...config, cpiIndex: Number(e.target.value) })}
-          className="slider"
-        />
-        <span className="trackball-bar__scale">100〜1800</span>
-      </div>
+      <TrackballSlider
+        label="CPI"
+        value={config.cpiIndex}
+        min={0}
+        max={MAX_CPI_INDEX}
+        renderLabel={i => String(cpiIndexToValue(i))}
+        scale="100〜1800"
+        onCommit={v => onChange({ ...config, cpiIndex: v })}
+      />
 
-      <div className="trackball-bar__item">
-        <span className="trackball-bar__label">スクロール速度: <strong>{config.scrollDiv}</strong></span>
-        <input
-          type="range"
-          min={0}
-          max={MAX_SCROLL_DIV}
-          value={config.scrollDiv}
-          onChange={e => onChange({ ...config, scrollDiv: Number(e.target.value) })}
-          className="slider"
-        />
-        <span className="trackball-bar__scale">速〜遅</span>
-      </div>
+      <TrackballSlider
+        label="スクロール速度"
+        value={config.scrollDiv}
+        min={0}
+        max={MAX_SCROLL_DIV}
+        renderLabel={v => String(v)}
+        scale="速〜遅"
+        onCommit={v => onChange({ ...config, scrollDiv: v })}
+      />
 
-      <div className="trackball-bar__item">
-        <span className="trackball-bar__label">加速度: <strong>{config.accel === 0 ? 'オフ' : config.accel}</strong></span>
-        <input
-          type="range"
-          min={0}
-          max={MAX_ACCEL}
-          value={config.accel}
-          onChange={e => onChange({ ...config, accel: Number(e.target.value) })}
-          className="slider"
-        />
-        <span className="trackball-bar__scale">オフ〜強</span>
-      </div>
+      <TrackballSlider
+        label="加速度"
+        value={config.accel}
+        min={0}
+        max={MAX_ACCEL}
+        renderLabel={v => v === 0 ? 'オフ' : String(v)}
+        scale="オフ〜強"
+        onCommit={v => onChange({ ...config, accel: v })}
+      />
 
       <div className="trackball-bar__item">
         <span className="trackball-bar__label">スクロール方向</span>

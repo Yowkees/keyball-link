@@ -46,14 +46,14 @@ export const keyball44Layout: KeyLayout[] = [
   { id: 'R20', row: 2, col: 0, x: 12, y: 2 },
 
   // Row 3 right / Row 7 left — サムクラスター（col 0 = KC_NO のためスキップ）
+  // R33/R32 は右トラックボール位置のため非表示（レイアウトから除外）
+  // 左右を中央寄せにし、L35(x6) と R35(x8) の間 x7 を隙間とする
   { id: 'L31', row: 7, col: 1, x:  2, y: 3 },
   { id: 'L32', row: 7, col: 2, x:  3, y: 3, ball: 'left' },
   { id: 'L33', row: 7, col: 3, x:  4, y: 3, ball: 'left' },
   { id: 'L34', row: 7, col: 4, x:  5, y: 3 },
   { id: 'L35', row: 7, col: 5, x:  6, y: 3 },
-  { id: 'R35', row: 3, col: 5, x:  7, y: 3 },
-  { id: 'R34', row: 3, col: 4, x:  8, y: 3 },
-  { id: 'R33', row: 3, col: 3, x:  9, y: 3, ball: 'right' },
-  { id: 'R32', row: 3, col: 2, x: 10, y: 3, ball: 'right' },
-  { id: 'R31', row: 3, col: 1, x: 11, y: 3 },
+  { id: 'R35', row: 3, col: 5, x:  8, y: 3 },
+  { id: 'R34', row: 3, col: 4, x:  9, y: 3 },
+  { id: 'R31', row: 3, col: 1, x: 12, y: 3 },
 ];

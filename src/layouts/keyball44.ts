@@ -47,14 +47,14 @@ export const keyball44Layout: KeyLayout[] = [
 
   // Row 3 right / Row 7 left — サムクラスター（col 0 = KC_NO のためスキップ）
   // R33/R32・L32/L33 は ball 属性付き（ballSide 設定で左右どちらのボールにも対応）
-  // 左右を中央寄せにし、L35(x6) と R35(x7) を隣接させる（隙間なし）
+  // 右半分は SPLIT_GAP_PX(=1キー分) 右にずれるため、R35(x6) は L35(x6) の1キー右隣に表示される
   { id: 'L31', row: 7, col: 1, x:  2, y: 3 },
   { id: 'L32', row: 7, col: 2, x:  3, y: 3, ball: 'left' },
   { id: 'L33', row: 7, col: 3, x:  4, y: 3, ball: 'left' },
   { id: 'L34', row: 7, col: 4, x:  5, y: 3 },
   { id: 'L35', row: 7, col: 5, x:  6, y: 3 },
-  { id: 'R35', row: 3, col: 5, x:  7, y: 3 },
-  { id: 'R34', row: 3, col: 4, x:  8, y: 3 },
+  { id: 'R35', row: 3, col: 5, x:  6, y: 3 },
+  { id: 'R34', row: 3, col: 4, x:  7, y: 3 },
   { id: 'R33', row: 3, col: 3, x:  9, y: 3, ball: 'right' },
   { id: 'R32', row: 3, col: 2, x: 10, y: 3, ball: 'right' },
   { id: 'R31', row: 3, col: 1, x: 11, y: 3 },

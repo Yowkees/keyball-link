@@ -95,6 +95,9 @@ export default function App() {
   };
 
   const layout = state.model ? LAYOUTS[state.model] : null;
+  // keyball44 はキー配置を保ったまま左右半分の間隔を広げる（各画面で +1キー分）
+  const keymapSplitGap = state.model === 'keyball44' ? 112 : 56;   // メイン画面（1キー=56px）
+  const matrixSplitGap = state.model === 'keyball44' ? 77 : 36;    // テストマトリクス（1キー=41px）
   const layerKeycodes = layout && state.keymap[state.currentLayer]
     ? layout.map(k => state.keymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0)
     : [];
@@ -437,6 +440,7 @@ export default function App() {
                               onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
                               onKeyDrop={() => {}}
                               showDescBar={false}
+                              splitGapPx={keymapSplitGap}
                             />
                           </div>
                         </div>
@@ -457,6 +461,7 @@ export default function App() {
                         keyLayout={keyLayout}
                         onKeyClick={handleKeyClick}
                         onKeyDrop={handleKeyDrop}
+                        splitGapPx={keymapSplitGap}
                       />
                     </div>
 
@@ -530,7 +535,7 @@ export default function App() {
                 )}
                 {isConnected && layout && (
                   <CollapsibleCard title={<>テストマトリクス <span className="settings-unit">キーが正しく反応するか確認</span></>}>
-                    <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} />
+                    <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />
                   </CollapsibleCard>
                 )}
               </SettingsTab>

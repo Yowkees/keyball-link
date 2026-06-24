@@ -12,9 +12,10 @@ interface MatrixTestPanelProps {
   layout: KeyLayout[];
   ballSide: 'left' | 'right';
   onGetMatrix: () => Promise<boolean[][]>;
+  splitGapPx?: number;
 }
 
-export function MatrixTestPanel({ layout, ballSide, onGetMatrix }: MatrixTestPanelProps) {
+export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SPLIT_GAP_PX }: MatrixTestPanelProps) {
   const [active, setActive] = useState(false);
   const [pressed, setPressed] = useState<Set<string>>(new Set());
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -26,7 +27,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix }: MatrixTestPan
   // コンテナ幅に合わせて自動スケール
   const visible = layout.filter(k => k.ball !== ballSide);
   const naturalWidth = Math.max(...visible.map(k => {
-    const ex = isRight(k) ? SPLIT_GAP_PX : 0;
+    const ex = isRight(k) ? splitGapPx : 0;
     return k.x * (KEY_SIZE + GAP) + (k.w ?? 1) * KEY_SIZE + ((k.w ?? 1) - 1) * GAP + ex;
   }));
   const maxY = Math.max(...layout.map(k => k.y)) + 1;
@@ -110,7 +111,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix }: MatrixTestPan
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: naturalWidth, height: naturalHeight, position: 'absolute' }}>
           {layout.map(k => {
             if (k.ball === ballSide) return null;
-            const ex   = isRight(k) ? SPLIT_GAP_PX : 0;
+            const ex   = isRight(k) ? splitGapPx : 0;
             const left = k.x * (KEY_SIZE + GAP) + ex;
             const top  = k.y * (KEY_SIZE + GAP);
             const w    = (k.w ?? 1) * KEY_SIZE + ((k.w ?? 1) - 1) * GAP;

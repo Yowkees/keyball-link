@@ -21,13 +21,14 @@ interface KeyboardLayoutProps {
   onKeyClick: (index: number) => void;
   onKeyDrop: (index: number, keycode: number) => void;
   showDescBar?: boolean;
+  splitGapPx?: number;
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   const maxX = Math.max(...layout.map(k => {
-    const extra = isRightSide(k) ? SPLIT_GAP_PX : 0;
+    const extra = isRightSide(k) ? splitGapPx : 0;
     return k.x * (KEY_SIZE + GAP) + (k.w ?? 1) * KEY_SIZE + ((k.w ?? 1) - 1) * GAP + extra;
   }));
   const maxY = Math.max(...layout.map(k => k.y + 1));
@@ -44,7 +45,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             selected={selectedIndex === i}
             ballSide={ballSide}
             keyLayout={keyLayout}
-            xExtra={isRightSide(k) ? SPLIT_GAP_PX : 0}
+            xExtra={isRightSide(k) ? splitGapPx : 0}
             onClick={() => onKeyClick(i)}
             onDrop={code => onKeyDrop(i, code)}
             onHover={() => setHoverDesc(getKeyDescription(keycodes[i] ?? 0, keyLayout))}

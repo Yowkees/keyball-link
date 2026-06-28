@@ -8,8 +8,9 @@ const BUILTIN_FIRMWARE: Record<ModelKey, string> = {
   keyball44: '/firmware/keyball_keyball44_web_configurator.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator.hex',
 };
-// LED版（44/61のみ）。LED有効・メディアキー無効・一部機能（タッピング詳細/加速）を削減
+// LED版（全機種）。LED有効・メディアキー無効・per-key/ジェスチャー削減の最小機能版
 const BUILTIN_FIRMWARE_LED: Partial<Record<ModelKey, string>> = {
+  keyball39: '/firmware/keyball_keyball39_web_configurator_led.hex',
   keyball44: '/firmware/keyball_keyball44_web_configurator_led.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator_led.hex',
 };

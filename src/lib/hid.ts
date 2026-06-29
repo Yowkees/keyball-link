@@ -206,6 +206,7 @@ export class KeyballHID {
       down:  (r[3] << 8) | r[4],
       left:  (r[5] << 8) | r[6],
       right: (r[7] << 8) | r[8],
+      tap:   r[10] ?? 0,   // タップキー（旧ファームは0）
     };
   }
 
@@ -216,6 +217,7 @@ export class KeyballHID {
       (g.down >> 8) & 0xFF,  g.down & 0xFF,
       (g.left >> 8) & 0xFF,  g.left & 0xFF,
       (g.right >> 8) & 0xFF, g.right & 0xFF,
+      g.tap & 0xFF,
     ));
   }
 

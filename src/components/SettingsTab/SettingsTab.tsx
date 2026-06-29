@@ -4,7 +4,7 @@ import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
-import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
+import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
 import type { ModelKey } from '../../layouts';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
@@ -181,6 +181,7 @@ function MacOSKeyboardSetup({ defaultLayout, model }: { defaultLayout: KeyLayout
 export function SettingsTab({ settings, isConnected, model, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
+  const [editTap, setEditTap] = useState(false);
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -328,6 +329,19 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
             <p className="settings-desc" style={{ marginTop: 8 }}>
               初期設定: 左=戻る / 右=進む / 上=前のタブ / 下=次のタブ（macブラウザ標準）
             </p>
+
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <div className="gesture-row">
+                <span className="gesture-dir">タップ</span>
+                <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditTap(true)}>
+                  {gesture.tap ? getKeyDisplayLabel(gesture.tap, keyLayout) : 'なし（長押し専用）'}
+                </button>
+              </div>
+              <p className="settings-desc" style={{ marginTop: 8 }}>
+                ジェスチャーキーを<strong>サッと押して離す</strong>とこのキーを入力します（タップ／長押し兼用）。<br />
+                「なし」にすると<strong>長押し専用</strong>（従来どおり）です。Space・Enter など単独で押すキーのみ設定できます。
+              </p>
+            </div>
           </>
         )}
       </CollapsibleCard>
@@ -374,6 +388,27 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
           onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}
         />
+      )}
+
+      {editTap && gesture && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setEditTap(false); }}>
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <span className="modal-title">ジェスチャーキーをタップした時のキー</span>
+              <button className="modal-close" onClick={() => setEditTap(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p className="settings-desc" style={{ marginBottom: 8 }}>
+                Space・Enter・英字など、単独で押すキーのみ選べます。「なし」を選ぶと長押し専用になります。
+              </p>
+              <TapKeyPicker
+                value={gesture.tap}
+                keyLayout={keyLayout}
+                onChange={async (kc) => { await onGestureChange({ ...gesture, tap: kc }); setEditTap(false); }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -54,8 +54,8 @@ const TAP_KEY_GROUPS: { label: string; keys: KeycodeEntry[] }[] = [
   { label: '日本語',  keys: KEYCODES.filter(k => k.group === '日本語') },
 ];
 
-// ── タップキーピッカー（ホールドタブのタップ側で使用） ──────
-function TapKeyPicker({ value, keyLayout, onChange }: {
+// ── タップキーピッカー（ホールドタブのタップ側・ジェスチャーのタップ側で使用） ──────
+export function TapKeyPicker({ value, keyLayout, onChange }: {
   value: number;
   keyLayout: KeyLayout;
   onChange: (kc: number) => void;

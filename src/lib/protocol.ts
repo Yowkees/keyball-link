@@ -262,6 +262,7 @@ export interface GestureConfig {
   down:  number;
   left:  number;
   right: number;
+  tap:   number;  // タップ（短押し）時に送る基本キーコード（0=なし＝長押し専用）
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;

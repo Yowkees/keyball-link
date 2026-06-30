@@ -195,6 +195,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
   };
 
   const disabled = !isConnected || saving;
+  // 非LED版（ジェスチャー対応版）のみ true。タッピング詳細設定はこの版だけ有効なので、
+  // LED版では関係する設定を非表示にする。
+  const fullVersion = gesture !== null;
 
   // 3つのトラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー）の重複を検出。
   // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
@@ -231,6 +234,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
         </div>
       )}
 
+      {fullVersion && (
       <CollapsibleCard title={<>Tapping Term <span className="settings-unit">長押し判定時間</span></>}>
         <p className="settings-desc">
           タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
@@ -247,7 +251,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
           <span>500ms（ゆっくり）</span>
         </div>
       </CollapsibleCard>
+      )}
 
+      {fullVersion && (
       <CollapsibleCard title="キー動作オプション">
         <div className="setting-rows">
           {FIRMWARE_FEATURES.autoShift && (
@@ -264,15 +270,10 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
             checked={settings.permissiveHold} disabled={disabled}
             onChange={v => apply({ permissiveHold: v })}
           />
-          <ToggleRow
-            label="Retro Tapping"
-            desc="Mod-Tap キーをホールドして離したとき（他のキーを押さなかった場合）にタップも送信します。"
-            checked={settings.retroTapping} disabled={disabled}
-            onChange={v => apply({ retroTapping: v })}
-          />
         </div>
         {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
       </CollapsibleCard>
+      )}
 
       <CollapsibleCard title={<>自動マウスレイヤー <span className="settings-unit">トラックボール操作で自動レイヤー切替</span></>}>
         <p className="settings-desc">

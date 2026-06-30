@@ -128,6 +128,8 @@ export class KeyballHID {
 
   async getLed(): Promise<LedConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_LED));
+    // LED非対応版（RGBLIGHT無効）は未対応コマンドとして 0xFF を返す → 例外にしてstate.led=nullにする
+    if (r[0] !== CMD.GET_LED) throw new Error('LED非対応のファームです');
     return { effectId: r[1], hue: r[2], sat: r[3], val: r[4], speed: r[5] };
   }
 

@@ -7,7 +7,6 @@ import { TrackballSettings } from './components/TrackballSettings/TrackballSetti
 import { LEDSettings } from './components/LEDSettings/LEDSettings';
 import { FirmwareFlasher } from './components/FirmwareFlasher/FirmwareFlasher';
 import { SettingsTab } from './components/SettingsTab/SettingsTab';
-import { LedTestPanel } from './components/LedTestPanel/LedTestPanel';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import { MacroEditor } from './components/MacroEditor/MacroEditor';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
@@ -31,7 +30,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, getMatrixState } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -483,13 +482,9 @@ export default function App() {
                     />
                   </CollapsibleCard>
                 )}
-                {(state.model === 'keyball44' || state.model === 'keyball61') ? (
-                  <CollapsibleCard title="LED設定">
-                    <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, lineHeight: 1.7 }}>
-                      このモデルでは、メディアキー（音量・再生など）の機能を有効にするための容量を確保するため、<strong>LED（RGBライト）機能を無効にしています</strong>。そのため、このモデルではLEDの設定はできません。
-                    </p>
-                  </CollapsibleCard>
-                ) : state.led && (
+                {/* LED設定は、接続中のファームがLED（RGBライト）対応のときだけ表示。
+                    通常版（LEDなし）では state.led が null になり非表示になる。 */}
+                {state.led && (
                   <CollapsibleCard title="LED設定">
                     <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
                   </CollapsibleCard>
@@ -528,11 +523,6 @@ export default function App() {
                   localStorage.setItem('keyLayout', layout);
                 }}
               >
-                {isConnected && layout && (
-                  <CollapsibleCard title={<>LED診断 <span className="settings-unit">各LEDを1つずつ点灯して位置を確認</span></>}>
-                    <LedTestPanel layout={layout} ballSide={ballSide} onTestLed={testLed} />
-                  </CollapsibleCard>
-                )}
                 {isConnected && layout && (
                   <CollapsibleCard title={<>テストマトリクス <span className="settings-unit">キーが正しく反応するか確認</span></>}>
                     <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />

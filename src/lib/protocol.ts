@@ -242,6 +242,9 @@ export const MODIFIER_BITS = [
 ] as const;
 export const MOD_RIGHT_BIT = 0x10;
 
+// トラックボール動作レイヤーの「なし」を表す値（ファームの KB_LAYER_NONE と一致）
+export const LAYER_NONE = 0xFE;
+
 // キーボード詳細設定
 export interface KbSettings {
   tappingTerm:    number;   // 50-1000ms
@@ -254,6 +257,7 @@ export interface KbSettings {
   autoMouseLayer:    number;   // 切り替わる対象レイヤー（0-3）
   autoMouseTimeout:  number;   // 戻るまでの時間(ms)
   autoMouseThreshold: number;  // 発動しきい値（移動量。小さいほど敏感）
+  scrollLayer:    number;   // スクロールになるレイヤー（0-7 / LAYER_NONE=なし）
 }
 
 // ジェスチャー設定（GST_HOLD押下中のトラックボール方向に割り当てるキーコード）
@@ -263,6 +267,7 @@ export interface GestureConfig {
   left:  number;
   right: number;
   tap:   number;  // タップ（短押し）時に送る基本キーコード（0=なし＝長押し専用）
+  layer: number;  // このレイヤーにいる間ジェスチャー（0-7 / LAYER_NONE=なし）
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
@@ -283,6 +288,7 @@ export const KB_SETTINGS_DEFAULT: KbSettings = {
   autoMouseLayer:    1,
   autoMouseTimeout:  650,
   autoMouseThreshold: 10,
+  scrollLayer:    3,
 };
 
 // 32バイトのパケットを作成するヘルパー

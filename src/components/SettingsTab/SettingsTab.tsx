@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { KbSettings, GestureConfig } from '../../lib/protocol';
+import { LAYER_NONE } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
@@ -182,6 +183,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
+  const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture'; msg: string } | null>(null);
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -193,6 +195,32 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
   };
 
   const disabled = !isConnected || saving;
+
+  // 3つのトラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー）の重複を検出。
+  // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
+  const conflictName = (target: 'aml' | 'scroll' | 'gesture', val: number): string | null => {
+    if (val === LAYER_NONE) return null;  // 「なし」は重複しない
+    const others: [string, number][] = [];
+    if (target !== 'aml' && settings.autoMouseEnable)
+      others.push(['自動マウスレイヤー', settings.autoMouseLayer]);
+    if (target !== 'scroll' && settings.scrollLayer !== LAYER_NONE)
+      others.push(['スクロールレイヤー', settings.scrollLayer]);
+    if (target !== 'gesture' && gesture && gesture.layer !== LAYER_NONE)
+      others.push(['ジェスチャーレイヤー', gesture.layer]);
+    const hit = others.find(([, l]) => l === val);
+    return hit ? hit[0] : null;
+  };
+
+  // レイヤー選択の共通ハンドラ。重複なら警告して保存しない。
+  const changeLayer = (target: 'aml' | 'scroll' | 'gesture', val: number, save: () => void) => {
+    const c = conflictName(target, val);
+    if (c) {
+      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。` });
+    } else {
+      setLayerWarn(null);
+      save();
+    }
+  };
   const isMacOS = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent);
 
   return (
@@ -268,13 +296,16 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
               className="trackball-bar__select"
               value={settings.autoMouseLayer}
               disabled={disabled || !settings.autoMouseEnable}
-              onChange={e => apply({ autoMouseLayer: Number(e.target.value) })}
+              onChange={e => { const v = Number(e.target.value); changeLayer('aml', v, () => apply({ autoMouseLayer: v })); }}
             >
               <option value={1}>Layer 1</option>
               <option value={2}>Layer 2</option>
               <option value={3}>Layer 3</option>
             </select>
           </div>
+          {layerWarn?.target === 'aml' && (
+            <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+          )}
         </div>
         <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
           <SliderControl
@@ -304,6 +335,33 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
           <span>デフォルト: 10</span>
           <span>40（鈍感）</span>
         </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard title={<>スクロールレイヤー <span className="settings-unit">このレイヤーでトラックボール＝スクロール</span></>}>
+        <div className="setting-row">
+          <div className="setting-row__text">
+            <span className="setting-row__label">スクロールになるレイヤー</span>
+            <span className="setting-row__desc">選んだレイヤーにいる間、トラックボールがスクロールになります。「なし」でスクロール無効。</span>
+          </div>
+          <select
+            className="trackball-bar__select"
+            value={settings.scrollLayer}
+            disabled={disabled}
+            onChange={e => { const v = Number(e.target.value); changeLayer('scroll', v, () => apply({ scrollLayer: v })); }}
+          >
+            <option value={LAYER_NONE}>なし</option>
+            <option value={0}>Layer 0</option>
+            <option value={1}>Layer 1</option>
+            <option value={2}>Layer 2</option>
+            <option value={3}>Layer 3</option>
+          </select>
+        </div>
+        {layerWarn?.target === 'scroll' && (
+          <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+        )}
+        <p className="settings-desc" style={{ marginTop: 8 }}>
+          ※ どのレイヤーでスクロールにするかを変えるだけです。各レイヤーのキーの中身は移動しないので、必要ならキーマップ側で並べ替えてください。
+        </p>
       </CollapsibleCard>
 
       <CollapsibleCard title={<>ジェスチャー <span className="settings-unit">トラックボールを振って操作</span></>}>
@@ -340,6 +398,33 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
               <p className="settings-desc" style={{ marginTop: 8 }}>
                 ジェスチャーキーを<strong>サッと押して離す</strong>とこのキーを入力します（タップ／長押し兼用）。<br />
                 「なし」にすると<strong>長押し専用</strong>（従来どおり）です。Space・Enter など単独で押すキーのみ設定できます。
+              </p>
+            </div>
+
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <div className="setting-row">
+                <div className="setting-row__text">
+                  <span className="setting-row__label">ジェスチャーレイヤー</span>
+                  <span className="setting-row__desc">選んだレイヤーにいる間、トラックボールを振るとジェスチャー発動（キーを押さなくてOK）。「なし」で無効。</span>
+                </div>
+                <select
+                  className="trackball-bar__select"
+                  value={gesture.layer}
+                  disabled={disabled}
+                  onChange={e => { const v = Number(e.target.value); changeLayer('gesture', v, () => onGestureChange({ ...gesture, layer: v })); }}
+                >
+                  <option value={LAYER_NONE}>なし</option>
+                  <option value={0}>Layer 0</option>
+                  <option value={1}>Layer 1</option>
+                  <option value={2}>Layer 2</option>
+                  <option value={3}>Layer 3</option>
+                </select>
+              </div>
+              {layerWarn?.target === 'gesture' && (
+                <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+              )}
+              <p className="settings-desc" style={{ marginTop: 8 }}>
+                ※ レイヤー0にすると基本レイヤーではカーソルが動かず「振る」操作専用になります。スクロール／自動マウスと同じレイヤーは選べません。
               </p>
             </div>
           </>

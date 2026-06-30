@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig } from './protocol';
 
 export class KeyballHID {
@@ -174,6 +174,7 @@ export class KeyballHID {
       autoMouseLayer:    (r[4] >= 1 && r[4] <= 7) ? r[4] : 1,
       autoMouseTimeout:  (((r[5] << 8) | r[6]) >= 100) ? ((r[5] << 8) | r[6]) : 650,
       autoMouseThreshold: (r[7] >= 1 && r[7] <= 100) ? r[7] : 10,
+      scrollLayer:    r[9] === LAYER_NONE ? LAYER_NONE : (r[9] <= 7 ? r[9] : 3),
     };
   }
 
@@ -194,6 +195,7 @@ export class KeyballHID {
       (s.autoMouseTimeout >> 8) & 0xFF,
       s.autoMouseTimeout & 0xFF,
       s.autoMouseThreshold & 0xFF,
+      s.scrollLayer & 0xFF,
     ));
   }
 
@@ -207,6 +209,7 @@ export class KeyballHID {
       left:  (r[5] << 8) | r[6],
       right: (r[7] << 8) | r[8],
       tap:   r[10] ?? 0,   // タップキー（旧ファームは0）
+      layer: (r[11] !== undefined && r[11] <= 7) ? r[11] : LAYER_NONE,  // ジェスチャーレイヤー（旧ファーム/未設定はなし）
     };
   }
 
@@ -218,6 +221,7 @@ export class KeyballHID {
       (g.left >> 8) & 0xFF,  g.left & 0xFF,
       (g.right >> 8) & 0xFF, g.right & 0xFF,
       g.tap & 0xFF,
+      g.layer & 0xFF,
     ));
   }
 

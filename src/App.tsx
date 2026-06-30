@@ -494,11 +494,16 @@ export default function App() {
                     />
                   </CollapsibleCard>
                 )}
-                {/* LED設定は、接続中のファームがLED（RGBライト）対応のときだけ表示。
-                    通常版（LEDなし）では state.led が null になり非表示になる。 */}
-                {state.led && (
+                {/* LED設定。LED対応版（state.led あり）は操作可、通常版は表示はするがグレーアウト。 */}
+                {isConnected && (
                   <CollapsibleCard title="LED設定">
-                    <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
+                    {state.led ? (
+                      <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
+                    ) : (
+                      <p className="settings-desc" style={{ color: 'var(--red)' }}>
+                        ⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。
+                      </p>
+                    )}
                   </CollapsibleCard>
                 )}
 

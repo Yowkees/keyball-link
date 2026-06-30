@@ -195,9 +195,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
   };
 
   const disabled = !isConnected || saving;
-  // 非LED版（ジェスチャー対応版）のみ true。タッピング詳細設定はこの版だけ有効なので、
-  // LED版では関係する設定を非表示にする。
-  const fullVersion = gesture !== null;
+  // LED版に接続中（＝ジェスチャー非対応）。タッピング詳細設定はLED版では効かないので、
+  // 非表示にはせず「表示はするが操作不可（グレーアウト）」にする。未接続時はグレーアウトしない。
+  const tappingUnavail = isConnected && gesture === null;
 
   // 3つのトラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー）の重複を検出。
   // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
@@ -234,46 +234,52 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
         </div>
       )}
 
-      {fullVersion && (
       <CollapsibleCard title={<>Tapping Term <span className="settings-unit">長押し判定時間</span></>}>
-        <p className="settings-desc">
-          タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
-          Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
-        </p>
-        <SliderControl
-          value={settings.tappingTerm} min={50} max={500} step={10}
-          disabled={disabled} unit="ms"
-          onCommit={v => apply({ tappingTerm: v })}
-        />
-        <div className="tapping-term-hints">
-          <span>50ms（素早く）</span>
-          <span>デフォルト: 200ms</span>
-          <span>500ms（ゆっくり）</span>
-        </div>
-      </CollapsibleCard>
-      )}
-
-      {fullVersion && (
-      <CollapsibleCard title="キー動作オプション">
-        <div className="setting-rows">
-          {FIRMWARE_FEATURES.autoShift && (
-            <ToggleRow
-              label="Auto Shift"
-              desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
-              checked={settings.autoShift} disabled={disabled}
-              onChange={v => apply({ autoShift: v })}
-            />
-          )}
-          <ToggleRow
-            label="Permissive Hold"
-            desc="Mod-Tap のホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
-            checked={settings.permissiveHold} disabled={disabled}
-            onChange={v => apply({ permissiveHold: v })}
+        {tappingUnavail && (
+          <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ この版（LED版）では使用できません（固定200msで動作します）。通常版で設定できます。</p>
+        )}
+        <div style={tappingUnavail ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
+          <p className="settings-desc">
+            タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
+            Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
+          </p>
+          <SliderControl
+            value={settings.tappingTerm} min={50} max={500} step={10}
+            disabled={disabled || tappingUnavail} unit="ms"
+            onCommit={v => apply({ tappingTerm: v })}
           />
+          <div className="tapping-term-hints">
+            <span>50ms（素早く）</span>
+            <span>デフォルト: 200ms</span>
+            <span>500ms（ゆっくり）</span>
+          </div>
         </div>
-        {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
       </CollapsibleCard>
-      )}
+
+      <CollapsibleCard title="キー動作オプション">
+        {tappingUnavail && (
+          <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ この版（LED版）では使用できません。通常版で設定できます。</p>
+        )}
+        <div style={tappingUnavail ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
+          <div className="setting-rows">
+            {FIRMWARE_FEATURES.autoShift && (
+              <ToggleRow
+                label="Auto Shift"
+                desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
+                checked={settings.autoShift} disabled={disabled || tappingUnavail}
+                onChange={v => apply({ autoShift: v })}
+              />
+            )}
+            <ToggleRow
+              label="Permissive Hold"
+              desc="Mod-Tap のホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
+              checked={settings.permissiveHold} disabled={disabled || tappingUnavail}
+              onChange={v => apply({ permissiveHold: v })}
+            />
+          </div>
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+        </div>
+      </CollapsibleCard>
 
       <CollapsibleCard title={<>自動マウスレイヤー <span className="settings-unit">トラックボール操作で自動レイヤー切替</span></>}>
         <p className="settings-desc">
@@ -351,7 +357,6 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
             onChange={e => { const v = Number(e.target.value); changeLayer('scroll', v, () => apply({ scrollLayer: v })); }}
           >
             <option value={LAYER_NONE}>なし</option>
-            <option value={0}>Layer 0</option>
             <option value={1}>Layer 1</option>
             <option value={2}>Layer 2</option>
             <option value={3}>Layer 3</option>
@@ -415,7 +420,6 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
                   onChange={e => { const v = Number(e.target.value); changeLayer('gesture', v, () => onGestureChange({ ...gesture, layer: v })); }}
                 >
                   <option value={LAYER_NONE}>なし</option>
-                  <option value={0}>Layer 0</option>
                   <option value={1}>Layer 1</option>
                   <option value={2}>Layer 2</option>
                   <option value={3}>Layer 3</option>
@@ -425,7 +429,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
                 <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
               )}
               <p className="settings-desc" style={{ marginTop: 8 }}>
-                ※ レイヤー0にすると基本レイヤーではカーソルが動かず「振る」操作専用になります。スクロール／自動マウスと同じレイヤーは選べません。
+                ※ スクロール／自動マウスと同じレイヤーは選べません。
               </p>
             </div>
           </>

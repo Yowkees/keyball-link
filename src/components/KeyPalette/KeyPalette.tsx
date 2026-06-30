@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { KEYCODES, getKeyDisplayLabel } from '../../lib/keycodes';
-import type { KeycodeEntry, KeyLayout } from '../../lib/keycodes';
+import { KEYCODES, getKeyDisplayLabel, isKeycodeUnavailable, FW_ALL_AVAILABLE } from '../../lib/keycodes';
+import type { KeycodeEntry, KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 
 interface KeyPaletteProps {
   keyLayout: KeyLayout;
+  avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
 }
 
 // カテゴリ定義（KeyConfigModalと同じ分類）
@@ -23,7 +24,7 @@ const CATEGORIES: { label: string; groups: string[] }[] = [
   { label: '特殊',       groups: ['特殊'] },
 ];
 
-export function KeyPalette({ keyLayout }: KeyPaletteProps) {
+export function KeyPalette({ keyLayout, avail = FW_ALL_AVAILABLE }: KeyPaletteProps) {
   const [open, setOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('文字/数字');
   const [search, setSearch] = useState('');
@@ -75,18 +76,23 @@ export function KeyPalette({ keyLayout }: KeyPaletteProps) {
           )}
 
           <div className="key-palette__grid">
-            {filtered.map(k => (
-              <button
-                key={k.code}
-                className="picker-key"
-                draggable
-                onDragStart={ev => ev.dataTransfer.setData('text/plain', String(k.code))}
-                title={`${k.short} (0x${k.code.toString(16).toUpperCase()}) — ドラッグして配置`}
-              >
-                <span className="picker-key__char">{getKeyDisplayLabel(k.code, keyLayout)}</span>
-                <span className="picker-key__name">{k.short}</span>
-              </button>
-            ))}
+            {filtered.map(k => {
+              const unavail = isKeycodeUnavailable(k, avail);
+              return (
+                <button
+                  key={k.code}
+                  className={`picker-key ${unavail ? 'picker-key--dim' : ''}`}
+                  draggable={!unavail}
+                  onDragStart={ev => { if (unavail) { ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', String(k.code)); }}
+                  title={unavail
+                    ? `${k.short} — このファーム版では使用できません`
+                    : `${k.short} (0x${k.code.toString(16).toUpperCase()}) — ドラッグして配置`}
+                >
+                  <span className="picker-key__char">{getKeyDisplayLabel(k.code, keyLayout)}</span>
+                  <span className="picker-key__name">{k.short}</span>
+                </button>
+              );
+            })}
             {filtered.length === 0 && <p className="picker-empty">一致するキーが見つかりません</p>}
           </div>
         </div>

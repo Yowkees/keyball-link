@@ -633,3 +633,23 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
 
   return disp;
 }
+
+// 接続中ファームで各機能が使えるか（未接続なら不明＝true扱いでグレーアウトしない）
+export interface FirmwareAvail {
+  media:   boolean;  // メディアキー（EXTRAKEY）。非LED版のみ
+  gesture: boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
+  rgb:     boolean;  // RGB系キー。LED版のみ
+}
+
+export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true };
+
+// このキーコードが接続中ファームで機能しない（グレーアウトすべき）なら true
+export function isKeycodeUnavailable(
+  entry: { group: string; short: string },
+  avail: FirmwareAvail,
+): boolean {
+  if (entry.group === 'メディア' && !avail.media)   return true;
+  if (entry.group === 'RGB'      && !avail.rgb)     return true;
+  if (entry.short === 'GST_HOLD' && !avail.gesture) return true;
+  return false;
+}

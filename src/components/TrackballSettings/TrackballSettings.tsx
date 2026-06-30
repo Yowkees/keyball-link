@@ -9,6 +9,7 @@ interface TrackballSettingsProps {
   scrollInvertV: boolean;
   scrollInvertH: boolean;
   onScrollInvertChange: (v: boolean, h: boolean) => void;
+  accelAvailable?: boolean;  // LED版の44/61では加速度が無効 → グレーアウト
 }
 
 const MAX_CPI_INDEX = 17;
@@ -24,6 +25,7 @@ function TrackballSlider({
   renderLabel,
   scale,
   onCommit,
+  dimmed = false,
 }: {
   label: string;
   value: number;
@@ -32,29 +34,32 @@ function TrackballSlider({
   renderLabel: (v: number) => string;
   scale: string;
   onCommit: (v: number) => void;
+  dimmed?: boolean;
 }) {
   const [local, setLocal] = useState(value);
   useEffect(() => { setLocal(value); }, [value]);
 
   return (
-    <div className="trackball-bar__item">
-      <span className="trackball-bar__label">{label}: <strong>{renderLabel(local)}</strong></span>
+    <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+      title={dimmed ? 'このファーム版（LED版）では加速度は使用できません' : undefined}>
+      <span className="trackball-bar__label">{label}: <strong>{dimmed ? '—' : renderLabel(local)}</strong></span>
       <input
         type="range"
         min={min}
         max={max}
         value={local}
+        disabled={dimmed}
         onChange={e => setLocal(Number(e.target.value))}
         onPointerUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
         onKeyUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
         className="slider"
       />
-      <span className="trackball-bar__scale">{scale}</span>
+      <span className="trackball-bar__scale">{dimmed ? 'この版では無効' : scale}</span>
     </div>
   );
 }
 
-export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange }: TrackballSettingsProps) {
+export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true }: TrackballSettingsProps) {
   return (
     <div className="trackball-bar">
       <span className="trackball-bar__title">トラックボール</span>
@@ -87,6 +92,7 @@ export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scr
         renderLabel={v => v === 0 ? 'オフ' : String(v)}
         scale="オフ〜強"
         onCommit={v => onChange({ ...config, accel: v })}
+        dimmed={!accelAvailable}
       />
 
       <div className="trackball-bar__item">

@@ -288,6 +288,17 @@ export default function App() {
   const isConnected = state.connectionState === 'connected';
   const currentCode = selectedKeyIndex !== null ? (layerKeycodes[selectedKeyIndex] ?? 0) : 0;
 
+  // 接続中ファームで使える機能（未接続なら不明＝true扱いでグレーアウトしない）。
+  // 通常版＝ジェスチャーあり＋メディアキーあり、LED版＝RGBあり、とセットで判別できる。
+  const fwAvail = {
+    media:   !isConnected || state.gesture !== null,  // メディアキー（非LED版のみ）
+    gesture: !isConnected || state.gesture !== null,  // ジェスチャーキー（非LED版のみ）
+    rgb:     !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
+  };
+  // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。39はLED版でも有効。
+  const accelAvailable = !isConnected || state.gesture !== null
+    || state.model === 'keyball39';
+
   return (
     <div className="app">
       {toast && (
@@ -479,6 +490,7 @@ export default function App() {
                       scrollInvertV={state.kbSettings.scrollInvertV}
                       scrollInvertH={state.kbSettings.scrollInvertH}
                       onScrollInvertChange={(v, h) => handleKbSettingsChange({ ...state.kbSettings, scrollInvertV: v, scrollInvertH: h })}
+                      accelAvailable={accelAvailable}
                     />
                   </CollapsibleCard>
                 )}
@@ -490,7 +502,7 @@ export default function App() {
                   </CollapsibleCard>
                 )}
 
-                <KeyPalette keyLayout={keyLayout} />
+                <KeyPalette keyLayout={keyLayout} avail={fwAvail} />
               </div>
             )}
 
@@ -539,6 +551,7 @@ export default function App() {
           keyIndex={selectedKeyIndex}
           currentCode={currentCode}
           keyLayout={keyLayout}
+          avail={fwAvail}
           onSelect={handleModalSelect}
           onClose={() => setSelectedKeyIndex(null)}
         />

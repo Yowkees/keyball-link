@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS } from '../../lib/keycodes';
-import type { KeycodeEntry, KeyLayout } from '../../lib/keycodes';
+import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS, isKeycodeUnavailable, FW_ALL_AVAILABLE } from '../../lib/keycodes';
+import type { KeycodeEntry, KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import {
   makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, LAYER_TAP_LAYERS,
   makeModsKeycode, MODIFIER_BITS, MOD_RIGHT_BIT,
@@ -14,6 +14,7 @@ interface KeyConfigModalProps {
   currentCode: number;
   keyLayout: KeyLayout;
   defaultPanel?: PanelType;
+  avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
   onSelect: (keycode: number) => void;
   onClose: () => void;
 }
@@ -122,9 +123,10 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
 }
 
 // ── 通常キーパネル（修飾キー付加対応） ────────────────────
-function NormalPanel({ currentCode, keyLayout, onSelect }: {
+function NormalPanel({ currentCode, keyLayout, avail, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
+  avail: FirmwareAvail;
   onSelect: (c: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState('すべて');
@@ -214,17 +216,18 @@ function NormalPanel({ currentCode, keyLayout, onSelect }: {
       </div>
       <div className="modal-panel__grid">
         {filtered.map((e: KeycodeEntry) => {
-          const dimmed = modsActive && !isBasicKey(e.code);
+          const fwUnavail = isKeycodeUnavailable(e, avail);
+          const dimmed = (modsActive && !isBasicKey(e.code)) || fwUnavail;
           return (
             <button
               key={e.code}
               className={`picker-key ${e.code === currentCode ? 'picker-key--current' : ''} ${dimmed ? 'picker-key--dim' : ''}`}
-              draggable
-              onDragStart={ev => ev.dataTransfer.setData('text/plain', String(modsActive && isBasicKey(e.code) ? makeModsKeycode(mods, e.code) : e.code))}
-              onClick={() => handleKey(e.code)}
+              draggable={!fwUnavail}
+              onDragStart={ev => { if (fwUnavail) { ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', String(modsActive && isBasicKey(e.code) ? makeModsKeycode(mods, e.code) : e.code)); }}
+              onClick={() => { if (!fwUnavail) handleKey(e.code); }}
               onMouseEnter={() => setHoverDesc(dimmed ? null : getKeyDescription(e.code, keyLayout))}
               onMouseLeave={() => setHoverDesc(null)}
-              title={dimmed ? '修飾キーと組み合わせできません' : `${e.short} (0x${e.code.toString(16).toUpperCase()})`}
+              title={fwUnavail ? `${e.short} — このファーム版では使用できません` : dimmed ? '修飾キーと組み合わせできません' : `${e.short} (0x${e.code.toString(16).toUpperCase()})`}
             >
               <span className="picker-key__char">{getKeyDisplayLabel(e.code, keyLayout)}</span>
               <span className="picker-key__name">{e.short}</span>
@@ -366,7 +369,7 @@ function detectPanelType(code: number): PanelType {
 }
 
 export function KeyConfigModal({
-  currentCode, keyLayout, defaultPanel, onSelect, onClose,
+  currentCode, keyLayout, defaultPanel, avail = FW_ALL_AVAILABLE, onSelect, onClose,
 }: KeyConfigModalProps) {
   const [panel, setPanel] = useState<PanelType>(defaultPanel ?? detectPanelType(currentCode));
 
@@ -402,7 +405,7 @@ export function KeyConfigModal({
         </div>
 
         <div className="modal-body">
-          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
+          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} onSelect={handleSelect} />}
           {panel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
           {panel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
         </div>

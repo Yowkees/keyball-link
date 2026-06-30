@@ -16,6 +16,7 @@ import { KeyPalette } from './components/KeyPalette/KeyPalette';
 import type { KbSettings, MacroSlot, GestureConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
 import type { KeyLayout } from './lib/keycodes';
+import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'settings' | 'firmware' | 'feedback';
@@ -30,7 +31,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, getMatrixState } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -47,6 +48,11 @@ export default function App() {
   // Undo/Redo用：キー変更の履歴
   const [undoStack, setUndoStack] = useState<EditOp[]>([]);
   const [redoStack, setRedoStack] = useState<EditOp[]>([]);
+  // レイヤー並べ替え（ドラッグでプレビュー → 保存で確定）
+  // pendingOrder[新しい位置] = 元のレイヤー番号。null＝並べ替えなし
+  const [pendingOrder, setPendingOrder] = useState<number[] | null>(null);
+  const [dragLayer, setDragLayer] = useState<number | null>(null);
+  const [savingReorder, setSavingReorder] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
   const [guideStep, setGuideStep] = useState<'click' | 'assign' | 'save' | 'done'>('click');
@@ -70,6 +76,7 @@ export default function App() {
       everAssignedRef.current = false;
       setUndoStack([]);
       setRedoStack([]);
+      setPendingOrder(null);
     }
   }, [state.connectionState]);
 
@@ -93,15 +100,50 @@ export default function App() {
     localStorage.setItem('ballSide', side);
   };
 
+  // レイヤータブを位置 from から位置 to へ移動して並べ替え（プレビュー）
+  const reorderTabs = (from: number, to: number) => {
+    if (from === to) return;
+    const n = state.info?.layers ?? 4;
+    const base = pendingOrder ?? Array.from({ length: n }, (_, i) => i);
+    const next = [...base];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setPendingOrder(isIdentityOrder(next) ? null : next);
+    setSelectedKeyIndex(null);
+  };
+
+  const handleSaveReorder = async () => {
+    if (!pendingOrder) return;
+    setSavingReorder(true);
+    try {
+      const reordered = reorderKeymap(state.keymap, pendingOrder);
+      await writeFullKeymap(reordered);
+      setPendingOrder(null);
+      setUndoStack([]);   // 並べ替え後はキー単位の取り消し履歴が合わなくなるためクリア
+      setRedoStack([]);
+      setCurrentLayer(0);
+      showToast('レイヤーの並べ替えを保存しました', 'success');
+    } catch (e) {
+      showToast(`保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSavingReorder(false);
+    }
+  };
+
   const layout = state.model ? LAYOUTS[state.model] : null;
   // keyball44 はキー配置を保ったまま左右半分の間隔を広げる（各画面で +1キー分）
   const keymapSplitGap = state.model === 'keyball44' ? 112 : 56;   // メイン画面（1キー=56px）
   const matrixSplitGap = state.model === 'keyball44' ? 77 : 36;    // テストマトリクス（1キー=41px）
-  const layerKeycodes = layout && state.keymap[state.currentLayer]
-    ? layout.map(k => state.keymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0)
+  // 並べ替えプレビュー中は、中身移動＋参照付け替え済みのキーマップを表示に使う
+  const displayKeymap = pendingOrder && state.keymap.length
+    ? reorderKeymap(state.keymap, pendingOrder)
+    : state.keymap;
+  const layerKeycodes = layout && displayKeymap[state.currentLayer]
+    ? layout.map(k => displayKeymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0)
     : [];
 
   const handleKeyClick = (index: number) => {
+    if (pendingOrder) { showToast('並べ替え中はキー編集できません。保存または取り消してください。'); return; }
     setSelectedKeyIndex(index);
     setGuideStep(prev => prev === 'click' ? 'assign' : prev);
   };
@@ -126,7 +168,7 @@ export default function App() {
   };
 
   const handleUndo = async () => {
-    if (undoStack.length === 0 || !layout) return;
+    if (pendingOrder || undoStack.length === 0 || !layout) return;
     const op = undoStack[undoStack.length - 1];
     try {
       await setKeycode(op.layer, op.row, op.col, op.prev);
@@ -140,7 +182,7 @@ export default function App() {
   };
 
   const handleRedo = async () => {
-    if (redoStack.length === 0 || !layout) return;
+    if (pendingOrder || redoStack.length === 0 || !layout) return;
     const op = redoStack[redoStack.length - 1];
     try {
       await setKeycode(op.layer, op.row, op.col, op.next);
@@ -321,7 +363,7 @@ export default function App() {
               <button
                 className="btn btn--ghost"
                 onClick={handleUndo}
-                disabled={undoStack.length === 0}
+                disabled={undoStack.length === 0 || pendingOrder !== null}
                 title={undoStack.length === 0 ? '元に戻す操作がありません' : '直前のキー変更を元に戻す (Cmd/Ctrl+Z)'}
               >
                 ↩ 元に戻す
@@ -329,7 +371,7 @@ export default function App() {
               <button
                 className="btn btn--ghost"
                 onClick={handleRedo}
-                disabled={redoStack.length === 0}
+                disabled={redoStack.length === 0 || pendingOrder !== null}
                 title={redoStack.length === 0 ? 'やり直す操作がありません' : '元に戻した変更をやり直す (Cmd/Ctrl+Shift+Z)'}
               >
                 ↪ やり直し
@@ -410,15 +452,24 @@ export default function App() {
             {activeTab === 'keymap' && isConnected && layout && (
               <div className="keymap-view">
                 <div className="layer-selector">
-                  {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => (
-                    <button
-                      key={i}
-                      className={`btn btn--layer ${!showAllLayers && state.currentLayer === i ? 'btn--layer-active' : ''}`}
-                      onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
-                    >
-                      Layer {i}
-                    </button>
-                  ))}
+                  {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
+                    const src = pendingOrder ? pendingOrder[i] : i;
+                    return (
+                      <button
+                        key={i}
+                        className={`btn btn--layer ${!showAllLayers && state.currentLayer === i ? 'btn--layer-active' : ''} ${dragLayer === i ? 'btn--layer-dragging' : ''}`}
+                        draggable
+                        onDragStart={() => setDragLayer(i)}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={() => { if (dragLayer !== null) reorderTabs(dragLayer, i); setDragLayer(null); }}
+                        onDragEnd={() => setDragLayer(null)}
+                        onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
+                        title={pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます'}
+                      >
+                        Layer {i}{pendingOrder && src !== i ? ` ←${src}` : ''}
+                      </button>
+                    );
+                  })}
                   <button
                     className={`btn btn--layer ${showAllLayers ? 'btn--layer-active' : ''}`}
                     onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
@@ -433,10 +484,22 @@ export default function App() {
                   </span>
                 </div>
 
+                {pendingOrder && (
+                  <div className="reorder-bar">
+                    <span>🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。</span>
+                    <button className="btn btn--primary btn--small" disabled={savingReorder} onClick={handleSaveReorder} style={{ marginLeft: 'auto' }}>
+                      {savingReorder ? '保存中…' : '保存'}
+                    </button>
+                    <button className="btn btn--ghost btn--small" disabled={savingReorder} onClick={() => { setPendingOrder(null); setSelectedKeyIndex(null); }}>
+                      取り消し
+                    </button>
+                  </div>
+                )}
+
                 {showAllLayers ? (
                   <div className="all-layers-view">
                     {Array.from({ length: state.info?.layers ?? 4 }, (_, li) => {
-                      const codes = layout.map(k => state.keymap[li]?.[k.row]?.[k.col] ?? 0);
+                      const codes = layout.map(k => displayKeymap[li]?.[k.row]?.[k.col] ?? 0);
                       return (
                         <div key={li} className="all-layers-item">
                           <div className="all-layers-label">Layer {li}</div>
@@ -551,7 +614,7 @@ export default function App() {
         )}
       </main>
 
-      {selectedKeyIndex !== null && layout && (
+      {selectedKeyIndex !== null && layout && !pendingOrder && (
         <KeyConfigModal
           keyIndex={selectedKeyIndex}
           currentCode={currentCode}

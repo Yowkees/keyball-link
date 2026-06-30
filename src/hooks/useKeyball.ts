@@ -237,5 +237,27 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset };
+  // 指定キーマップをデバイスに書き込む（現在値と違うセルだけ書く）。レイヤー並べ替えの保存に使う。
+  const writeFullKeymap = useCallback(async (
+    target: number[][][],
+    onProgress?: (done: number, total: number) => void,
+  ) => {
+    const info = await hid.current.getInfo();
+    const total = info.layers * info.rows * info.cols;
+    let done = 0;
+    for (let l = 0; l < info.layers; l++) {
+      for (let row = 0; row < info.rows; row++) {
+        for (let col = 0; col < info.cols; col++) {
+          const want = target[l]?.[row]?.[col] ?? 0;
+          const cur  = await hid.current.getKeycode(l, row, col);
+          if (cur !== want) await hid.current.setKeycode(l, row, col, want);
+          onProgress?.(++done, total);
+        }
+      }
+    }
+    const keymap = await hid.current.getFullKeymap(info.layers, info.rows, info.cols);
+    setPartial({ keymap });
+  }, []);
+
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

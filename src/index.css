@@ -2292,3 +2292,19 @@ body { background: var(--bg); }
 .matrix-key--touched .matrix-key__label {
   color: #86efac;
 }
+
+/* レイヤー並べ替え（ドラッグ）バー */
+.reorder-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.btn--layer[draggable="true"] { cursor: grab; }
+.btn--layer-dragging { opacity: 0.45; }

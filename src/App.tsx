@@ -350,7 +350,7 @@ export default function App() {
       )}
 
       <header className="app-header">
-        <h1 className="app-title">Keyball Configurator</h1>
+        <h1 className="app-title">Keyball Link</h1>
         <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title="テーマ切替">
           {theme === 'dark' ? '☀ ライト' : '☾ ダーク'}
         </button>

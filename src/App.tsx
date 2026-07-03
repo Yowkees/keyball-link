@@ -538,9 +538,6 @@ export default function App() {
                       />
                     </div>
 
-                    <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
-                      キーをクリックで設定 ／ マウスを乗せると説明が表示されます
-                    </p>
                   </>
                 )}
 

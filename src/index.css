@@ -1,19 +1,20 @@
 /* ===== CSS変数（ダークテーマ・デフォルト） ===== */
 :root {
-  --bg:         #1a1b26;
-  --bg2:        #24253a;
-  --bg3:        #2e3052;
-  --text:       #c0caf5;
-  --text-dim:   #565f89;
-  --accent:     #7aa2f7;
-  --accent-h:   #89b4fa;
-  --green:      #9ece6a;
-  --red:        #f7768e;
-  --border:     #3b3d5c;
-  --key-bg:     #2e3052;
-  --key-hover:  #3d4068;
-  --key-sel:    #7aa2f7;
-  --key-sel-fg: #1a1b26;
+  --bg:         #0e0f14;
+  --bg2:        #161821;
+  --bg3:        #1f2230;
+  --text:       #e6e9f4;
+  --text-dim:   #8189a3;
+  --accent:     #7d8cfa;
+  --accent-h:   #96a3ff;
+  --accent2:    #a78bfa;
+  --green:      #4ade80;
+  --red:        #fb7185;
+  --border:     #2a2e40;
+  --key-bg:     #252938;
+  --key-hover:  #343a52;
+  --key-sel:    #7d8cfa;
+  --key-sel-fg: #0e0f14;
 
   font-family: system-ui, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
   font-size: 14px;
@@ -24,19 +25,20 @@
 
 /* ===== ライトテーマ ===== */
 :root[data-theme="light"] {
-  --bg:         #f4f6fb;
+  --bg:         #fefdfa;
   --bg2:        #ffffff;
-  --bg3:        #edf0f8;
-  --text:       #1e2035;
-  --text-dim:   #7b82a0;
-  --accent:     #4a76d6;
-  --accent-h:   #3a66c6;
-  --green:      #3a9a30;
-  --red:        #d43050;
-  --border:     #d0d5e8;
-  --key-bg:     #edf0f8;
-  --key-hover:  #d8ddf0;
-  --key-sel:    #4a76d6;
+  --bg3:        #faf6ed;
+  --text:       #3c362c;
+  --text-dim:   #a2977f;
+  --accent:     #f28a30;
+  --accent-h:   #e37b1f;
+  --accent2:    #f4b73f;
+  --green:      #3fb46a;
+  --red:        #e35050;
+  --border:     #eee3cf;
+  --key-bg:     #fbf7ee;
+  --key-hover:  #f6ecd9;
+  --key-sel:    #f28a30;
   --key-sel-fg: #ffffff;
 }
 
@@ -96,7 +98,10 @@ body { background: var(--bg); }
 .app-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   letter-spacing: 0.5px;
   flex-shrink: 0;
 }
@@ -137,11 +142,11 @@ body { background: var(--bg); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn--primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: var(--key-sel-fg);
-  border-color: var(--accent);
+  border-color: transparent;
 }
-.btn--primary:hover:not(:disabled) { background: var(--accent-h); }
+.btn--primary:hover:not(:disabled) { filter: brightness(1.12); }
 
 .btn--ghost {
   background: transparent;
@@ -297,8 +302,9 @@ body { background: var(--bg); }
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: background 0.1s, border-color 0.1s, transform 0.08s;
+  transition: background 0.1s, border-color 0.1s, transform 0.08s, box-shadow 0.1s;
   overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
 }
 
 .key:hover {
@@ -309,6 +315,8 @@ body { background: var(--bg); }
 .key--selected {
   background: var(--key-sel) !important;
   border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--key-sel) 35%, transparent),
+              0 2px 8px color-mix(in srgb, var(--key-sel) 45%, transparent);
 }
 .key--selected .key__label { color: var(--key-sel-fg); }
 
@@ -339,7 +347,9 @@ body { background: var(--bg); }
   line-height: 1.2;
   pointer-events: none;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-break: loose;
 }
 
 /* 2段表示モード（Shiftラベルあり） */
@@ -371,7 +381,9 @@ body { background: var(--bg); }
   line-height: 1.2;
   pointer-events: none;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-break: loose;
 }
 
 .key--selected .key__main { color: var(--key-sel-fg); }

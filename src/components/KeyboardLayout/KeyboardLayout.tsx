@@ -55,7 +55,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
       </div>
       {showDescBar && (
         <div className="key-desc-bar">
-          {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
+          {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
         </div>
       )}
     </div>

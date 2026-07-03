@@ -152,6 +152,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
       await onSave(selected, draft);
       setEditorState('idle');
       setDraft(null);
+    } catch (e) {
+      alert(`マクロの保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -161,6 +163,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
     draft ? slots.map((s, i) => i === selected ? draft : s) : slots
   );
   const bufferPct = Math.min(100, Math.round(bufferUsed / MACRO_BUFFER_SIZE * 100));
+  const overCapacity = bufferUsed > MACRO_BUFFER_SIZE;
 
   return (
     <div className="macro-editor">
@@ -259,7 +262,12 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
 
           {editorState === 'editing' && (
             <div className="macro-edit-actions">
-              <button className="btn btn--primary" onClick={handleSave} disabled={saving || !draft}>
+              {overCapacity && (
+                <p className="macro-edit-desc" style={{ color: 'var(--red)' }}>
+                  バッファ容量を超えています。ステップを減らすか、他のスロットのマクロを削除してください。
+                </p>
+              )}
+              <button className="btn btn--primary" onClick={handleSave} disabled={saving || !draft || overCapacity}>
                 {saving ? '保存中...' : 'キーボードに保存'}
               </button>
               <button className="btn btn--ghost" onClick={cancelEdit}>キャンセル</button>

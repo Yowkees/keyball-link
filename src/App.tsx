@@ -64,8 +64,10 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // 接続状態の変化でガイド表示を制御
-  useEffect(() => {
+  // 接続状態の変化でガイド表示を制御（レンダー中の比較更新）
+  const [prevConnState, setPrevConnState] = useState(state.connectionState);
+  if (prevConnState !== state.connectionState) {
+    setPrevConnState(state.connectionState);
     if (state.connectionState === 'connected') {
       const seen = localStorage.getItem('keyball_guide_done');
       if (!seen) { setShowGuide(true); setGuideStep('click'); }
@@ -73,11 +75,15 @@ export default function App() {
     } else if (state.connectionState === 'disconnected') {
       setShowGuide(false);
       setHasUnsaved(false);
-      everAssignedRef.current = false;
       setUndoStack([]);
       setRedoStack([]);
       setPendingOrder(null);
     }
+  }
+
+  // refの書き換えはレンダー中にできないためeffectで行う
+  useEffect(() => {
+    if (state.connectionState === 'disconnected') everAssignedRef.current = false;
   }, [state.connectionState]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
@@ -276,6 +282,9 @@ export default function App() {
       try {
         const data = JSON.parse(ev.target?.result as string);
         if (!data.keymap || !Array.isArray(data.keymap)) throw new Error('keymap が見つかりません');
+        if (data.model && state.model && data.model !== state.model) {
+          if (!confirm(`このファイルは ${data.model} 用です。接続中の ${state.model} に読み込むとキー配置が崩れる可能性があります。続行しますか？`)) return;
+        }
         if (!confirm('キーマップ（とマクロ）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
         const { info } = state;
         if (!info || !layout) return;
@@ -284,7 +293,11 @@ export default function App() {
           for (let r = 0; r < info.rows; r++) {
             for (let c = 0; c < info.cols; c++) {
               const kc = data.keymap[l]?.[r]?.[c];
-              if (kc !== undefined) { await setKeycode(l, r, c, kc); count++; }
+              // 数値以外や範囲外の値が混ざったファイルから守る
+              if (typeof kc === 'number' && Number.isInteger(kc) && kc >= 0 && kc <= 0xFFFF) {
+                await setKeycode(l, r, c, kc);
+                count++;
+              }
             }
           }
         }

@@ -69,11 +69,14 @@ export function encodeMacroBuffer(slots: MacroSlot[]): Uint8Array {
       bytes.push(action, (step.keycode >> 8) & 0xFF, step.keycode & 0xFF);
     }
     bytes.push(MACRO_ACTION_END);
-    if (bytes.length >= MACRO_BUFFER_SIZE) break;
+  }
+  // 超過分を黙って切り捨てるとEEPROM上のデータが壊れるためエラーにする
+  if (bytes.length > MACRO_BUFFER_SIZE) {
+    throw new Error(`マクロの合計サイズ（${bytes.length}バイト）がバッファ容量（${MACRO_BUFFER_SIZE}バイト）を超えています。ステップを減らしてください。`);
   }
   // バッファ末尾をゼロパディング
   while (bytes.length < MACRO_BUFFER_SIZE) bytes.push(0);
-  return new Uint8Array(bytes.slice(0, MACRO_BUFFER_SIZE));
+  return new Uint8Array(bytes);
 }
 
 /** EEPROMバッファ → MacroSlot配列 */

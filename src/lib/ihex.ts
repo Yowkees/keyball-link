@@ -32,6 +32,11 @@ export function parseIntelHex(hexText: string): Uint8Array {
     }
   }
 
+  // データが1バイトもない＝HEX形式でないファイルの可能性が高い
+  if (maxAddr === 0) {
+    throw new Error('有効なデータが見つかりません。Intel HEX形式のファームウェアファイルか確認してください。');
+  }
+
   // ページサイズ（128B）単位に切り上げ
   const pageSize = 128;
   const trimmed = Math.ceil(maxAddr / pageSize) * pageSize;

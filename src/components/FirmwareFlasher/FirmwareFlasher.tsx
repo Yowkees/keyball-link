@@ -220,8 +220,8 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
           ) : (
             <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
               💡 「書き込む」を押すとポート選択ダイアログが開きます。<br />
-              　　<strong>ダイアログが開いた状態で</strong>リセットボタンを素早く2回押してください。<br />
-              　　「ProMicro 5V」がリストに現れたら選択すると書き込み開始です。
+              {'　　'}<strong>ダイアログが開いた状態で</strong>リセットボタンを素早く2回押してください。<br />
+              {'　　'}「ProMicro 5V」がリストに現れたら選択すると書き込み開始です。
             </div>
           )}
 

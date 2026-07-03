@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { TrackballConfig } from '../../lib/protocol';
 import { cpiIndexToValue, SCROLL_MODE } from '../../lib/protocol';
 
@@ -37,7 +37,12 @@ function TrackballSlider({
   dimmed?: boolean;
 }) {
   const [local, setLocal] = useState(value);
-  useEffect(() => { setLocal(value); }, [value]);
+  // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value) {
+    setPrevValue(value);
+    setLocal(value);
+  }
 
   return (
     <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}

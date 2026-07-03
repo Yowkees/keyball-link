@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { KbSettings, GestureConfig } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
@@ -14,7 +14,12 @@ function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
   disabled: boolean; unit: string; onCommit: (v: number) => void;
 }) {
   const [local, setLocal] = useState(value);
-  useEffect(() => { setLocal(value); }, [value]);
+  // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value) {
+    setPrevValue(value);
+    setLocal(value);
+  }
 
   const commit = () => { if (local !== value) onCommit(local); };
 
@@ -457,7 +462,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
         </div>
         <p className="layout-toggle-note">
           現在: <strong>{keyLayout === 'JIS' ? 'JIS配列（日本語キーボード）' : 'US配列（英語キーボード）'}</strong>
-          　→ キーマップ画面の表示に反映されます
+          {'　'}→ キーマップ画面の表示に反映されます
         </p>
       </CollapsibleCard>
 

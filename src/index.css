@@ -15,7 +15,7 @@
   --key-sel:    #7aa2f7;
   --key-sel-fg: #1a1b26;
 
-  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-family: system-ui, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
@@ -1556,7 +1556,7 @@ body { background: var(--bg); }
 
 /* 16進数入力 */
 .custom-hex-input {
-  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
   font-size: 16px;
   letter-spacing: 1px;
   max-width: 200px;

@@ -77,6 +77,11 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
   };
 
   const openPortAndFlash = async () => {
+    if (!('serial' in navigator)) {
+      setPhase('error');
+      setMessage('このブラウザはWeb Serial非対応のため書き込みできません。Chrome または Edge をご利用ください。');
+      return;
+    }
     setPhase('port');
     setMessage('シリアルポートを選択してください（「ProMicro 5V」を選ぶ）');
 

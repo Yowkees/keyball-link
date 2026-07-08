@@ -5,7 +5,7 @@ WebHID API を使用してブラウザから直接キーボードと通信しま
 
 ## 🌐 アプリを使う
 
-**👉 https://keyball-link.yoho-3418.workers.dev**
+**👉 https://keyball-link.shiroganelab.com**
 
 インストール不要。上記URLを **Chrome または Edge** で開くだけで使えます。
 

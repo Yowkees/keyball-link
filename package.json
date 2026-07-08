@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build && npm run copy-firmware",
     "lint": "eslint .",
-    "preview": "npm run build && wrangler dev",
+    "preview": "npm run build && vite preview",
     "copy-firmware": "cp ~/qmk_firmware/keyball_keyball39_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball44_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball61_web_configurator.hex public/firmware/ 2>/dev/null || true",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=keyball-link"
   },
   "dependencies": {
     "react": "^19.2.6",

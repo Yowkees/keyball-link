@@ -444,11 +444,6 @@ export default function App() {
 
             {activeTab === 'keymap' && !isConnected && (
               <div className="placeholder">
-                <img
-                  className="placeholder-logo"
-                  src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
-                  alt="Keyball"
-                />
                 <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
                 <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
               </div>

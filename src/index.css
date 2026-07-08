@@ -168,13 +168,6 @@ body { background: var(--bg); }
   gap: 12px;
   min-height: 60vh;
 }
-.placeholder-logo {
-  width: 380px;
-  max-width: 70vw;
-  height: auto;
-  opacity: 0.85;
-  margin-bottom: 32px;
-}
 .placeholder-text { font-size: 18px; color: var(--text); }
 .placeholder-note { font-size: 13px; color: var(--text-dim); }
 

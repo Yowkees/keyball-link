@@ -1,11 +1,11 @@
-# Keyball Web Configurator
+# Keyball Link
 
 Keyball39/44/61 向けのWebベースキーマップ設定ツールです。
 WebHID API を使用してブラウザから直接キーボードと通信します。
 
 ## 🌐 アプリを使う
 
-**👉 https://keyball-configurator.yoho-3418.workers.dev**
+**👉 https://keyball-link.yoho-3418.workers.dev**
 
 インストール不要。上記URLを **Chrome または Edge** で開くだけで使えます。
 

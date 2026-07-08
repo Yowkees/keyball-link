@@ -363,7 +363,11 @@ export default function App() {
       )}
 
       <header className="app-header">
-        <h1 className="app-title">Keyball Link</h1>
+        <img
+            className="app-logo"
+            src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
+            alt="Keyball Link"
+          />
         <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title="テーマ切替">
           {theme === 'dark' ? '☀ ライト' : '☾ ダーク'}
         </button>
@@ -440,6 +444,11 @@ export default function App() {
 
             {activeTab === 'keymap' && !isConnected && (
               <div className="placeholder">
+                <img
+                  className="placeholder-logo"
+                  src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
+                  alt="Keyball"
+                />
                 <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
                 <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
               </div>

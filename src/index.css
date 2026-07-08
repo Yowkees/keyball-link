@@ -95,14 +95,10 @@ body { background: var(--bg); }
   flex-wrap: wrap;
 }
 
-.app-title {
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  letter-spacing: 0.5px;
+.app-logo {
+  height: 24px;
+  width: auto;
+  display: block;
   flex-shrink: 0;
 }
 
@@ -171,6 +167,13 @@ body { background: var(--bg); }
   justify-content: center;
   gap: 12px;
   min-height: 60vh;
+}
+.placeholder-logo {
+  width: 380px;
+  max-width: 70vw;
+  height: auto;
+  opacity: 0.85;
+  margin-bottom: 32px;
 }
 .placeholder-text { font-size: 18px; color: var(--text); }
 .placeholder-note { font-size: 13px; color: var(--text-dim); }

@@ -25,4 +25,4 @@ SOFTWARE.
 Note: The pre-built firmware files (public/firmware/*.hex) are built from
 QMK Firmware and are licensed under the GNU General Public License v2.0
 (GPL-2.0), not the MIT License. Their source code is available at:
-https://github.com/ineno771/keyball-link-firmware
+https://github.com/Yowkees/keyball-link-firmware

@@ -1,4 +1,4 @@
-const REPO = 'ineno771/keyball-link';
+const REPO = 'Yowkees/keyball-link';
 const ISSUES_URL      = `https://github.com/${REPO}/issues/new`;
 const DISCUSSIONS_URL = `https://github.com/${REPO}/discussions`;
 

@@ -45,7 +45,7 @@ WebHID API を使用してブラウザから直接キーボードと通信しま
 | 通常版 | メディアキー・ジェスチャー・キー単位詳細設定など全機能（LEDなし） |
 | LED版 | LED点灯対応の最小機能版（メディアキー・ジェスチャーなし） |
 
-ファームウェアのソースコードは [keyball-link-firmware](https://github.com/ineno771/keyball-link-firmware) で公開しています。
+ファームウェアのソースコードは [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware) で公開しています。
 
 ## ⌨️ macOSで @ などの記号が正しく入力できない場合
 
@@ -70,7 +70,7 @@ npm run build    # 本番ビルド（dist/ に出力）
 ## ライセンス
 
 - 本アプリのソースコード: [MIT License](LICENSE)
-- ビルド済みファームウェア（`public/firmware/*.hex`）: GPL-2.0（[QMK Firmware](https://qmk.fm/) 由来）。ソースは [keyball-link-firmware](https://github.com/ineno771/keyball-link-firmware) を参照
+- ビルド済みファームウェア（`public/firmware/*.hex`）: GPL-2.0（[QMK Firmware](https://qmk.fm/) 由来）。ソースは [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware) を参照
 
 ## 免責
 

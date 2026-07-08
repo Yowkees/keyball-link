@@ -1,0 +1,7 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  // 旧URL (keyball-configurator.yoho-3418.workers.dev) を新URLへ301転送するだけのWorker
+  "name": "keyball-configurator",
+  "compatibility_date": "2026-06-01",
+  "main": "src/index.js"
+}

@@ -14,6 +14,7 @@ interface KeyConfigModalProps {
   currentCode: number;
   keyLayout: KeyLayout;
   defaultPanel?: PanelType;
+  hideHold?: boolean;     // ホールドタブを隠す（ジェスチャー割り当てなど押下時間の概念がない用途）
   avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
   onSelect: (keycode: number) => void;
   onClose: () => void;
@@ -369,9 +370,12 @@ function detectPanelType(code: number): PanelType {
 }
 
 export function KeyConfigModal({
-  currentCode, keyLayout, defaultPanel, avail = FW_ALL_AVAILABLE, onSelect, onClose,
+  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, onSelect, onClose,
 }: KeyConfigModalProps) {
-  const [panel, setPanel] = useState<PanelType>(defaultPanel ?? detectPanelType(currentCode));
+  const initialPanel = defaultPanel ?? detectPanelType(currentCode);
+  const [panel, setPanel] = useState<PanelType>(
+    hideHold && initialPanel === 'ホールド' ? '通常' : initialPanel
+  );
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -399,7 +403,7 @@ export function KeyConfigModal({
         </div>
 
         <div className="modal-type-tabs">
-          {(['通常', 'ホールド', 'カスタム'] as PanelType[]).map(t => (
+          {(['通常', 'ホールド', 'カスタム'] as PanelType[]).filter(t => !(hideHold && t === 'ホールド')).map(t => (
             <button key={t} className={`tab ${panel === t ? 'tab--active' : ''}`} onClick={() => setPanel(t)}>{t}</button>
           ))}
         </div>

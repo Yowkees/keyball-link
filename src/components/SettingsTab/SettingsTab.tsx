@@ -480,6 +480,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
           currentCode={gesture[editDir]}
           keyLayout={keyLayout}
           defaultPanel="カスタム"
+          hideHold
           onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}
         />

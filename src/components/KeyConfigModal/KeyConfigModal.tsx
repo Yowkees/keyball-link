@@ -393,7 +393,7 @@ export function KeyConfigModal({
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-dialog">
+      <div className="modal-dialog" data-guide="key-picker">
         <div className="modal-header">
           <span className="modal-title">
             キー設定 — 現在: <strong>{dispLabel.replace('\n', ' / ')}</strong>
@@ -404,7 +404,7 @@ export function KeyConfigModal({
 
         <div className="modal-type-tabs">
           {(['通常', 'ホールド', 'カスタム'] as PanelType[]).filter(t => !(hideHold && t === 'ホールド')).map(t => (
-            <button key={t} className={`tab ${panel === t ? 'tab--active' : ''}`} onClick={() => setPanel(t)}>{t}</button>
+            <button key={t} className={`tab ${panel === t ? 'tab--active' : ''}`} data-guide={t === 'ホールド' ? 'hold-tab' : undefined} onClick={() => setPanel(t)}>{t}</button>
           ))}
         </div>
 

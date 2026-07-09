@@ -137,12 +137,23 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       )}
 
       {supported && !isHIDConnected && (
-        <div className="flash-alert flash-alert--warn">
-          ⚠ ブラウザからの書き込みは環境によって失敗することがあります。<br />
-          うまくいかない場合は <strong>QMK Toolbox</strong> で初回書き込みを行ってください。<br />
-          初回書き込み後は「キーボードに接続」→「書き込む」で自動的にブートローダーに切り替わります。
-        </div>
+        <details className="flash-alert flash-alert--warn flash-alert--collapsible">
+          <summary>書き込みがうまくいかない場合（QMK Toolboxの利用）</summary>
+          <p>
+            ブラウザからの書き込みは環境によって失敗することがあります。<br />
+            うまくいかない場合は <strong>QMK Toolbox</strong> で初回書き込みを行ってください。<br />
+            初回書き込み後は「キーボードに接続」→「書き込む」で自動的にブートローダーに切り替わります。
+          </p>
+        </details>
       )}
+
+      <details className="flash-alert flash-alert--warn flash-alert--collapsible">
+        <summary>公式ファームウェアからの乗り換えの方へ（書き込み前にお読みください）</summary>
+        <p>
+          書き込むと今のキー設定は引き継がれません。<br />
+          <strong>Remap</strong> などで現在のキーマップを保存（バックアップ）してから書き込んでください。
+        </p>
+      </details>
 
       {/* Step 1 */}
       <div className="flash-step">
@@ -194,8 +205,8 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>
                 {ledVersion
-                  ? 'LEDが光ります。音量キー・タッピング詳細設定・トラックボール加速は無効です。'
-                  : '音量などのメディアキーが使えます。LEDは光りません。'}
+                  ? 'LEDが光ります。かわりに音量などのメディアキー・ジェスチャー・タッピング詳細設定・トラックボール加速は使えません。'
+                  : '音量などのメディアキー・ジェスチャー・キーごとの詳細設定が使えます。LEDは光りません。'}
               </p>
             </div>
           )}

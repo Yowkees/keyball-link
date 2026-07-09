@@ -55,7 +55,7 @@ export default function App() {
   const [savingReorder, setSavingReorder] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
-  const [guideStep, setGuideStep] = useState<'click' | 'assign' | 'save' | 'done'>('click');
+  const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'done'>('flash');
   const [showGuide, setShowGuide] = useState(false);
   const everAssignedRef = useRef(false);
 
@@ -69,8 +69,8 @@ export default function App() {
   if (prevConnState !== state.connectionState) {
     setPrevConnState(state.connectionState);
     if (state.connectionState === 'connected') {
-      const seen = localStorage.getItem('keyball_guide_done');
-      if (!seen) { setShowGuide(true); setGuideStep('click'); }
+      // 「初めての方」ボタンからガイド表示中なら、キー編集のステップへ進める
+      if (showGuide) setGuideStep('click');
       setHasUnsaved(false);
     } else if (state.connectionState === 'disconnected') {
       setShowGuide(false);
@@ -87,6 +87,15 @@ export default function App() {
   }, [state.connectionState]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  // チュートリアルの「次へ」（全ステップでスキップ可能）
+  const advanceGuide = () => {
+    const order = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'done'] as const;
+    // レイヤーの説明へ進むときはキー設定画面を閉じて、Layerタブが見える状態にする
+    if (guideStep === 'mods') setSelectedKeyIndex(null);
+    const i = order.indexOf(guideStep);
+    setGuideStep(order[Math.min(i + 1, order.length - 1)]);
+  };
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -166,7 +175,7 @@ export default function App() {
       setHasUnsaved(true);
       if (!everAssignedRef.current) {
         everAssignedRef.current = true;
-        setGuideStep(prev => prev === 'assign' ? 'save' : prev);
+        setGuideStep(prev => prev === 'assign' ? 'mods' : prev);
       }
     } catch (e) {
       showToast(`キーコード書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
@@ -333,7 +342,7 @@ export default function App() {
     try {
       await save();
       setHasUnsaved(false);
-      setGuideStep(prev => prev === 'save' ? 'done' : prev);
+      setGuideStep(prev => prev === 'save' ? 'trackball' : prev);
       showToast('EEPROMに保存しました', 'success');
     } catch (e) {
       showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`);
@@ -400,6 +409,7 @@ export default function App() {
               </label>
               <button
                 className={`btn btn--primary ${hasUnsaved ? 'btn--unsaved' : ''}`}
+                data-guide="save-btn"
                 onClick={handleSave}
                 title={hasUnsaved ? '未保存の変更があります' : '設定をキーボードに保存'}
               >
@@ -416,6 +426,7 @@ export default function App() {
               )}
               <button
                 className="btn btn--primary"
+                data-guide="connect-btn"
                 onClick={connect}
                 disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
               >
@@ -426,6 +437,19 @@ export default function App() {
         </div>
       </header>
 
+      {showGuide && (() => {
+        // 対象がキーマップタブ内にあるステップで別タブにいるときは、タブへ戻る誘導を出す
+        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save', 'trackball'].includes(guideStep);
+        const displayStep = needsKeymapTab && activeTab !== 'keymap' ? 'backToKeymap' as const : guideStep;
+        return (
+          <WelcomeGuide
+            step={displayStep}
+            onNext={displayStep === 'backToKeymap' ? undefined : advanceGuide}
+            onDismiss={() => setShowGuide(false)}
+          />
+        );
+      })()}
+
       <main className="app-main">
         {state.isLoading ? (
           <div className="placeholder">
@@ -435,18 +459,28 @@ export default function App() {
         ) : (
           <>
             <div className="tabs">
-              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} onClick={() => setActiveTab('keymap')}>キーマップ</button>
+              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>キーマップ</button>
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
-              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} onClick={() => setActiveTab('firmware')}>ファームウェア</button>
+              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
               <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
             </div>
 
             {activeTab === 'keymap' && !isConnected && (
-              <div className="placeholder">
-                <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
-                <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
-              </div>
+              <>
+                <div className="placeholder">
+                  <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
+                  <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
+                  {!showGuide && (
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
+                    >
+                      初めての方はこちら
+                    </button>
+                  )}
+                </div>
+              </>
             )}
 
             {activeTab === 'keymap' && isConnected && !layout && (
@@ -456,19 +490,9 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'keymap' && isConnected && layout && showGuide && (
-              <WelcomeGuide
-                step={guideStep}
-                onDismiss={() => {
-                  setShowGuide(false);
-                  localStorage.setItem('keyball_guide_done', '1');
-                }}
-              />
-            )}
-
             {activeTab === 'keymap' && isConnected && layout && (
               <div className="keymap-view">
-                <div className="layer-selector">
+                <div className="layer-selector" data-guide="layer-tabs">
                   {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
                     const src = pendingOrder ? pendingOrder[i] : i;
                     return (
@@ -542,7 +566,7 @@ export default function App() {
                   </div>
                 ) : (
                   <>
-                    <div className="layout-scroll">
+                    <div className="layout-scroll" data-guide="keyboard">
                       <KeyboardLayout
                         layout={layout}
                         keycodes={layerKeycodes}
@@ -559,6 +583,7 @@ export default function App() {
                 )}
 
                 {state.trackball && (
+                  <div data-guide="trackball-card">
                   <CollapsibleCard title="トラックボール設定">
                     <TrackballSettings
                       config={state.trackball}
@@ -570,6 +595,7 @@ export default function App() {
                       accelAvailable={accelAvailable}
                     />
                   </CollapsibleCard>
+                  </div>
                 )}
                 {/* LED設定。LED対応版（state.led あり）は操作可、通常版は表示はするがグレーアウト。 */}
                 {isConnected && (

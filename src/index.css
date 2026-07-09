@@ -686,6 +686,15 @@ body { background: var(--bg); }
 .flash-alert--done  { background: rgba(158,206,106,0.15); color: var(--green);  border: 1px solid var(--green); }
 .flash-alert--error { background: rgba(247,118,142,0.15); color: var(--red);    border: 1px solid var(--red); }
 
+/* プルダウン式（クリックで開閉）の注意書き */
+.flash-alert--collapsible summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+}
+.flash-alert--collapsible summary:hover { opacity: 0.8; }
+.flash-alert--collapsible p { margin-top: 8px; }
+
 .flash-progress-wrap {
   position: relative;
   height: 24px;
@@ -1760,130 +1769,104 @@ body { background: var(--bg); }
   50%       { box-shadow: 0 0 0 6px rgba(122,162,247,0); }
 }
 
-/* ===== ウェルカムガイド ===== */
-.welcome-guide {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent) 8%, var(--bg2)),
-    var(--bg2)
-  );
+/* ===== チュートリアル（吹き出しガイド） ===== */
+.guide-tooltip {
+  position: fixed;
+  z-index: 3000;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--bg2);
   border: 1px solid var(--accent);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: guide-in 0.3s ease;
-}
-@keyframes guide-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.welcome-guide--done {
-  justify-content: center;
-  align-items: center;
-  flex-direction: row;
-  gap: 10px;
-  padding: 14px 20px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   animation: guide-in 0.2s ease;
 }
-.welcome-done-icon { font-size: 20px; }
-.welcome-done-text { font-size: 15px; font-weight: 700; color: var(--green); }
-
-.welcome-guide__header {
+@keyframes guide-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; }
+}
+.guide-tooltip--floating {
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+.guide-tooltip__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  margin-bottom: 2px;
 }
-.welcome-guide__title {
-  font-size: 14px;
+.guide-tooltip__step {
+  font-size: 11px;
   font-weight: 700;
   color: var(--accent);
 }
-.welcome-guide__close {
+.guide-tooltip__close {
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
   font-size: 12px;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
-.welcome-guide__close:hover { color: var(--text); background: var(--bg3); }
-
-.welcome-steps {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.welcome-step {
-  flex: 1;
-  min-width: 160px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: var(--bg3);
-  border-radius: 8px;
-  border: 1.5px solid var(--border);
-  opacity: 0.5;
-  transition: all 0.2s;
-}
-.welcome-step--done {
-  opacity: 0.6;
-  border-color: var(--green);
-  background: color-mix(in srgb, var(--green) 8%, var(--bg3));
-}
-.welcome-step--active {
-  opacity: 1;
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg3));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.welcome-step__icon {
-  font-size: 22px;
-  flex-shrink: 0;
-}
-.welcome-step__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-.welcome-step__num {
-  font-size: 10px;
-  color: var(--text-dim);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.welcome-step--active .welcome-step__num { color: var(--accent); }
-.welcome-step__title {
-  font-size: 13px;
+.guide-tooltip__close:hover { color: var(--text); background: var(--bg3); }
+.guide-tooltip__title {
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text);
+  margin-bottom: 4px;
 }
-.welcome-step__desc {
-  font-size: 11px;
+.guide-tooltip__desc {
+  font-size: 12px;
   color: var(--text-dim);
-  line-height: 1.4;
+  line-height: 1.7;
 }
-.welcome-step--active .welcome-step__desc { color: var(--text); }
+.guide-tooltip__actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
 
-.welcome-step__arrow {
-  font-size: 16px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-  align-self: center;
-  display: none; /* モバイル非表示 */
+/* 吹き出しの矢印（対象要素を指す三角） */
+.guide-arrow {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  background: var(--bg2);
+  transform: rotate(45deg);
+  z-index: 3001;
+}
+.guide-arrow--below { border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); }
+.guide-arrow--above { border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent); }
+
+/* 対象要素の強調枠 */
+.guide-highlight {
+  position: fixed;
+  z-index: 2999;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* 完了メッセージ */
+.guide-done {
+  position: fixed;
+  z-index: 3000;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--bg2);
+  border: 1px solid var(--green);
+  color: var(--green);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: guide-in 0.2s ease;
 }
 
 /* ===== マクロエディタ ===== */

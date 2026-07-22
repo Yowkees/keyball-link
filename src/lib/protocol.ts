@@ -271,7 +271,13 @@ export interface GestureConfig {
   right: number;
   tap:   number;  // タップ（短押し）時に送る基本キーコード（0=なし＝長押し専用）
   layer: number;  // このレイヤーにいる間ジェスチャー（0-7 / LAYER_NONE=なし）
+  thresholdH: number;  // 発動しきい値・横方向（左右）。小さいほど敏感。既定50、範囲10-200
+  thresholdV: number;  // 発動しきい値・縦方向（上下）。小さいほど敏感。既定50、範囲10-200
 }
+
+export const GESTURE_TH_DEFAULT = 50;
+export const GESTURE_TH_MIN     = 10;
+export const GESTURE_TH_MAX     = 200;
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
 export const KB_FLAG_PERMISSIVE_HOLD = 1 << 2;

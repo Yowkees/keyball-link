@@ -437,6 +437,29 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
                 ※ スクロール／自動マウスと同じレイヤーは選べません。
               </p>
             </div>
+
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <p className="settings-desc">
+                <strong>感度</strong>：トラックボールをどれくらい動かしたら発動するかです。小さいほど少しの動きで反応し（敏感）、大きいほどしっかり振らないと反応しません（鈍感）。上下と左右は別々に調整できます（左右の方が反応しやすい・上下が反応しにくいと感じたら、上下だけ数値を下げてみてください）。
+              </p>
+              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
+              <SliderControl
+                value={gesture.thresholdH} min={10} max={200} step={5}
+                disabled={disabled} unit=""
+                onCommit={v => onGestureChange({ ...gesture, thresholdH: v })}
+              />
+              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
+              <SliderControl
+                value={gesture.thresholdV} min={10} max={200} step={5}
+                disabled={disabled} unit=""
+                onCommit={v => onGestureChange({ ...gesture, thresholdV: v })}
+              />
+              <div className="tapping-term-hints">
+                <span>10（敏感）</span>
+                <span>デフォルト: 50</span>
+                <span>200（鈍感）</span>
+              </div>
+            </div>
           </>
         )}
       </CollapsibleCard>

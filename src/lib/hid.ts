@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig } from './protocol';
 
 export class KeyballHID {
@@ -212,6 +212,9 @@ export class KeyballHID {
       right: (r[7] << 8) | r[8],
       tap:   r[10] ?? 0,   // タップキー（旧ファームは0）
       layer: (r[11] !== undefined && r[11] <= 7) ? r[11] : LAYER_NONE,  // ジェスチャーレイヤー（旧ファーム/未設定はなし）
+      // しきい値（旧ファームは0のまま届くため範囲外→既定値50に補正）
+      thresholdH: (r[12] >= GESTURE_TH_MIN && r[12] <= GESTURE_TH_MAX) ? r[12] : GESTURE_TH_DEFAULT,
+      thresholdV: (r[13] >= GESTURE_TH_MIN && r[13] <= GESTURE_TH_MAX) ? r[13] : GESTURE_TH_DEFAULT,
     };
   }
 
@@ -224,6 +227,8 @@ export class KeyballHID {
       (g.right >> 8) & 0xFF, g.right & 0xFF,
       g.tap & 0xFF,
       g.layer & 0xFF,
+      g.thresholdH & 0xFF,
+      g.thresholdV & 0xFF,
     ));
   }
 

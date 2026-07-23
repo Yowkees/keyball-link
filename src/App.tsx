@@ -14,7 +14,8 @@ import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import { KeyPalette } from './components/KeyPalette/KeyPalette';
 import type { KbSettings, MacroSlot, GestureConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot } from './lib/protocol';
+import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from './lib/protocol';
+import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import './index.css';
@@ -653,6 +654,27 @@ export default function App() {
           </>
         )}
       </main>
+
+      <footer className="app-footer">
+        <span>Keyball Link v{__APP_VERSION__}</span>
+        {isConnected && (
+          <span>
+            {' '}・ ファームウェア:{' '}
+            {state.firmwareVersion ? (
+              <>
+                {formatVersion(state.firmwareVersion)}
+                {isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION) && (
+                  <span className="app-footer__warn">
+                    （最新版 {formatVersion(LATEST_FW_VERSION)} があります。「ファームウェア」タブから更新できます）
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="app-footer__warn">バージョン情報なし（古い版の可能性があります。更新をおすすめします）</span>
+            )}
+          </span>
+        )}
+      </footer>
 
       {selectedKeyIndex !== null && layout && !pendingOrder && (
         <KeyConfigModal

@@ -29,6 +29,7 @@ export const CMD = {
   SET_MACRO:     0x14,
   GET_GESTURE:   0x15,
   SET_GESTURE:   0x16,
+  GET_VERSION:   0x17,
 } as const;
 
 export const MACRO_SLOT_COUNT   = 10;
@@ -278,6 +279,24 @@ export interface GestureConfig {
 export const GESTURE_TH_DEFAULT = 50;
 export const GESTURE_TH_MIN     = 10;
 export const GESTURE_TH_MAX     = 200;
+
+// 接続中のファームウェアのバージョン（GET_VERSION未対応の旧ファームは null）
+export interface FirmwareVersion {
+  major: number;
+  minor: number;
+  patch: number;
+}
+
+// a が b より古ければ true（セマンティックバージョニング比較）
+export function isOlderVersion(a: FirmwareVersion, b: FirmwareVersion): boolean {
+  if (a.major !== b.major) return a.major < b.major;
+  if (a.minor !== b.minor) return a.minor < b.minor;
+  return a.patch < b.patch;
+}
+
+export function formatVersion(v: FirmwareVersion): string {
+  return `v${v.major}.${v.minor}.${v.patch}`;
+}
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
 export const KB_FLAG_PERMISSIVE_HOLD = 1 << 2;

@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -230,6 +230,13 @@ export class KeyballHID {
       g.thresholdH & 0xFF,
       g.thresholdV & 0xFF,
     ));
+  }
+
+  // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）
+  async getVersion(): Promise<FirmwareVersion> {
+    const r = await this.sendCommand(makePacket(CMD.GET_VERSION));
+    if (r[0] !== CMD.GET_VERSION) throw new Error('バージョン情報非対応のファームです');
+    return { major: r[1], minor: r[2], patch: r[3] };
   }
 
   async getMatrixState(): Promise<boolean[][]> {

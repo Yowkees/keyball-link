@@ -159,6 +159,15 @@ body { background: var(--bg); }
   overflow-x: auto;
 }
 
+.app-footer {
+  padding: 10px 24px;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.app-footer__warn { color: var(--accent); }
+
 /* ===== 接続前プレースホルダー ===== */
 .placeholder {
   display: flex;

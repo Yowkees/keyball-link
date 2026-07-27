@@ -270,6 +270,7 @@ export class KeyballHID {
       const r = await this.sendCommand(makePacket(
         CMD.GET_MACRO, (offset >> 8) & 0xFF, offset & 0xFF,
       ));
+      if (r[0] !== CMD.GET_MACRO) throw new Error('マクロ非対応のファームです');
       const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
       buffer.set(r.slice(3, 3 + len), offset);
     }
@@ -281,12 +282,13 @@ export class KeyballHID {
     for (let offset = 0; offset < MACRO_BUFFER_SIZE; offset += MACRO_CHUNK_SIZE) {
       const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
       const chunk = buffer.slice(offset, offset + len);
-      await this.sendCommand(makePacket(
+      const r = await this.sendCommand(makePacket(
         CMD.SET_MACRO,
         (offset >> 8) & 0xFF, offset & 0xFF,
         len,
         ...chunk,
       ));
+      if (r[0] !== CMD.SET_MACRO) throw new Error('マクロ非対応のファームです');
     }
   }
 

@@ -650,9 +650,10 @@ export interface FirmwareAvail {
   media:   boolean;  // メディアキー（EXTRAKEY）。v1.1.0〜通常版・LED版共通で利用可
   gesture: boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
   rgb:     boolean;  // RGB系キー。LED版のみ
+  macro:   boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
 }
 
-export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true };
+export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true };
 
 // このキーコードが接続中ファームで機能しない（グレーアウトすべき）なら true
 export function isKeycodeUnavailable(
@@ -661,6 +662,7 @@ export function isKeycodeUnavailable(
 ): boolean {
   if (entry.group === 'メディア' && !avail.media)   return true;
   if (entry.group === 'RGB'      && !avail.rgb)     return true;
+  if (entry.group === 'マクロ'   && !avail.macro)   return true;
   if (entry.short === 'GST_HOLD' && !avail.gesture) return true;
   return false;
 }

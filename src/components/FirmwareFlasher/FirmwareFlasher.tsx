@@ -196,18 +196,26 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
               <div className="fw-source-tabs">
                 <button className={`fw-source-tab ${!ledVersion ? 'fw-source-tab--active' : ''}`}
                   onClick={() => setLedVersion(false)} disabled={isWorking}>
-                  通常版（音量キーあり・LEDなし）
+                  通常版（音量キーあり・マクロあり・LEDなし）
                 </button>
                 <button className={`fw-source-tab ${ledVersion ? 'fw-source-tab--active' : ''}`}
                   onClick={() => setLedVersion(true)} disabled={isWorking}>
-                  LED版（LEDあり・音量キーなし）
+                  LED版（LEDあり・音量キーあり・マクロなし）
                 </button>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>
                 {ledVersion
-                  ? 'LEDが光ります。かわりに音量などのメディアキー・ジェスチャー・タッピング詳細設定・トラックボール加速は使えません。'
-                  : '音量などのメディアキー・ジェスチャー・キーごとの詳細設定が使えます。LEDは光りません。'}
+                  ? 'LEDが光ります。音量などのメディアキーも使えます。かわりにマクロ・ジェスチャー・タッピング詳細設定・トラックボール加速は使えません。'
+                  : '音量などのメディアキー・マクロ・ジェスチャー・キーごとの詳細設定が使えます。LEDは光りません。'}
               </p>
+              {ledVersion && (
+                <div className="flash-alert flash-alert--warn" style={{ marginTop: 10 }}>
+                  ⚠ <strong>以前からLED版をお使いで、マクロを設定していた方へ</strong><br />
+                  v1.1.0からLED版はマクロが使えなくなり、かわりに音量などのメディアキーが使えるようになりました。<br />
+                  書き込むと、これまで設定していたマクロの内容は確認・編集できなくなります（取り出す機能はありません）。<br />
+                  必要な内容は、書き込む前に控えておいてください。
+                </div>
+              )}
             </div>
           )}
 

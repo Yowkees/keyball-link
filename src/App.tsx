@@ -359,6 +359,7 @@ export default function App() {
     media:   true,
     gesture: !isConnected || state.gesture !== null,  // ジェスチャーキー（非LED版のみ）
     rgb:     !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
+    macro:   !isConnected || state.gesture !== null,  // マクロキー（v1.1.0〜非LED版のみ）
   };
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。39はLED版でも有効。
   const accelAvailable = !isConnected || state.gesture !== null
@@ -616,12 +617,19 @@ export default function App() {
             )}
 
             {activeTab === 'macro' && (
-              <MacroEditor
-                slots={state.macroSlots}
-                keyLayout={keyLayout}
-                isConnected={isConnected}
-                onSave={handleMacroSave}
-              />
+              fwAvail.macro ? (
+                <MacroEditor
+                  slots={state.macroSlots}
+                  keyLayout={keyLayout}
+                  isConnected={isConnected}
+                  onSave={handleMacroSave}
+                />
+              ) : (
+                <p className="settings-desc" style={{ color: 'var(--red)' }}>
+                  ⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。<br />
+                  通常版のファームを書き込むとマクロが使えます。「ファームウェア」タブから書き込めます。
+                </p>
+              )
             )}
 
             {activeTab === 'firmware' && (

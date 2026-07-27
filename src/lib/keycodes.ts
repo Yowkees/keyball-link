@@ -207,32 +207,36 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00DE, 'ACL1',  'ACL1',  'マウス'),
   K(0x00DF, 'ACL2',  'ACL2',  'マウス'),
 
-  // RGB / LED（QK_UNDERGLOW = 0x5B00）
-  K(0x5B00, 'UG Toggle',    'UG_TOG',  'RGB'),
-  K(0x5B01, 'RGB Mod+',     'RGB_MOD', 'RGB'),
-  K(0x5B02, 'RGB Mod-',     'RGB_RMD', 'RGB'),
-  K(0x5B03, 'Hue+',         'RGB_HUI', 'RGB'),
-  K(0x5B04, 'Hue-',         'RGB_HUD', 'RGB'),
-  K(0x5B05, 'Sat+',         'RGB_SAI', 'RGB'),
-  K(0x5B06, 'Sat-',         'RGB_SAD', 'RGB'),
-  K(0x5B07, 'Val+',         'RGB_VAI', 'RGB'),
-  K(0x5B08, 'Val-',         'RGB_VAD', 'RGB'),
-  K(0x5B09, 'Speed+',       'RGB_SPI', 'RGB'),
-  K(0x5B0A, 'Speed-',       'RGB_SPD', 'RGB'),
-  K(0x5B0B, 'RGB Plain',    'RGB_M_P', 'RGB'),
-  K(0x5B0C, 'RGB Breathe',  'RGB_M_B', 'RGB'),
-  K(0x5B0D, 'RGB Rainbow',  'RGB_M_R', 'RGB'),
-  K(0x5B0E, 'RGB Swirl',    'RGB_M_SW','RGB'),
-  K(0x5B0F, 'RGB Snake',    'RGB_M_SN','RGB'),
-  K(0x5B10, 'RGB Knight',   'RGB_M_K', 'RGB'),
-  K(0x5B11, 'RGB Xmas',     'RGB_M_X', 'RGB'),
-  K(0x5B12, 'RGB Gradient', 'RGB_M_G', 'RGB'),
-  K(0x5B13, 'RGB Twinkle',  'RGB_M_T', 'RGB'),
+  // RGB / LED（QK_UNDERGLOW = 0x7820。旧番台0x5B00は現行ファームでは無効なため修正済み）
+  K(0x7820, 'UG Toggle',    'UG_TOGG', 'RGB'),
+  K(0x7821, 'RGB Mod+',     'UG_NEXT', 'RGB'),
+  K(0x7822, 'RGB Mod-',     'UG_PREV', 'RGB'),
+  K(0x7823, 'Hue+',         'UG_HUEU', 'RGB'),
+  K(0x7824, 'Hue-',         'UG_HUED', 'RGB'),
+  K(0x7825, 'Sat+',         'UG_SATU', 'RGB'),
+  K(0x7826, 'Sat-',         'UG_SATD', 'RGB'),
+  K(0x7827, 'Val+',         'UG_VALU', 'RGB'),
+  K(0x7828, 'Val-',         'UG_VALD', 'RGB'),
+  K(0x7829, 'Speed+',       'UG_SPDU', 'RGB'),
+  K(0x782A, 'Speed-',       'UG_SPDD', 'RGB'),
+  K(0x782B, 'RGB Plain',    'RGB_M_P', 'RGB'),
+  K(0x782C, 'RGB Breathe',  'RGB_M_B', 'RGB'),
+  K(0x782D, 'RGB Rainbow',  'RGB_M_R', 'RGB'),
+  K(0x782E, 'RGB Swirl',    'RGB_M_SW','RGB'),
+  K(0x782F, 'RGB Snake',    'RGB_M_SN','RGB'),
+  K(0x7830, 'RGB Knight',   'RGB_M_K', 'RGB'),
+  K(0x7831, 'RGB Xmas',     'RGB_M_X', 'RGB'),
+  K(0x7832, 'RGB Gradient', 'RGB_M_G', 'RGB'),
+  K(0x7833, 'RGB Test',     'RGB_M_T', 'RGB'),
+  K(0x7834, 'RGB Twinkle',  'RGB_M_TW','RGB'),
 
-  // Keyball 拡張（Kb10〜Kb12）
-  K(0x7E0A, 'Kb 10', 'KB10', 'Keyball'),
-  K(0x7E0B, 'Kb 11', 'KB11', 'Keyball'),
-  K(0x7E0C, 'Kb 12', 'KB12', 'Keyball'),
+  // Keyball 拡張（自動マウスレイヤー・スクロールスナップ）
+  K(0x7E0A, 'AML ON/OFF', 'AML_TO',  'Keyball'),
+  K(0x7E0B, 'AML +50ms',  'AML_I50', 'Keyball'),
+  K(0x7E0C, 'AML -50ms',  'AML_D50', 'Keyball'),
+  K(0x7E0D, 'Scroll 縦',  'SSNP_VRT','Keyball'),
+  K(0x7E0E, 'Scroll 横',  'SSNP_HOR','Keyball'),
+  K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
   K(0x7E10, 'ジェスチャー', 'GST_HOLD', 'Keyball'),  // 押しながらトラックボールを振るとジェスチャー
 
   // レイヤー拡張（DF / OSL / TT）
@@ -551,26 +555,27 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x0063) return 'テンキーの .(小数点) を入力します';
 
   // RGB / LED
-  if (code === 0x5B00) return 'LEDのオン/オフを切り替えます';
-  if (code === 0x5B01) return 'LEDの光り方パターンを次に進めます';
-  if (code === 0x5B02) return 'LEDの光り方パターンを前に戻します';
-  if (code === 0x5B03) return 'LEDの色相（色）を変えます（Hue+）';
-  if (code === 0x5B04) return 'LEDの色相（色）を戻します（Hue-）';
-  if (code === 0x5B05) return 'LEDの彩度（色の濃さ）を上げます';
-  if (code === 0x5B06) return 'LEDの彩度（色の濃さ）を下げます';
-  if (code === 0x5B07) return 'LEDの明るさを上げます';
-  if (code === 0x5B08) return 'LEDの明るさを下げます';
-  if (code === 0x5B09) return 'LEDアニメーションの速度を上げます';
-  if (code === 0x5B0A) return 'LEDアニメーションの速度を下げます';
-  if (code === 0x5B0B) return 'LED: 常時点灯（Plain）モードにします';
-  if (code === 0x5B0C) return 'LED: 呼吸するように点滅します（Breathe）';
-  if (code === 0x5B0D) return 'LED: 虹色に流れるように光ります（Rainbow）';
-  if (code === 0x5B0E) return 'LED: 渦巻き状に光ります（Swirl）';
-  if (code === 0x5B0F) return 'LED: ヘビが動くように光ります（Snake）';
-  if (code === 0x5B10) return 'LED: 騎士のように往復して光ります（Knight）';
-  if (code === 0x5B11) return 'LED: クリスマス風に光ります（Xmas）';
-  if (code === 0x5B12) return 'LED: グラデーションで光ります（Gradient）';
-  if (code === 0x5B13) return 'LED: きらめくように光ります（Twinkle）';
+  if (code === 0x7820) return 'LEDのオン/オフを切り替えます';
+  if (code === 0x7821) return 'LEDの光り方パターンを次に進めます';
+  if (code === 0x7822) return 'LEDの光り方パターンを前に戻します';
+  if (code === 0x7823) return 'LEDの色相（色）を変えます（Hue+）';
+  if (code === 0x7824) return 'LEDの色相（色）を戻します（Hue-）';
+  if (code === 0x7825) return 'LEDの彩度（色の濃さ）を上げます';
+  if (code === 0x7826) return 'LEDの彩度（色の濃さ）を下げます';
+  if (code === 0x7827) return 'LEDの明るさを上げます';
+  if (code === 0x7828) return 'LEDの明るさを下げます';
+  if (code === 0x7829) return 'LEDアニメーションの速度を上げます';
+  if (code === 0x782A) return 'LEDアニメーションの速度を下げます';
+  if (code === 0x782B) return 'LED: 常時点灯（Plain）モードにします';
+  if (code === 0x782C) return 'LED: 呼吸するように点滅します（Breathe）';
+  if (code === 0x782D) return 'LED: 虹色に流れるように光ります（Rainbow）';
+  if (code === 0x782E) return 'LED: 渦巻き状に光ります（Swirl）';
+  if (code === 0x782F) return 'LED: ヘビが動くように光ります（Snake）';
+  if (code === 0x7830) return 'LED: 騎士のように往復して光ります（Knight）';
+  if (code === 0x7831) return 'LED: クリスマス風に光ります（Xmas）';
+  if (code === 0x7832) return 'LED: グラデーションで光ります（Gradient）';
+  if (code === 0x7833) return 'LED: 診断用のテストパターンを表示します（Test）';
+  if (code === 0x7834) return 'LED: きらめくように光ります（Twinkle）';
 
   // Keyball 独自
   if (code === 0x7E00) return 'Keyballの全設定をリセットします（要再起動）';
@@ -583,6 +588,12 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E07) return '押している間だけスクロールモードになります';
   if (code === 0x7E08) return 'スクロール速度を上げます（分周値を大きく）';
   if (code === 0x7E09) return 'スクロール速度を下げます（分周値を小さく）';
+  if (code === 0x7E0A) return '自動マウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます';
+  if (code === 0x7E0B) return '自動マウスレイヤーが切れるまでの時間を50ms延ばします';
+  if (code === 0x7E0C) return '自動マウスレイヤーが切れるまでの時間を50ms縮めます';
+  if (code === 0x7E0D) return 'スクロール方向を縦のみに固定します';
+  if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
+  if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
   if (code === 0x7E10) return '押しながらトラックボールを上下左右に振るとジェスチャーが発動します（設定タブで各方向の操作を変更できます）';
 
   // ワンショット修飾
@@ -636,7 +647,7 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
 
 // 接続中ファームで各機能が使えるか（未接続なら不明＝true扱いでグレーアウトしない）
 export interface FirmwareAvail {
-  media:   boolean;  // メディアキー（EXTRAKEY）。非LED版のみ
+  media:   boolean;  // メディアキー（EXTRAKEY）。v1.1.0〜通常版・LED版共通で利用可
   gesture: boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
   rgb:     boolean;  // RGB系キー。LED版のみ
 }

@@ -354,9 +354,9 @@ export default function App() {
   const currentCode = selectedKeyIndex !== null ? (layerKeycodes[selectedKeyIndex] ?? 0) : 0;
 
   // 接続中ファームで使える機能（未接続なら不明＝true扱いでグレーアウトしない）。
-  // 通常版＝ジェスチャーあり＋メディアキーあり、LED版＝RGBあり、とセットで判別できる。
+  // v1.1.0〜メディアキーは通常版・LED版共通で有効。ジェスチャーは非LED版のみ、RGBはLED版のみ。
   const fwAvail = {
-    media:   !isConnected || state.gesture !== null,  // メディアキー（非LED版のみ）
+    media:   true,
     gesture: !isConnected || state.gesture !== null,  // ジェスチャーキー（非LED版のみ）
     rgb:     !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
   };

@@ -1,14 +1,14 @@
 {
   "name": "keyball-link",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run copy-firmware",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",
-    "copy-firmware": "cp ~/qmk_firmware/keyball_keyball39_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball44_web_configurator.hex public/firmware/ && cp ~/qmk_firmware/keyball_keyball61_web_configurator.hex public/firmware/ 2>/dev/null || true",
+    "update-firmware": "bash scripts/build-firmware.sh",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=keyball-link"
   },
   "dependencies": {

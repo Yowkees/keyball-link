@@ -205,7 +205,7 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>
                 {ledVersion
-                  ? 'LEDが光ります。音量などのメディアキーも使えます。かわりにマクロ・ジェスチャー・タッピング詳細設定・トラックボール加速は使えません。'
+                  ? 'LEDが光ります。音量などのメディアキー・キーごとのタップ判定調整も使えます。かわりにマクロ・ジェスチャー・トラックボール加速は使えません。'
                   : '音量などのメディアキー・マクロ・ジェスチャー・キーごとの詳細設定が使えます。LEDは光りません。'}
               </p>
               {ledVersion && (

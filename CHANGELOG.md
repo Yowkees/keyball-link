@@ -5,6 +5,12 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-24
+### Added
+- 対応機種にKeyball+を追加（[keyball-plus-firmware](https://github.com/ineno771/keyball-plus-firmware)、通常版/LED版とも対応）
+### Fixed
+- Keyball+接続時、無関係なKeyball39/44/61系の最新バージョンと比較され「更新があります」と誤表示されていた不具合を修正（最新バージョンを機種別に判定するように変更）
+
 ## [1.2.0] - 2026-07-28
 ### Added
 - LED版ファームでも「キー単位の詳細設定」（タップ判定時間・パーミッシブホールド）を使えるように

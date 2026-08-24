@@ -1,6 +1,6 @@
 # Keyball Link
 
-Keyball39/44/61 向けのWebベースキーマップ設定ツールです。
+Keyball39/44/61/+ 向けのWebベースキーマップ設定ツールです。
 WebHID API を使用してブラウザから直接キーボードと通信します。
 
 ## 🌐 アプリを使う
@@ -45,7 +45,7 @@ WebHID API を使用してブラウザから直接キーボードと通信しま
 | 通常版 | メディアキー・ジェスチャー・キー単位詳細設定など全機能（LEDなし） |
 | LED版 | LED点灯対応の最小機能版（メディアキー・ジェスチャーなし） |
 
-ファームウェアのソースコードは [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware) で公開しています。
+ファームウェアのソースコードは、Keyball39/44/61は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware)、Keyball+は [keyball-plus-firmware](https://github.com/ineno771/keyball-plus-firmware) で公開しています（別プロジェクトとして管理・バージョン番号は連動していません）。
 
 ## ⌨️ macOSで @ などの記号が正しく入力できない場合
 
@@ -58,6 +58,7 @@ macOS が Keyball を US 配列と誤認識することがあります。
 - Keyball39
 - Keyball44
 - Keyball61
+- Keyball+（ロープロファイル版。ファームウェアは [keyball-plus-firmware](https://github.com/ineno771/keyball-plus-firmware) で別管理）
 
 ## 開発
 

@@ -30,6 +30,7 @@ const MODEL_MAP: Record<number, ModelKey> = {
   39:  'keyball39',
   44:  'keyball44',
   61:  'keyball61',
+  139: 'keyballplus',
 };
 
 export function useKeyball() {

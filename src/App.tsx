@@ -361,9 +361,10 @@ export default function App() {
     rgb:     !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
     macro:   !isConnected || state.gesture !== null,  // マクロキー（v1.1.0〜非LED版のみ）
   };
-  // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。39はLED版でも有効。
+  // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
+  // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。
   const accelAvailable = !isConnected || state.gesture !== null
-    || state.model === 'keyball39';
+    || state.model === 'keyball39' || state.model === 'keyballplus';
 
   return (
     <div className="app">

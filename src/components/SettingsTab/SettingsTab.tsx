@@ -81,6 +81,7 @@ const MODEL_PIDS: Record<ModelKey, number> = {
   keyball39: 512,
   keyball44: 1024,
   keyball61: 256,
+  keyballplus: 1280,
 };
 const KEYBALL_VID = 22871;
 

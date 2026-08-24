@@ -672,9 +672,9 @@ export default function App() {
             {state.firmwareVersion ? (
               <>
                 {formatVersion(state.firmwareVersion)}
-                {isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION) && (
+                {state.model && isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION[state.model]) && (
                   <span className="app-footer__warn">
-                    （最新版 {formatVersion(LATEST_FW_VERSION)} があります。「ファームウェア」タブから更新できます）
+                    （最新版 {formatVersion(LATEST_FW_VERSION[state.model])} があります。「ファームウェア」タブから更新できます）
                   </span>
                 )}
               </>

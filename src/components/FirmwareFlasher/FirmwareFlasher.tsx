@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AVR109, isWebSerialSupported } from '../../lib/avr109';
 import { parseIntelHex } from '../../lib/ihex';
+import { fetchFlashCounts, flashCountKey, reportFlash } from '../../lib/flashCount';
 import type { ModelKey } from '../../layouts';
 
 const BUILTIN_FIRMWARE: Record<ModelKey, string> = {
@@ -42,8 +43,15 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
   const [message, setMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const firmwareRef = useRef<Uint8Array | null>(null);
+  const [flashCounts, setFlashCounts] = useState<Record<string, number>>({});
 
   const supported = isWebSerialSupported();
+
+  useEffect(() => {
+    fetchFlashCounts().then(setFlashCounts).catch(() => {
+      // 表示できなくても書き込み機能自体には影響しないので無視する
+    });
+  }, []);
 
   const loadFirmware = async (): Promise<Uint8Array> => {
     if (source === 'builtin') {
@@ -108,6 +116,14 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       });
       setPhase('done');
       setMessage('書き込み完了！　キーボードが再起動します。');
+      if (source === 'builtin') {
+        const key = flashCountKey(selectedModel, ledVersion && !!BUILTIN_FIRMWARE_LED[selectedModel]);
+        reportFlash(key)
+          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 })))
+          .catch(() => {
+            // 統計送信の失敗は書き込み成功の表示には影響させない
+          });
+      }
     } catch (e) {
       setPhase('error');
       setMessage(e instanceof Error ? e.message : String(e));
@@ -176,13 +192,20 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
 
           {source === 'builtin' && (
             <div className="model-selector">
-              {(Object.keys(BUILTIN_FIRMWARE) as ModelKey[]).map(model => (
-                <button key={model}
-                  className={`btn btn--layer ${selectedModel === model ? 'btn--layer-active' : ''}`}
-                  onClick={() => setSelectedModel(model)} disabled={isWorking}>
-                  {MODEL_LABELS[model]}
-                </button>
-              ))}
+              {(Object.keys(BUILTIN_FIRMWARE) as ModelKey[]).map(model => {
+                const total = (flashCounts[flashCountKey(model, false)] ?? 0) +
+                  (BUILTIN_FIRMWARE_LED[model] ? (flashCounts[flashCountKey(model, true)] ?? 0) : 0);
+                return (
+                  <button key={model}
+                    className={`btn btn--layer ${selectedModel === model ? 'btn--layer-active' : ''}`}
+                    onClick={() => setSelectedModel(model)} disabled={isWorking}>
+                    {MODEL_LABELS[model]}
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
+                      (書き込み回数: {total})
+                    </span>
+                  </button>
+                );
+              })}
               {detectedModel && (
                 <span className="detected-model">
                   {detectedModel === selectedModel ? '✓ 接続中と一致' : `⚠ 接続中: ${MODEL_LABELS[detectedModel]}`}
@@ -200,10 +223,16 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
                 <button className={`fw-source-tab ${!ledVersion ? 'fw-source-tab--active' : ''}`}
                   onClick={() => setLedVersion(false)} disabled={isWorking}>
                   通常版（音量キーあり・マクロあり・LEDなし）
+                  <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
+                    (書き込み回数: {flashCounts[flashCountKey(selectedModel, false)] ?? 0})
+                  </span>
                 </button>
                 <button className={`fw-source-tab ${ledVersion ? 'fw-source-tab--active' : ''}`}
                   onClick={() => setLedVersion(true)} disabled={isWorking}>
                   LED版（LEDあり・音量キーあり・マクロなし）
+                  <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
+                    (書き込み回数: {flashCounts[flashCountKey(selectedModel, true)] ?? 0})
+                  </span>
                 </button>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>

@@ -2,5 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "keyball-link",
   "compatibility_date": "2026-06-01",
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "dist",
+  // ファームウェア書き込み回数(functions/api/flash-count.ts)の保存先。
+  // `wrangler kv namespace create FLASH_COUNTS` で作成したIDに差し替えること
+  "kv_namespaces": [
+    { "binding": "FLASH_COUNTS", "id": "7c34554d9bca42a3b02465ce97bdd0b6" }
+  ]
 }

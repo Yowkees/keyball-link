@@ -148,7 +148,9 @@ export class AVR109 {
   }
 
   async exitBootloader(): Promise<void> {
-    await this.send([0x51]);
+    // 0x45 = 'E' (Exit Bootloader)。0x51('Q')は拡張ヒューズビット読み出しの
+    // 別コマンドで、ブートローダー終了の意味を持たない（誤って送っていた）。
+    await this.send([0x45]);
   }
 
   async flash(firmware: Uint8Array, onProgress: (pct: number, msg: string) => void): Promise<void> {

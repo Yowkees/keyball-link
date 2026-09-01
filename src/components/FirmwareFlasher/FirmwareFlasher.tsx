@@ -174,6 +174,17 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
         </p>
       </details>
 
+      <details className="flash-alert flash-alert--warn flash-alert--collapsible">
+        <summary>正規ファームウェアなど他のファームウェアに戻す方へ（書き込み前にお読みください）</summary>
+        <p>
+          Keyball Linkから正規ファームウェアなど別のファームウェアに書き戻す場合は、
+          <strong>先に画面上部の「初期化」ボタンを押してKeyball Link独自の設定を消してから</strong>
+          書き込んでください。<br />
+          設定を消さずに書き込むと、Keyball Link独自の設定がEEPROMに残ったまま新しいファームウェアが動き出し、
+          レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
+        </p>
+      </details>
+
       {/* Step 1 */}
       <div className="flash-step">
         <span className="flash-step-num">1</span>

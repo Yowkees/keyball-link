@@ -132,13 +132,12 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
     }
   };
 
+  // 「もう一度書き込む」用。選択中のファイル/機種はそのまま残し、
+  // 同じ内容ですぐ再書き込みできるようにする（毎回選び直させない）。
   const reset = () => {
     setPhase('idle');
     setProgress(0);
     setMessage('');
-    setCustomFile(null);
-    firmwareRef.current = null;
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const canFlash = supported && phase === 'idle' &&

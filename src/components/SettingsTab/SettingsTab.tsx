@@ -230,6 +230,23 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
       save();
     }
   };
+
+  // 自動マウスレイヤーの「有効にする」トグル専用ハンドラ。
+  // レイヤー番号自体は変えずに機能だけをONにする操作なので、通常のchangeLayerは通らない。
+  // ONにする瞬間に、既に選ばれているレイヤーがスクロール/ジェスチャーと衝突していないか確認する
+  // （衝突したまま気づかずONにしてしまうと、トラックボールを動かすたびに意図せずジェスチャー等が
+  // 発動してしまう。実機での不具合報告を受けて追加）。
+  const changeAmlEnable = (v: boolean) => {
+    if (v) {
+      const c = conflictName('aml', settings.autoMouseLayer);
+      if (c) {
+        setLayerWarn({ target: 'aml', msg: `${c}と同じレイヤーのため有効にできません。先に「切り替わるレイヤー」を別のレイヤーに変更してください。` });
+        return;
+      }
+    }
+    setLayerWarn(null);
+    apply({ autoMouseEnable: v });
+  };
   const isMacOS = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent);
 
   return (
@@ -298,7 +315,7 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
             desc="トラックボールを動かしたとき、自動的に下記のレイヤーへ切り替えます。"
             checked={settings.autoMouseEnable}
             disabled={disabled}
-            onChange={v => apply({ autoMouseEnable: v })}
+            onChange={changeAmlEnable}
           />
           <div className={`setting-row ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
             <div className="setting-row__text">

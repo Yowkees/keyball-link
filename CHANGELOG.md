@@ -5,6 +5,16 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-01
+### Added
+- ファームウェアの書き込み回数（全ユーザー合計）を機種・版ごとに表示する機能を追加
+- 「正規ファームウェアなど他のファームウェアに戻す方へ」の案内を追加（先に「初期化」を押すよう誘導）
+- 自動マウスレイヤーを有効にする際、スクロール/ジェスチャーレイヤーとの重複を検出して警告するように
+### Fixed
+- ブラウザから書き込み後、ブートローダーを抜けるコマンドの送信バイトが誤っており、すぐにアプリが起動しない不具合を修正
+- 「もう一度書き込む」を押すとファイル選択が消えてしまう不具合を修正
+- keyball39/44/61用ファームウェアをv1.3.0に更新（EEPROM設定の誤読防止、LED版のトラックボール方向修正、呼吸エフェクトの明るさ設定対応など。詳細は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照）
+
 ## [1.2.1] - 2026-08-24
 ### Added
 - 対応機種にKeyball+を追加（[keyball-plus-firmware](https://github.com/ineno771/keyball-plus-firmware)、通常版/LED版とも対応）

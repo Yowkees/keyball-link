@@ -57,6 +57,8 @@ interface SettingsTabProps {
   onLayerLedChange: (layer: number, cfg: LayerLedConfig) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
+  onTestLed?: (index: number) => Promise<void>;  // LED物理位置実測用の診断コマンド。未対応ファームではundefined
+  ledCount?: number;  // 実測対象のLED総数（未指定時は46）
   children?: React.ReactNode;
 }
 
@@ -200,7 +202,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
@@ -210,6 +212,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
   const [editTap, setEditTap] = useState(false);
   const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture'; msg: string } | null>(null);
   const [ledEditLayer, setLedEditLayer] = useState(1);  // レイヤー連動LEDで現在編集中のレイヤー
+  const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -611,6 +614,54 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
           </>
         )}
       </CollapsibleCard>
+
+      {onTestLed && (
+        <CollapsibleCard title={<>LED位置実測（開発用） <span className="settings-unit">波紋演出のための配線順序調査</span></>}>
+          <p className="settings-desc">
+            LEDを1個ずつ点灯させ、実際にどこが光るかを目で確認するための機能です。<br />
+            「次へ」「戻る」でインデックスを進め、光った位置をメモしてください。「終了」を押すと通常表示に戻ります。
+          </p>
+          <div className="tapping-term-row" style={{ gap: 8, alignItems: 'center' }}>
+            <button
+              className="btn btn--small"
+              disabled={disabled || testLedIndex === null}
+              onClick={async () => {
+                const next = Math.max(0, (testLedIndex ?? 0) - 1);
+                setTestLedIndex(next);
+                await onTestLed(next);
+              }}
+            >
+              ← 戻る
+            </button>
+            <span className="tapping-term-value" style={{ minWidth: 80, textAlign: 'center' }}>
+              {testLedIndex === null ? '未実施' : `index ${testLedIndex} / ${ledCount - 1}`}
+            </span>
+            <button
+              className="btn btn--small"
+              disabled={disabled || (testLedIndex !== null && testLedIndex >= ledCount - 1)}
+              onClick={async () => {
+                const next = Math.min(ledCount - 1, (testLedIndex ?? -1) + 1);
+                setTestLedIndex(next);
+                await onTestLed(next);
+              }}
+            >
+              次へ →
+            </button>
+            {testLedIndex !== null && (
+              <button
+                className="btn btn--small"
+                disabled={disabled}
+                onClick={async () => {
+                  setTestLedIndex(null);
+                  await onTestLed(0xFF);
+                }}
+              >
+                終了
+              </button>
+            )}
+          </div>
+        </CollapsibleCard>
+      )}
 
       <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>
         <p className="settings-desc">

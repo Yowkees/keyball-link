@@ -32,7 +32,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -662,6 +662,7 @@ export default function App() {
                   setKeyLayout(layout);
                   localStorage.setItem('keyLayout', layout);
                 }}
+                onTestLed={isConnected ? testLed : undefined}
               >
                 {isConnected && layout && (
                   <CollapsibleCard title={<>テストマトリクス <span className="settings-unit">キーが正しく反応するか確認</span></>}>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { KbSettings, GestureConfig } from '../../lib/protocol';
-import { LAYER_NONE } from '../../lib/protocol';
+import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
@@ -46,6 +46,8 @@ interface SettingsTabProps {
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
+  precisionDiv: number | null;  // 超低速モードのCPI分周値。null = 非対応ファーム
+  onPrecisionDivChange: (div: number) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   children?: React.ReactNode;
@@ -191,7 +193,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precisionDiv, onPrecisionDivChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   const [saving, setSaving] = useState(false);
@@ -485,6 +487,33 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
                 <span>デフォルト: 50</span>
                 <span>200（鈍感）</span>
               </div>
+            </div>
+          </>
+        )}
+      </CollapsibleCard>
+
+      <CollapsibleCard title={<>超低速モード <span className="settings-unit">押している間だけトラックボールを精密操作</span></>}>
+        {precisionDiv === null ? (
+          <p className="settings-desc">
+            このファーム（機種・バージョン）は<strong>超低速モード非対応</strong>です。対応版を書き込むと設定できます。
+          </p>
+        ) : (
+          <>
+            <p className="settings-desc">
+              パレットの「Keyball」にある<strong>「精密モード」キー</strong>をキーマップに置き、<strong>押している間だけ</strong>トラックボールの感度を下げます。細かい位置合わせをしたいときに便利です。離すと元の速さに戻ります。
+            </p>
+            <p className="settings-desc" style={{ marginTop: 12 }}>
+              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度は「通常のCPI ÷ この数値」です。
+            </p>
+            <SliderControl
+              value={precisionDiv} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
+              disabled={disabled} unit="分の1"
+              onCommit={onPrecisionDivChange}
+            />
+            <div className="tapping-term-hints">
+              <span>{PRECISION_DIV_MIN}（少し遅い）</span>
+              <span>デフォルト: {PRECISION_DIV_DEFAULT}</span>
+              <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
             </div>
           </>
         )}

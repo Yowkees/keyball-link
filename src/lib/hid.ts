@@ -239,6 +239,17 @@ export class KeyballHID {
     ));
   }
 
+  // 超低速（精密作業）モードのCPI分周値取得・設定（RP2040版など対応ファームのみ。非対応FWでは例外）
+  async getPrecisionDiv(): Promise<number> {
+    const r = await this.sendCommand(makePacket(CMD.GET_PRECISION));
+    if (r[0] !== CMD.GET_PRECISION) throw new Error('超低速モード非対応のファームです');
+    return r[1];
+  }
+
+  async setPrecisionDiv(div: number): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_PRECISION, div & 0xFF));
+  }
+
   // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）
   async getVersion(): Promise<FirmwareVersion> {
     const r = await this.sendCommand(makePacket(CMD.GET_VERSION));

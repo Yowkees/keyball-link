@@ -30,7 +30,14 @@ export const CMD = {
   GET_GESTURE:   0x15,
   SET_GESTURE:   0x16,
   GET_VERSION:   0x17,
+  GET_PRECISION: 0x18,
+  SET_PRECISION: 0x19,
 } as const;
+
+// 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
+export const PRECISION_DIV_MIN     = 2;
+export const PRECISION_DIV_MAX     = 20;
+export const PRECISION_DIV_DEFAULT = 4;
 
 export const MACRO_SLOT_COUNT   = 10;
 export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（バイト）

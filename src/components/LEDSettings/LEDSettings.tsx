@@ -19,17 +19,15 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
 
       <div className="trackball-bar__item">
         <span className="trackball-bar__label">エフェクト</span>
-        <div className="led-effect-selector">
+        <select
+          className="trackball-bar__select"
+          value={config.effectId}
+          onChange={e => onChange({ ...config, effectId: Number(e.target.value) })}
+        >
           {LED_EFFECTS.map(e => (
-            <button
-              key={e.id}
-              className={`btn btn--small btn--layer ${config.effectId === e.id ? 'btn--layer-active' : ''}`}
-              onClick={() => onChange({ ...config, effectId: e.id })}
-            >
-              {e.label}
-            </button>
+            <option key={e.id} value={e.id}>{e.label}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       {showColor && (

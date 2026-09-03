@@ -4,7 +4,7 @@ import { LED_EFFECTS } from '../../lib/protocol';
 interface LEDSettingsProps {
   config: LedConfig;
   onChange: (cfg: LedConfig) => void;
-  onSave: () => void;
+  onSave?: () => void;
 }
 
 export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
@@ -74,7 +74,7 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
         </div>
       )}
 
-      <button className="btn btn--ghost btn--small" onClick={onSave}>保存</button>
+      {onSave && <button className="btn btn--ghost btn--small" onClick={onSave}>保存</button>}
     </div>
   );
 }

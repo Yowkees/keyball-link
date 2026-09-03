@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
@@ -22,6 +22,8 @@ export interface KeyballState {
   gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
+  layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
+  layerLeds: (LayerLedConfig | null)[];  // インデックス=レイヤー番号（0は未使用）
   macroSlots: MacroSlot[];
   currentLayer: number;
   isLoading: boolean;
@@ -53,6 +55,8 @@ export function useKeyball() {
     gesture: null,
     firmwareVersion: null,
     precision: null,
+    layerLedEnable: null,
+    layerLeds: [],
     macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
     currentLayer: 0,
     isLoading: false,
@@ -101,6 +105,14 @@ export function useKeyball() {
       try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
       let precision: PrecisionConfig | null = null;
       try { precision = await hid.current.getPrecisionConfig(); } catch { /* 超低速モード非対応FW */ }
+      let layerLedEnable: boolean | null = null;
+      const layerLeds: (LayerLedConfig | null)[] = [];
+      try {
+        layerLedEnable = await hid.current.getLayerLedEnable();
+        for (let l = 1; l < info.layers; l++) {
+          layerLeds[l] = await hid.current.getLayerLed(l);
+        }
+      } catch { /* レイヤー連動LED非対応FW */ }
       setPartial({
         connectionState: 'connected',
         deviceName: hid.current.deviceName,
@@ -116,6 +128,8 @@ export function useKeyball() {
         gesture,
         firmwareVersion,
         precision,
+        layerLedEnable,
+        layerLeds,
         isLoading: false,
       });
     } catch (e) {
@@ -196,6 +210,20 @@ export function useKeyball() {
   const setPrecisionConfig = useCallback(async (p: PrecisionConfig) => {
     await hid.current.setPrecisionConfig(p);
     setPartial({ precision: p });
+  }, []);
+
+  const setLayerLedEnable = useCallback(async (v: boolean) => {
+    await hid.current.setLayerLedEnable(v);
+    setPartial({ layerLedEnable: v });
+  }, []);
+
+  const setLayerLed = useCallback(async (layer: number, cfg: LayerLedConfig) => {
+    await hid.current.setLayerLed(layer, cfg);
+    setState(prev => {
+      const layerLeds = [...prev.layerLeds];
+      layerLeds[layer] = cfg;
+      return { ...prev, layerLeds };
+    });
   }, []);
 
   const save = useCallback(async () => {
@@ -280,5 +308,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

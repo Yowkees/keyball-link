@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import type { KbSettings, GestureConfig, PrecisionConfig } from '../../lib/protocol';
+import type { KbSettings, GestureConfig, PrecisionConfig, LayerLedConfig } from '../../lib/protocol';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
+import { LEDSettings } from '../LEDSettings/LEDSettings';
 import type { ModelKey } from '../../layouts';
+
+const LAYER_LED_DEFAULT: LayerLedConfig = { enabled: false, effectId: 1, hue: 0, sat: 255, val: 150, speed: 128 };
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
 function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
@@ -48,6 +51,10 @@ interface SettingsTabProps {
   onGestureChange: (g: GestureConfig) => Promise<void>;
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
+  layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
+  layerLeds: (LayerLedConfig | null)[];  // インデックス=レイヤー番号
+  onLayerLedEnableChange: (v: boolean) => Promise<void>;
+  onLayerLedChange: (layer: number, cfg: LayerLedConfig) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   children?: React.ReactNode;
@@ -193,7 +200,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
@@ -202,6 +209,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
   const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture'; msg: string } | null>(null);
+  const [ledEditLayer, setLedEditLayer] = useState(1);  // レイヤー連動LEDで現在編集中のレイヤー
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -542,6 +550,64 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
                 ※ スクロールレイヤーやジェスチャーレイヤーと同じレイヤーにしても構いません（例：低速で正確にスクロールしたい場合）。「精密モード」キーと併用した場合は、どちらか一方でも条件を満たしていれば超低速モードになります。
               </p>
             </div>
+          </>
+        )}
+      </CollapsibleCard>
+
+      <CollapsibleCard title={<>レイヤー連動LED <span className="settings-unit">レイヤーごとに光り方を変える</span></>}>
+        {layerLedEnable === null ? (
+          <p className="settings-desc">
+            このファーム（機種・バージョン）は<strong>レイヤー連動LED非対応</strong>です。対応版を書き込むと設定できます。
+          </p>
+        ) : (
+          <>
+            <ToggleRow
+              label="レイヤー連動LEDを使う"
+              desc="有効にすると、専用の光り方を設定したレイヤーにいる間ずっとその光り方になります（抜けると通常のLED設定に戻ります）。"
+              checked={layerLedEnable}
+              disabled={disabled}
+              onChange={onLayerLedEnableChange}
+            />
+
+            {layerLedEnable && (
+              <div style={{ marginTop: 12 }}>
+                <p className="settings-desc" style={{ marginBottom: 8 }}>編集するレイヤーを選んでください。</p>
+                <div className="led-effect-selector">
+                  {switchableLayers.map(l => (
+                    <button
+                      key={l}
+                      className={`btn btn--small btn--layer ${ledEditLayer === l ? 'btn--layer-active' : ''}`}
+                      onClick={() => setLedEditLayer(l)}
+                    >
+                      Layer {l}
+                    </button>
+                  ))}
+                </div>
+
+                {(() => {
+                  const cfg = layerLeds[ledEditLayer] ?? LAYER_LED_DEFAULT;
+                  return (
+                    <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                      <ToggleRow
+                        label={`Layer ${ledEditLayer} で専用の光り方を使う`}
+                        desc="オフのままだと、このレイヤーでは通常のLED設定のままになります。"
+                        checked={cfg.enabled}
+                        disabled={disabled}
+                        onChange={v => onLayerLedChange(ledEditLayer, { ...cfg, enabled: v })}
+                      />
+                      {cfg.enabled && (
+                        <div style={{ marginTop: 8, opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
+                          <LEDSettings
+                            config={cfg}
+                            onChange={c => onLayerLedChange(ledEditLayer, { ...cfg, ...c })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </>
         )}
       </CollapsibleCard>

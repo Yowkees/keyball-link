@@ -32,7 +32,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -653,6 +653,10 @@ export default function App() {
                 onGestureChange={handleGestureChange}
                 precision={state.precision}
                 onPrecisionChange={setPrecisionConfig}
+                layerLedEnable={state.layerLedEnable}
+                layerLeds={state.layerLeds}
+                onLayerLedEnableChange={setLayerLedEnable}
+                onLayerLedChange={setLayerLed}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {
                   setKeyLayout(layout);

@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -142,6 +142,30 @@ export class KeyballHID {
 
   async setLed(cfg: LedConfig): Promise<void> {
     await this.sendCommand(makePacket(CMD.SET_LED, cfg.effectId, cfg.hue, cfg.sat, cfg.val, cfg.speed));
+  }
+
+  // レイヤー連動LED機能そのものの有効/無効（RP2040版など対応ファームのみ。非対応FWでは例外）
+  async getLayerLedEnable(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_LAYER_LED_ENABLE));
+    if (r[0] !== CMD.GET_LAYER_LED_ENABLE) throw new Error('レイヤー連動LED非対応のファームです');
+    return r[1] !== 0;
+  }
+
+  async setLayerLedEnable(enabled: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_LAYER_LED_ENABLE, enabled ? 1 : 0));
+  }
+
+  // 指定レイヤー(1-7)のLED設定を取得・変更する
+  async getLayerLed(layer: number): Promise<LayerLedConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_LAYER_LED, layer));
+    if (r[0] !== CMD.GET_LAYER_LED) throw new Error('レイヤー連動LED非対応のファームです');
+    return { enabled: r[2] !== 0, effectId: r[3], hue: r[4], sat: r[5], val: r[6], speed: r[7] };
+  }
+
+  async setLayerLed(layer: number, cfg: LayerLedConfig): Promise<void> {
+    await this.sendCommand(makePacket(
+      CMD.SET_LAYER_LED, layer, cfg.enabled ? 1 : 0, cfg.effectId, cfg.hue, cfg.sat, cfg.val, cfg.speed,
+    ));
   }
 
   async reboot(): Promise<void> {

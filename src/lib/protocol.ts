@@ -32,6 +32,10 @@ export const CMD = {
   GET_VERSION:   0x17,
   GET_PRECISION: 0x18,
   SET_PRECISION: 0x19,
+  GET_LAYER_LED_ENABLE: 0x1A,
+  SET_LAYER_LED_ENABLE: 0x1B,
+  GET_LAYER_LED:        0x1C,
+  SET_LAYER_LED:        0x1D,
 } as const;
 
 // 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
@@ -143,19 +147,37 @@ export interface KeyboardInfo {
 }
 
 export interface LedConfig {
-  effectId: number;  // 0=オフ 1=単色 2=呼吸 3=レインボー 4=スプラッシュ 5=マルチスプラッシュ
+  effectId: number;  // LED_EFFECTS参照
   hue:      number;  // 0-255
   sat:      number;  // 0-255
   val:      number;  // 0-255
   speed:    number;  // 0-255
 }
 
+// RGBLIGHT版（RP2040等）のエフェクト一覧。ファームウェアのLED_EFFECT_MAP(kb_hid.c)と対応させること。
 export const LED_EFFECTS = [
-  { id: 0, label: 'オフ' },
-  { id: 1, label: '単色' },
-  { id: 2, label: '呼吸' },
-  { id: 3, label: 'レインボー' },
+  { id: 0,  label: 'オフ' },
+  { id: 1,  label: '単色' },
+  { id: 2,  label: '呼吸' },
+  { id: 3,  label: 'レインボー' },
+  { id: 4,  label: 'スワール' },
+  { id: 5,  label: 'スネーク' },
+  { id: 6,  label: 'ナイトライダー' },
+  { id: 7,  label: 'クリスマス' },
+  { id: 8,  label: 'グラデーション' },
+  { id: 9,  label: 'きらめき' },
+  { id: 10, label: '交互点灯' },
 ] as const;
+
+// レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
+export interface LayerLedConfig {
+  enabled:  boolean;  // このレイヤーで専用の光り方を使うか
+  effectId: number;
+  hue:      number;
+  sat:      number;
+  val:      number;
+  speed:    number;
+}
 
 export interface TrackballConfig {
   cpiIndex:  number;  // 0〜127（ファームウェア内部インデックス）

@@ -16,6 +16,13 @@ export class KeyballHID {
     return this.device?.productName ?? '';
   }
 
+  // 接続中デバイスの実際のUSB Product ID。
+  // model名だけでは同じ機種名でも版（AVR/RP2040等）によってPIDが異なることがあるため、
+  // macOSキーボードタイプ設定などPID指定が必要な場面ではこちらを使う。
+  get productId(): number | null {
+    return this.device?.productId ?? null;
+  }
+
   private handleDeviceDisconnect = (e: HIDConnectionEvent) => {
     if (this.device && e.device === this.device) {
       this.device = null;

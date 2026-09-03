@@ -41,6 +41,7 @@ interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
   model: ModelKey | null;
+  productId: number | null;  // 接続中デバイスの実際のUSB Product ID
   layerCount?: number;   // 接続中ファームの実際のレイヤー数（未指定時は4）
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
@@ -102,11 +103,14 @@ function buildMacOSCommand(pid: number, kbType: 40 | 42): string {
   );
 }
 
-function MacOSKeyboardSetup({ defaultLayout, model }: { defaultLayout: KeyLayout; model: ModelKey | null }) {
+function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout: KeyLayout; model: ModelKey | null; productId: number | null }) {
   const [layout, setLayout] = useState<KeyLayout>(defaultLayout);
   const [copied, setCopied] = useState(false);
 
-  const pid = model ? MODEL_PIDS[model] : null;
+  // 接続中デバイスの実際のPIDを優先する。同じ機種名でも版（AVR/RP2040等）でPIDが
+  // 異なることがあり、machineごとの固定表（MODEL_PIDS）だけでは接続中の実機と
+  // 一致しない場合があるため。取得できないとき(未接続時のプレビュー等)のみ表を使う。
+  const pid = productId ?? (model ? MODEL_PIDS[model] : null);
   const command = pid ? buildMacOSCommand(pid, layout === 'JIS' ? 42 : 40) : null;
 
   const handleCopy = async () => {
@@ -186,7 +190,7 @@ function MacOSKeyboardSetup({ defaultLayout, model }: { defaultLayout: KeyLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, layerCount = 4, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   const [saving, setSaving] = useState(false);
@@ -512,7 +516,7 @@ export function SettingsTab({ settings, isConnected, model, layerCount = 4, onCh
 
       {isMacOS && (
         <CollapsibleCard title={<>macOS キーボードタイプ設定 <span className="settings-unit">初回のみ必要</span></>}>
-          <MacOSKeyboardSetup defaultLayout={keyLayout} model={model} />
+          <MacOSKeyboardSetup defaultLayout={keyLayout} model={model} productId={productId} />
         </CollapsibleCard>
       )}
 

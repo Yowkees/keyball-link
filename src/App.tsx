@@ -645,6 +645,7 @@ export default function App() {
                 settings={state.kbSettings}
                 isConnected={isConnected}
                 model={state.model}
+                productId={state.productId}
                 layerCount={state.info?.layers}
                 onChange={handleKbSettingsChange}
                 gesture={state.gesture}

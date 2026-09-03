@@ -11,6 +11,7 @@ export interface KeyballState {
   connectionState: ConnectionState;
   errorMessage: string;
   deviceName: string;
+  productId: number | null;
   info: KeyboardInfo | null;
   model: ModelKey | null;
   keymap: number[][][];
@@ -40,6 +41,7 @@ export function useKeyball() {
     connectionState: 'disconnected',
     errorMessage: '',
     deviceName: '',
+    productId: null,
     info: null,
     model: null,
     keymap: [],
@@ -62,6 +64,7 @@ export function useKeyball() {
         ...prev,
         connectionState: 'disconnected',
         deviceName: '',
+        productId: null,
         info: null,
         model: null,
         keymap: [],
@@ -97,6 +100,7 @@ export function useKeyball() {
       setPartial({
         connectionState: 'connected',
         deviceName: hid.current.deviceName,
+        productId: hid.current.productId,
         info,
         model,
         keymap,
@@ -123,6 +127,7 @@ export function useKeyball() {
     setPartial({
       connectionState: 'disconnected',
       deviceName: '',
+      productId: null,
       info: null,
       model: null,
       keymap: [],

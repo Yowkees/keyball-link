@@ -505,7 +505,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
               パレットの「Keyball」にある<strong>「精密モード」キー</strong>をキーマップに置き、<strong>押している間だけ</strong>トラックボールの感度を下げます。細かい位置合わせをしたいときに便利です。離すと元の速さに戻ります。
             </p>
             <p className="settings-desc" style={{ marginTop: 12 }}>
-              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度はおおよそ「通常のCPI ÷ この数値」です（実CPIは100刻みのため、ベースのCPIが低い設定だと大きい数値でも100CPIに張り付いて差が出ないことがあります）。
+              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度はおおよそ「通常のCPI ÷ この数値」です。
             </p>
             <SliderControl
               value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}

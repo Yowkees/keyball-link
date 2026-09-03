@@ -35,8 +35,10 @@ export const CMD = {
 } as const;
 
 // 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
+// 上限は5: 実CPIは100刻みが下限のため、デフォルトCPI(500)ではこれ以上大きくしても
+// 100CPIに張り付くだけで差が出ない（本人判断で5を上限に固定）。
 export const PRECISION_DIV_MIN     = 2;
-export const PRECISION_DIV_MAX     = 20;
+export const PRECISION_DIV_MAX     = 5;
 export const PRECISION_DIV_DEFAULT = 4;
 
 // 超低速（精密作業）モード設定

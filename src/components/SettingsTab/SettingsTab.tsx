@@ -178,11 +178,12 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
 
           <div className="macos-step" style={{ marginTop: 8 }}>
             <span className="macos-step__num">③</span>
-            <span>コマンド実行後、キーボードを一度抜き差しする（再起動は不要）</span>
+            <span>コマンド実行後、キーボードを一度抜き差しする</span>
           </div>
 
           <p className="macos-setup-note">
-            ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。
+            ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。<br />
+            ※ このMacで初めて接続する機種・ファームウェアの場合、抜き差しだけでは反映されないことがあります。その場合はMacを再起動してから確認してください。
           </p>
         </>
       )}

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { KEYCODES, KEYCODE_GROUPS, findKeycode } from '../../lib/keycodes';
 import type { KeycodeEntry } from '../../lib/keycodes';
-import { makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, LAYER_TAP_LAYERS } from '../../lib/protocol';
+import { makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, getLayerTapLayers } from '../../lib/protocol';
 
 interface KeyPickerProps {
   currentCode: number;
   onSelect: (keycode: number) => void;
+  layerCount?: number;
 }
 
 // 通常キー選択パネル
@@ -96,14 +97,15 @@ function ModTapPanel({ currentCode, onSelect }: KeyPickerProps) {
 }
 
 // Layer-Tap ビルダーパネル
-function LayerTapPanel({ currentCode, onSelect }: KeyPickerProps) {
+function LayerTapPanel({ currentCode, onSelect, layerCount }: KeyPickerProps) {
   const isLT = currentCode >= 0x4000 && currentCode <= 0x43FF;
   const [layer, setLayer] = useState(isLT ? (currentCode >> 8) & 0x0F : 1);
   const [baseKc, setBaseKc] = useState(isLT ? currentCode & 0xFF : 0x00);
+  const layerTapLayers = getLayerTapLayers(layerCount);
 
   const preview = makeLtKeycode(layer, baseKc);
   const tapLabel   = findKeycode(baseKc).short || '—';
-  const layerLabel = LAYER_TAP_LAYERS.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`;
+  const layerLabel = layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`;
 
   return (
     <div className="mt-builder">
@@ -113,7 +115,7 @@ function LayerTapPanel({ currentCode, onSelect }: KeyPickerProps) {
       <div className="mt-builder__row">
         <label>ホールド時のレイヤー</label>
         <select value={layer} onChange={e => setLayer(Number(e.target.value))}>
-          {LAYER_TAP_LAYERS.map(l => (
+          {layerTapLayers.map(l => (
             <option key={l.value} value={l.value}>{l.label}</option>
           ))}
         </select>
@@ -149,7 +151,7 @@ function detectKeyType(code: number): KeyType {
   return '通常';
 }
 
-export function KeyPicker({ currentCode, onSelect }: KeyPickerProps) {
+export function KeyPicker({ currentCode, onSelect, layerCount }: KeyPickerProps) {
   const [keyType, setKeyType] = useState<KeyType>(detectKeyType(currentCode));
 
   return (
@@ -173,7 +175,7 @@ export function KeyPicker({ currentCode, onSelect }: KeyPickerProps) {
         <ModTapPanel currentCode={currentCode} onSelect={onSelect} />
       )}
       {keyType === 'Layer-Tap' && (
-        <LayerTapPanel currentCode={currentCode} onSelect={onSelect} />
+        <LayerTapPanel currentCode={currentCode} onSelect={onSelect} layerCount={layerCount} />
       )}
     </div>
   );

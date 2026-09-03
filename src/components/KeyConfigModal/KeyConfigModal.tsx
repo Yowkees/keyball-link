@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS, isKeycodeUnavailable, FW_ALL_AVAILABLE } from '../../lib/keycodes';
 import type { KeycodeEntry, KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import {
-  makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, LAYER_TAP_LAYERS,
+  makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, getLayerTapLayers,
   makeModsKeycode, MODIFIER_BITS, MOD_RIGHT_BIT,
 } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
@@ -16,6 +16,7 @@ interface KeyConfigModalProps {
   defaultPanel?: PanelType;
   hideHold?: boolean;     // ホールドタブを隠す（ジェスチャー割り当てなど押下時間の概念がない用途）
   avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
+  layerCount?: number;    // 接続中ファームの実際のレイヤー数（未指定時は4）
   onSelect: (keycode: number) => void;
   onClose: () => void;
 }
@@ -245,9 +246,10 @@ function NormalPanel({ currentCode, keyLayout, avail, onSelect }: {
 // ── ホールドパネル（Mod-Tap / Layer-Tap 統合） ────────────
 type HoldKind = 'mod' | 'layer';
 
-function HoldPanel({ currentCode, keyLayout, onSelect }: {
+function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
+  layerCount?: number;
   onSelect: (c: number) => void;
 }) {
   const isMT = currentCode >= 0x2000 && currentCode <= 0x3FFF;
@@ -257,12 +259,13 @@ function HoldPanel({ currentCode, keyLayout, onSelect }: {
   const [mod, setMod]       = useState(isMT ? (currentCode >> 8) & 0x1F : 0x02);
   const [layer, setLayer]   = useState(isLT ? (currentCode >> 8) & 0x0F : 1);
   const [baseKc, setBaseKc] = useState((isMT || isLT) ? currentCode & 0xFF : 0x00);
+  const layerTapLayers = getLayerTapLayers(layerCount);
 
   const preview = kind === 'mod' ? makeModTapKeycode(mod, baseKc) : makeLtKeycode(layer, baseKc);
   const tapDisp = baseKc ? getKeyDisplayLabel(baseKc, keyLayout).replace('\n', '/') : '—';
   const holdLabel = kind === 'mod'
     ? (MOD_TAP_MODS.find(m => m.value === mod)?.label ?? `Mod(${mod})`)
-    : (LAYER_TAP_LAYERS.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
+    : (layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
 
   return (
     <div className="builder-panel">
@@ -285,7 +288,7 @@ function HoldPanel({ currentCode, keyLayout, onSelect }: {
           </div>
         ) : (
           <div className="builder-layer-buttons">
-            {LAYER_TAP_LAYERS.map(l => (
+            {layerTapLayers.map(l => (
               <button key={l.value} className={`btn btn--layer ${layer === l.value ? 'btn--layer-active' : ''}`} onClick={() => setLayer(l.value)}>{l.label}</button>
             ))}
           </div>
@@ -370,7 +373,7 @@ function detectPanelType(code: number): PanelType {
 }
 
 export function KeyConfigModal({
-  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, onSelect, onClose,
+  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, layerCount, onSelect, onClose,
 }: KeyConfigModalProps) {
   const initialPanel = defaultPanel ?? detectPanelType(currentCode);
   const [panel, setPanel] = useState<PanelType>(
@@ -410,7 +413,7 @@ export function KeyConfigModal({
 
         <div className="modal-body">
           {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} onSelect={handleSelect} />}
-          {panel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
+          {panel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} layerCount={layerCount} onSelect={handleSelect} />}
           {panel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
         </div>
       </div>

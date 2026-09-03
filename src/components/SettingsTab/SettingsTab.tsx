@@ -41,6 +41,7 @@ interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
   model: ModelKey | null;
+  layerCount?: number;   // 接続中ファームの実際のレイヤー数（未指定時は4）
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
@@ -185,7 +186,9 @@ function MacOSKeyboardSetup({ defaultLayout, model }: { defaultLayout: KeyLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, layerCount = 4, onChange, gesture, onGestureChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+  // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
+  const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
@@ -328,9 +331,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
               disabled={disabled || !settings.autoMouseEnable}
               onChange={e => { const v = Number(e.target.value); changeLayer('aml', v, () => apply({ autoMouseLayer: v })); }}
             >
-              <option value={1}>Layer 1</option>
-              <option value={2}>Layer 2</option>
-              <option value={3}>Layer 3</option>
+              {switchableLayers.map(l => (
+                <option key={l} value={l}>Layer {l}</option>
+              ))}
             </select>
           </div>
           {layerWarn?.target === 'aml' && (
@@ -380,9 +383,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
             onChange={e => { const v = Number(e.target.value); changeLayer('scroll', v, () => apply({ scrollLayer: v })); }}
           >
             <option value={LAYER_NONE}>なし</option>
-            <option value={1}>Layer 1</option>
-            <option value={2}>Layer 2</option>
-            <option value={3}>Layer 3</option>
+            {switchableLayers.map(l => (
+              <option key={l} value={l}>Layer {l}</option>
+            ))}
           </select>
         </div>
         {layerWarn?.target === 'scroll' && (
@@ -443,9 +446,9 @@ export function SettingsTab({ settings, isConnected, model, onChange, gesture, o
                   onChange={e => { const v = Number(e.target.value); changeLayer('gesture', v, () => onGestureChange({ ...gesture, layer: v })); }}
                 >
                   <option value={LAYER_NONE}>なし</option>
-                  <option value={1}>Layer 1</option>
-                  <option value={2}>Layer 2</option>
-                  <option value={3}>Layer 3</option>
+                  {switchableLayers.map(l => (
+                    <option key={l} value={l}>Layer {l}</option>
+                  ))}
                 </select>
               </div>
               {layerWarn?.target === 'gesture' && (

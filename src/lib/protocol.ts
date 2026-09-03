@@ -204,12 +204,11 @@ export function makeLtKeycode(layer: number, kc: number): number {
   return 0x4000 | ((layer & 0x0F) << 8) | (kc & 0xFF);
 }
 
-export const LAYER_TAP_LAYERS = [
-  { value: 0, label: 'レイヤー 0' },
-  { value: 1, label: 'レイヤー 1' },
-  { value: 2, label: 'レイヤー 2' },
-  { value: 3, label: 'レイヤー 3' },
-] as const;
+// レイヤー数は機種・ファームウェアにより異なる（AVR版は4、RP2040版は8など）ため、
+// 接続中の実際のレイヤー数を渡して選択肢を生成する。未接続時などは4件を既定値とする。
+export function getLayerTapLayers(layerCount: number = 4) {
+  return Array.from({ length: layerCount }, (_, i) => ({ value: i, label: `レイヤー ${i}` }));
+}
 
 // Mod-Tap キーコード: 0x2000 | (mod << 8) | kc
 export function makeModTapKeycode(mod: number, kc: number): number {

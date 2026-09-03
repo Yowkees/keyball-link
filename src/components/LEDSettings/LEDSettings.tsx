@@ -1,5 +1,5 @@
 import type { LedConfig } from '../../lib/protocol';
-import { LED_EFFECTS } from '../../lib/protocol';
+import { LED_EFFECTS, LED_SEASONAL_EFFECT_IDS } from '../../lib/protocol';
 
 interface LEDSettingsProps {
   config: LedConfig;
@@ -8,7 +8,9 @@ interface LEDSettingsProps {
 }
 
 export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
+  const isSeasonal = (LED_SEASONAL_EFFECT_IDS as readonly number[]).includes(config.effectId);
   const showColor = config.effectId !== 0;
+  const showHue   = showColor && !isSeasonal;  // 季節限定エフェクトは色相固定（テーマカラー）
   const showSpeed = config.effectId >= 2;
 
   return (
@@ -32,15 +34,20 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
 
       {showColor && (
         <>
-          <div className="trackball-bar__item">
-            <span className="trackball-bar__label">色相: <strong>{config.hue}</strong></span>
-            <input
-              type="range" min={0} max={255} value={config.hue}
-              onChange={e => onChange({ ...config, hue: Number(e.target.value) })}
-              className="slider slider--hue"
-              style={{ background: `linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))` }}
-            />
-          </div>
+          {showHue && (
+            <div className="trackball-bar__item">
+              <span className="trackball-bar__label">色相: <strong>{config.hue}</strong></span>
+              <input
+                type="range" min={0} max={255} value={config.hue}
+                onChange={e => onChange({ ...config, hue: Number(e.target.value) })}
+                className="slider slider--hue"
+                style={{ background: `linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))` }}
+              />
+            </div>
+          )}
+          {isSeasonal && (
+            <p className="settings-desc">このエフェクトは色相固定（テーマカラー）です。彩度・明度は調整できます。</p>
+          )}
 
           <div className="trackball-bar__item">
             <span className="trackball-bar__label">彩度: <strong>{config.sat}</strong></span>

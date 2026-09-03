@@ -356,10 +356,11 @@ export default function App() {
   // 接続中ファームで使える機能（未接続なら不明＝true扱いでグレーアウトしない）。
   // v1.1.0〜メディアキーは通常版・LED版共通で有効。ジェスチャーは非LED版のみ、RGBはLED版のみ。
   const fwAvail = {
-    media:   true,
-    gesture: !isConnected || state.gesture !== null,  // ジェスチャーキー（非LED版のみ）
-    rgb:     !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
-    macro:   !isConnected || state.gesture !== null,  // マクロキー（v1.1.0〜非LED版のみ）
+    media:      true,
+    gesture:    !isConnected || state.gesture !== null,  // ジェスチャーキー（非LED版のみ）
+    rgb:        !isConnected || state.led !== null,      // RGB系キー（LED版のみ）
+    macro:      !isConnected || state.gesture !== null,  // マクロキー（v1.1.0〜非LED版のみ）
+    layerCount: state.info?.layers ?? 4,                 // 実際のレイヤー数（未接続時は4扱い）
   };
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。

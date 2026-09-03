@@ -99,16 +99,30 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x0091, '英数 (Mac)', 'LANG2(英数)/Mac推奨', '日本語'),
 
   // レイヤー切替
+  // RP2040版（8レイヤー）に合わせてレイヤー7まで用意（AVR版は4レイヤーまでのため、
+  // 5以降はisKeycodeUnavailableで接続中ファームのレイヤー数に応じてグレーアウトする）
   K(0x5221, 'MO(1)', 'MO1', 'レイヤー'),
   K(0x5222, 'MO(2)', 'MO2', 'レイヤー'),
   K(0x5223, 'MO(3)', 'MO3', 'レイヤー'),
+  K(0x5224, 'MO(4)', 'MO4', 'レイヤー'),
+  K(0x5225, 'MO(5)', 'MO5', 'レイヤー'),
+  K(0x5226, 'MO(6)', 'MO6', 'レイヤー'),
+  K(0x5227, 'MO(7)', 'MO7', 'レイヤー'),
   K(0x5200, 'TO(0)', 'TO0', 'レイヤー'),
   K(0x5201, 'TO(1)', 'TO1', 'レイヤー'),
   K(0x5202, 'TO(2)', 'TO2', 'レイヤー'),
   K(0x5203, 'TO(3)', 'TO3', 'レイヤー'),
+  K(0x5204, 'TO(4)', 'TO4', 'レイヤー'),
+  K(0x5205, 'TO(5)', 'TO5', 'レイヤー'),
+  K(0x5206, 'TO(6)', 'TO6', 'レイヤー'),
+  K(0x5207, 'TO(7)', 'TO7', 'レイヤー'),
   K(0x5261, 'TG(1)', 'TG1', 'レイヤー'),
   K(0x5262, 'TG(2)', 'TG2', 'レイヤー'),
   K(0x5263, 'TG(3)', 'TG3', 'レイヤー'),
+  K(0x5264, 'TG(4)', 'TG4', 'レイヤー'),
+  K(0x5265, 'TG(5)', 'TG5', 'レイヤー'),
+  K(0x5266, 'TG(6)', 'TG6', 'レイヤー'),
+  K(0x5267, 'TG(7)', 'TG7', 'レイヤー'),
 
   // Keyball 独自キー
   K(0x7E00, 'KB RST',  'KBC_RST',  'Keyball'),
@@ -244,12 +258,24 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x5241, 'DF(1)', 'DF1', 'レイヤー'),
   K(0x5242, 'DF(2)', 'DF2', 'レイヤー'),
   K(0x5243, 'DF(3)', 'DF3', 'レイヤー'),
+  K(0x5244, 'DF(4)', 'DF4', 'レイヤー'),
+  K(0x5245, 'DF(5)', 'DF5', 'レイヤー'),
+  K(0x5246, 'DF(6)', 'DF6', 'レイヤー'),
+  K(0x5247, 'DF(7)', 'DF7', 'レイヤー'),
   K(0x5281, 'OSL(1)', 'OSL1', 'レイヤー'),
   K(0x5282, 'OSL(2)', 'OSL2', 'レイヤー'),
   K(0x5283, 'OSL(3)', 'OSL3', 'レイヤー'),
+  K(0x5284, 'OSL(4)', 'OSL4', 'レイヤー'),
+  K(0x5285, 'OSL(5)', 'OSL5', 'レイヤー'),
+  K(0x5286, 'OSL(6)', 'OSL6', 'レイヤー'),
+  K(0x5287, 'OSL(7)', 'OSL7', 'レイヤー'),
   K(0x52C1, 'TT(1)', 'TT1', 'レイヤー'),
   K(0x52C2, 'TT(2)', 'TT2', 'レイヤー'),
   K(0x52C3, 'TT(3)', 'TT3', 'レイヤー'),
+  K(0x52C4, 'TT(4)', 'TT4', 'レイヤー'),
+  K(0x52C5, 'TT(5)', 'TT5', 'レイヤー'),
+  K(0x52C6, 'TT(6)', 'TT6', 'レイヤー'),
+  K(0x52C7, 'TT(7)', 'TT7', 'レイヤー'),
 
   // ワンショット修飾（OSM: QK_ONE_SHOT_MOD = 0x5500）
   K(0x5501, 'OSM(Ctrl)',  'OSM_C', 'ワンショット'),
@@ -647,13 +673,21 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
 
 // 接続中ファームで各機能が使えるか（未接続なら不明＝true扱いでグレーアウトしない）
 export interface FirmwareAvail {
-  media:   boolean;  // メディアキー（EXTRAKEY）。v1.1.0〜通常版・LED版共通で利用可
-  gesture: boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
-  rgb:     boolean;  // RGB系キー。LED版のみ
-  macro:   boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
+  media:      boolean;  // メディアキー（EXTRAKEY）。v1.1.0〜通常版・LED版共通で利用可
+  gesture:    boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
+  rgb:        boolean;  // RGB系キー。LED版のみ
+  macro:      boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
+  layerCount: number;   // 実際のレイヤー数（AVR版4、RP2040版8など）。MO(n)等の上限判定に使う
 }
 
-export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true };
+export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true, layerCount: 4 };
+
+// MO(4) / TG(7) のような「レイヤー切替」キーの末尾の数字を取り出す（該当しなければnull）
+function parseLayerSwitchTarget(entry: { group: string; short: string }): number | null {
+  if (entry.group !== 'レイヤー') return null;
+  const m = entry.short.match(/^(?:MO|TO|TG|DF|OSL|TT)(\d+)$/);
+  return m ? Number(m[1]) : null;
+}
 
 // このキーコードが接続中ファームで機能しない（グレーアウトすべき）なら true
 export function isKeycodeUnavailable(
@@ -664,5 +698,7 @@ export function isKeycodeUnavailable(
   if (entry.group === 'RGB'      && !avail.rgb)     return true;
   if (entry.group === 'マクロ'   && !avail.macro)   return true;
   if (entry.short === 'GST_HOLD' && !avail.gesture) return true;
+  const layer = parseLayerSwitchTarget(entry);
+  if (layer !== null && layer >= avail.layerCount) return true;
   return false;
 }

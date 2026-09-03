@@ -196,6 +196,8 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
 export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
+  // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
+  const precisionLayers = Array.from({ length: Math.max(layerCount, 0) }, (_, i) => i);
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
@@ -531,7 +533,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
                   onChange={e => onPrecisionChange({ ...precision, layer: Number(e.target.value) })}
                 >
                   <option value={LAYER_NONE}>なし</option>
-                  {switchableLayers.map(l => (
+                  {precisionLayers.map(l => (
                     <option key={l} value={l}>Layer {l}</option>
                   ))}
                 </select>

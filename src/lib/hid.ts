@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -239,15 +239,18 @@ export class KeyballHID {
     ));
   }
 
-  // 超低速（精密作業）モードのCPI分周値取得・設定（RP2040版など対応ファームのみ。非対応FWでは例外）
-  async getPrecisionDiv(): Promise<number> {
+  // 超低速（精密作業）モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
+  async getPrecisionConfig(): Promise<PrecisionConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_PRECISION));
     if (r[0] !== CMD.GET_PRECISION) throw new Error('超低速モード非対応のファームです');
-    return r[1];
+    return {
+      div:   r[1],
+      layer: (r[2] !== undefined && r[2] <= 7) ? r[2] : LAYER_NONE,  // 連動レイヤー（旧応答/未設定はなし）
+    };
   }
 
-  async setPrecisionDiv(div: number): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_PRECISION, div & 0xFF));
+  async setPrecisionConfig(p: PrecisionConfig): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_PRECISION, p.div & 0xFF, p.layer & 0xFF));
   }
 
   // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）

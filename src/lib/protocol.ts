@@ -39,6 +39,12 @@ export const PRECISION_DIV_MIN     = 2;
 export const PRECISION_DIV_MAX     = 20;
 export const PRECISION_DIV_DEFAULT = 4;
 
+// 超低速（精密作業）モード設定
+export interface PrecisionConfig {
+  div:   number;  // CPI分周値（実CPI ÷ この値）。範囲2-20、既定4
+  layer: number;  // このレイヤーにいる間は自動的に超低速モード（0-7 / LAYER_NONE=なし）
+}
+
 export const MACRO_SLOT_COUNT   = 10;
 export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（バイト）
 export const MACRO_CHUNK_SIZE   = 28;   // 1HIDパケットあたりのデータ量

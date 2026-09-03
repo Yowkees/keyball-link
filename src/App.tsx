@@ -32,7 +32,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionDiv, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -360,7 +360,7 @@ export default function App() {
     gesture:    !isConnected || state.gesture !== null,      // ジェスチャーキー（非LED版のみ）
     rgb:        !isConnected || state.led !== null,          // RGB系キー（LED版のみ）
     macro:      !isConnected || state.gesture !== null,      // マクロキー（v1.1.0〜非LED版のみ）
-    precision:  !isConnected || state.precisionDiv !== null, // 超低速モードキー（RP2040版など対応FWのみ）
+    precision:  !isConnected || state.precision !== null, // 超低速モードキー（RP2040版など対応FWのみ）
     layerCount: state.info?.layers ?? 4,                     // 実際のレイヤー数（未接続時は4扱い）
   };
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
@@ -651,8 +651,8 @@ export default function App() {
                 onChange={handleKbSettingsChange}
                 gesture={state.gesture}
                 onGestureChange={handleGestureChange}
-                precisionDiv={state.precisionDiv}
-                onPrecisionDivChange={setPrecisionDiv}
+                precision={state.precision}
+                onPrecisionChange={setPrecisionConfig}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {
                   setKeyLayout(layout);

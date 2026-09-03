@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { KbSettings, GestureConfig } from '../../lib/protocol';
+import type { KbSettings, GestureConfig, PrecisionConfig } from '../../lib/protocol';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -46,8 +46,8 @@ interface SettingsTabProps {
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
-  precisionDiv: number | null;  // 超低速モードのCPI分周値。null = 非対応ファーム
-  onPrecisionDivChange: (div: number) => Promise<void>;
+  precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
+  onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   children?: React.ReactNode;
@@ -193,7 +193,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precisionDiv, onPrecisionDivChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, keyLayout, onKeyLayoutChange, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   const [saving, setSaving] = useState(false);
@@ -217,6 +217,8 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
 
   // 3つのトラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー）の重複を検出。
   // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
+  // 超低速モードは「動きの意味」ではなく「感度」を変えるだけなので、これらとは併用可能。
+  // （例：スクロールレイヤーと同じレイヤーに設定すれば、精密な低速スクロールになる）
   const conflictName = (target: 'aml' | 'scroll' | 'gesture', val: number): string | null => {
     if (val === LAYER_NONE) return null;  // 「なし」は重複しない
     const others: [string, number][] = [];
@@ -492,8 +494,8 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
         )}
       </CollapsibleCard>
 
-      <CollapsibleCard title={<>超低速モード <span className="settings-unit">押している間だけトラックボールを精密操作</span></>}>
-        {precisionDiv === null ? (
+      <CollapsibleCard title={<>超低速モード <span className="settings-unit">トラックボールを精密操作</span></>}>
+        {precision === null ? (
           <p className="settings-desc">
             このファーム（機種・バージョン）は<strong>超低速モード非対応</strong>です。対応版を書き込むと設定できます。
           </p>
@@ -503,17 +505,40 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
               パレットの「Keyball」にある<strong>「精密モード」キー</strong>をキーマップに置き、<strong>押している間だけ</strong>トラックボールの感度を下げます。細かい位置合わせをしたいときに便利です。離すと元の速さに戻ります。
             </p>
             <p className="settings-desc" style={{ marginTop: 12 }}>
-              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度は「通常のCPI ÷ この数値」です。
+              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度はおおよそ「通常のCPI ÷ この数値」です（実CPIは100刻みのため、ベースのCPIが低い設定だと大きい数値でも100CPIに張り付いて差が出ないことがあります）。
             </p>
             <SliderControl
-              value={precisionDiv} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
+              value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
               disabled={disabled} unit="分の1"
-              onCommit={onPrecisionDivChange}
+              onCommit={div => onPrecisionChange({ ...precision, div })}
             />
             <div className="tapping-term-hints">
               <span>{PRECISION_DIV_MIN}（少し遅い）</span>
               <span>デフォルト: {PRECISION_DIV_DEFAULT}</span>
               <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
+            </div>
+
+            <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <div className="setting-row">
+                <div className="setting-row__text">
+                  <span className="setting-row__label">超低速モードになるレイヤー</span>
+                  <span className="setting-row__desc">選んだレイヤーにいる間は、キーを押さなくても自動的に超低速モードになります。「なし」で無効（キーを押している間だけ）。</span>
+                </div>
+                <select
+                  className="trackball-bar__select"
+                  value={precision.layer}
+                  disabled={disabled}
+                  onChange={e => onPrecisionChange({ ...precision, layer: Number(e.target.value) })}
+                >
+                  <option value={LAYER_NONE}>なし</option>
+                  {switchableLayers.map(l => (
+                    <option key={l} value={l}>Layer {l}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="settings-desc" style={{ marginTop: 8 }}>
+                ※ スクロールレイヤーやジェスチャーレイヤーと同じレイヤーにしても構いません（例：低速で正確にスクロールしたい場合）。「精密モード」キーと併用した場合は、どちらか一方でも条件を満たしていれば超低速モードになります。
+              </p>
             </div>
           </>
         )}

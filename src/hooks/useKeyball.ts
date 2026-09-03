@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
@@ -21,7 +21,7 @@ export interface KeyballState {
   kbSettings: KbSettings;
   gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
-  precisionDiv: number | null;  // 超低速モードのCPI分周値。null = 非対応ファーム
+  precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   macroSlots: MacroSlot[];
   currentLayer: number;
   isLoading: boolean;
@@ -52,7 +52,7 @@ export function useKeyball() {
     kbSettings: KB_SETTINGS_DEFAULT,
     gesture: null,
     firmwareVersion: null,
-    precisionDiv: null,
+    precision: null,
     macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
     currentLayer: 0,
     isLoading: false,
@@ -99,8 +99,8 @@ export function useKeyball() {
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
       let firmwareVersion: FirmwareVersion | null = null;
       try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
-      let precisionDiv: number | null = null;
-      try { precisionDiv = await hid.current.getPrecisionDiv(); } catch { /* 超低速モード非対応FW */ }
+      let precision: PrecisionConfig | null = null;
+      try { precision = await hid.current.getPrecisionConfig(); } catch { /* 超低速モード非対応FW */ }
       setPartial({
         connectionState: 'connected',
         deviceName: hid.current.deviceName,
@@ -115,7 +115,7 @@ export function useKeyball() {
         macroSlots,
         gesture,
         firmwareVersion,
-        precisionDiv,
+        precision,
         isLoading: false,
       });
     } catch (e) {
@@ -193,9 +193,9 @@ export function useKeyball() {
     setPartial({ gesture: g });
   }, []);
 
-  const setPrecisionDiv = useCallback(async (div: number) => {
-    await hid.current.setPrecisionDiv(div);
-    setPartial({ precisionDiv: div });
+  const setPrecisionConfig = useCallback(async (p: PrecisionConfig) => {
+    await hid.current.setPrecisionConfig(p);
+    setPartial({ precision: p });
   }, []);
 
   const save = useCallback(async () => {
@@ -280,5 +280,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionDiv, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

@@ -155,7 +155,8 @@ export interface LedConfig {
 }
 
 // RGBLIGHT版（RP2040等）のエフェクト一覧。ファームウェアのLED_EFFECT_MAP(kb_hid.c)と対応させること。
-// id 7(クリスマス)・11-13は季節限定エフェクト（自作の2〜3色クロスフェード。色相固定なので色相スライダーは無効）。
+// id 11・13は季節限定エフェクト（自作の2〜3色クロスフェード。色相固定なので色相スライダーは無効）。
+// id 10（交互点灯）は自作の左右ハーフ単位の交互点灯（色相は選べる）。12は欠番（ニューイヤーは削除）。
 export const LED_EFFECTS = [
   { id: 0,  label: 'オフ' },
   { id: 1,  label: '単色' },
@@ -169,12 +170,11 @@ export const LED_EFFECTS = [
   { id: 9,  label: 'きらめき' },
   { id: 10, label: '交互点灯' },
   { id: 11, label: 'ハロウィン' },
-  { id: 12, label: 'ニューイヤー' },
   { id: 13, label: 'イースター' },
 ] as const;
 
-// 季節限定エフェクト（色相固定・クリスマスと同じ2色クロスフェード動作）
-export const LED_SEASONAL_EFFECT_IDS = [7, 11, 12, 13] as const;
+// 季節限定エフェクト（色相固定・2〜3色クロスフェード動作。色相スライダーは無効にする）
+export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
 export interface LayerLedConfig {

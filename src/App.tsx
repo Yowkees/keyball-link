@@ -269,10 +269,19 @@ export default function App() {
 
   const handleExportJSON = () => {
     const data = {
-      version: 1,
+      version: 2,
       model: state.model,
       keymap: state.keymap,
       macros: state.macroSlots,
+      // v2で追加: キーマップ以外の各種設定。接続中のファームが非対応の項目はnullのまま
+      // 書き出される（インポート側でnullは無視される）。
+      led: state.led,
+      trackball: state.trackball,
+      kbSettings: state.kbSettings,
+      gesture: state.gesture,
+      precision: state.precision,
+      layerLedEnable: state.layerLedEnable,
+      layerLeds: state.layerLeds,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -295,7 +304,7 @@ export default function App() {
         if (data.model && state.model && data.model !== state.model) {
           if (!confirm(`このファイルは ${data.model} 用です。接続中の ${state.model} に読み込むとキー配置が崩れる可能性があります。続行しますか？`)) return;
         }
-        if (!confirm('キーマップ（とマクロ）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
+        if (!confirm('キーマップ（と各種設定）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
         const { info } = state;
         if (!info || !layout) return;
         let count = 0;
@@ -317,6 +326,33 @@ export default function App() {
             (_, i) => (data.macros[i] as MacroSlot) ?? emptyMacroSlot(),
           );
           await setAllMacroSlots(imported);
+        }
+        // v2で追加した各種設定。古い(v1)ファイルには存在しないので個別にnullチェックする。
+        // 接続中のファームが非対応の項目（対応するsetterがエラーを返す）で全体が
+        // 止まらないよう、1項目ずつtry/catchする。
+        if (data.led) {
+          try { await setLed(data.led); } catch { /* 非対応FW */ }
+        }
+        if (data.trackball) {
+          try { await setTrackball(data.trackball); } catch { /* 非対応FW */ }
+        }
+        if (data.kbSettings) {
+          try { await setKbSettings(data.kbSettings); } catch { /* 非対応FW */ }
+        }
+        if (data.gesture) {
+          try { await setGesture(data.gesture); } catch { /* 非対応FW */ }
+        }
+        if (data.precision) {
+          try { await setPrecisionConfig(data.precision); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.layerLedEnable === 'boolean') {
+          try { await setLayerLedEnable(data.layerLedEnable); } catch { /* 非対応FW */ }
+        }
+        if (Array.isArray(data.layerLeds)) {
+          for (let l = 0; l < data.layerLeds.length; l++) {
+            if (!data.layerLeds[l]) continue;
+            try { await setLayerLed(l, data.layerLeds[l]); } catch { /* 非対応FW・レイヤー数超過 */ }
+          }
         }
         setHasUnsaved(false);
         await save();
@@ -407,8 +443,8 @@ export default function App() {
               >
                 ↪ やり直し
               </button>
-              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップとマクロをJSONファイルに保存">エクスポート</button>
-              <label className="btn btn--ghost" title="JSONファイルからキーマップとマクロを読み込む" style={{ cursor: 'pointer' }}>
+              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップ・マクロ・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存">エクスポート</button>
+              <label className="btn btn--ghost" title="JSONファイルからキーマップ・マクロ・各種設定を読み込む" style={{ cursor: 'pointer' }}>
                 インポート
                 <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />
               </label>

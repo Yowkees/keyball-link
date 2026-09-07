@@ -36,6 +36,8 @@ export const CMD = {
   SET_LAYER_LED_ENABLE: 0x1B,
   GET_LAYER_LED:        0x1C,
   SET_LAYER_LED:        0x1D,
+  GET_SCROLL_INERTIA:   0x1E,
+  SET_SCROLL_INERTIA:   0x1F,
 } as const;
 
 // 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
@@ -49,6 +51,18 @@ export const PRECISION_DIV_DEFAULT = 4;
 export interface PrecisionConfig {
   div:   number;  // CPI分周値（実CPI ÷ この値）。範囲2-20、既定4
   layer: number;  // このレイヤーにいる間は自動的に超低速モード（0-7 / LAYER_NONE=なし）
+}
+
+// 慣性スクロール（ボールを弾いた後、しばらく減衰しながらスクロールが続く）の範囲。
+// 上限を254にしているのはファーム側の未初期化EEPROM値(0xFF=255)と衝突させないため
+// （kb_settings.h参照）。
+export const SCROLL_INERTIA_STRENGTH_MIN     = 0;
+export const SCROLL_INERTIA_STRENGTH_MAX     = 254;
+export const SCROLL_INERTIA_STRENGTH_DEFAULT = 128;
+
+export interface ScrollInertiaConfig {
+  enable:   boolean;
+  strength: number;  // 0-254。大きいほど長く・遠くまで滑る
 }
 
 export const MACRO_SLOT_COUNT   = 10;

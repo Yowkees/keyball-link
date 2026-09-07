@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -275,6 +275,17 @@ export class KeyballHID {
 
   async setPrecisionConfig(p: PrecisionConfig): Promise<void> {
     await this.sendCommand(makePacket(CMD.SET_PRECISION, p.div & 0xFF, p.layer & 0xFF));
+  }
+
+  // 慣性スクロールの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
+  async getScrollInertiaConfig(): Promise<ScrollInertiaConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_SCROLL_INERTIA));
+    if (r[0] !== CMD.GET_SCROLL_INERTIA) throw new Error('慣性スクロール非対応のファームです');
+    return { enable: r[1] !== 0, strength: r[2] };
+  }
+
+  async setScrollInertiaConfig(c: ScrollInertiaConfig): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_SCROLL_INERTIA, c.enable ? 1 : 0, c.strength & 0xFF));
   }
 
   // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { KbSettings, GestureConfig, PrecisionConfig, LayerLedConfig } from '../../lib/protocol';
-import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT } from '../../lib/protocol';
+import type { KbSettings, GestureConfig, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../../lib/protocol';
+import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
@@ -51,6 +51,8 @@ interface SettingsTabProps {
   onGestureChange: (g: GestureConfig) => Promise<void>;
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
+  scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
+  onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
   layerLeds: (LayerLedConfig | null)[];  // インデックス=レイヤー番号
   onLayerLedEnableChange: (v: boolean) => Promise<void>;
@@ -202,7 +204,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
@@ -416,6 +418,35 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
         <p className="settings-desc" style={{ marginTop: 8 }}>
           ※ どのレイヤーでスクロールにするかを変えるだけです。各レイヤーのキーの中身は移動しないので、必要ならキーマップ側で並べ替えてください。
         </p>
+      </CollapsibleCard>
+
+      <CollapsibleCard title={<>慣性スクロール <span className="settings-unit">弾いた後もしばらく滑る</span></>}>
+        {scrollInertia === null ? (
+          <p className="settings-desc">
+            このファーム（機種・バージョン）は<strong>慣性スクロール非対応</strong>です。対応版を書き込むと設定できます。
+          </p>
+        ) : (
+          <>
+            <ToggleRow
+              label="慣性スクロール"
+              desc="スクロール中にトラックボールを弾くと、指を離した後もしばらく減衰しながらスクロールが続きます。"
+              checked={scrollInertia.enable}
+              disabled={disabled}
+              onChange={v => onScrollInertiaChange({ ...scrollInertia, enable: v })}
+            />
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>強さ</p>
+            <SliderControl
+              value={scrollInertia.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
+              disabled={disabled || !scrollInertia.enable} unit=""
+              onCommit={v => onScrollInertiaChange({ ...scrollInertia, strength: v })}
+            />
+            <div className="tapping-term-hints">
+              <span>0（すぐ止まる）</span>
+              <span>デフォルト: {SCROLL_INERTIA_STRENGTH_DEFAULT}</span>
+              <span>{SCROLL_INERTIA_STRENGTH_MAX}（長く滑る）</span>
+            </div>
+          </>
+        )}
       </CollapsibleCard>
 
       <CollapsibleCard title={<>ジェスチャー <span className="settings-unit">トラックボールを振って操作</span></>}>

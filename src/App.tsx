@@ -32,7 +32,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -280,6 +280,7 @@ export default function App() {
       kbSettings: state.kbSettings,
       gesture: state.gesture,
       precision: state.precision,
+      scrollInertia: state.scrollInertia,
       layerLedEnable: state.layerLedEnable,
       layerLeds: state.layerLeds,
     };
@@ -344,6 +345,9 @@ export default function App() {
         }
         if (data.precision) {
           try { await setPrecisionConfig(data.precision); } catch { /* 非対応FW */ }
+        }
+        if (data.scrollInertia) {
+          try { await setScrollInertiaConfig(data.scrollInertia); } catch { /* 非対応FW */ }
         }
         if (typeof data.layerLedEnable === 'boolean') {
           try { await setLayerLedEnable(data.layerLedEnable); } catch { /* 非対応FW */ }
@@ -689,6 +693,8 @@ export default function App() {
                 onGestureChange={handleGestureChange}
                 precision={state.precision}
                 onPrecisionChange={setPrecisionConfig}
+                scrollInertia={state.scrollInertia}
+                onScrollInertiaChange={setScrollInertiaConfig}
                 layerLedEnable={state.layerLedEnable}
                 layerLeds={state.layerLeds}
                 onLayerLedEnableChange={setLayerLedEnable}

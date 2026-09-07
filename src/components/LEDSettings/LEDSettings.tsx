@@ -1,5 +1,5 @@
 import type { LedConfig } from '../../lib/protocol';
-import { LED_EFFECTS, LED_SEASONAL_EFFECT_IDS } from '../../lib/protocol';
+import { LED_EFFECTS, LED_SEASONAL_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
 
 interface LEDSettingsProps {
   config: LedConfig;
@@ -11,7 +11,7 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
   const isSeasonal = (LED_SEASONAL_EFFECT_IDS as readonly number[]).includes(config.effectId);
   const showColor = config.effectId !== 0;
   const showHue   = showColor && !isSeasonal;  // 季節限定エフェクトは色相固定（テーマカラー）
-  const showSpeed = config.effectId >= 2;
+  const showSpeed = config.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(config.effectId);
 
   return (
     <div className="trackball-bar">

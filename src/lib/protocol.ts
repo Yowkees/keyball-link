@@ -182,6 +182,11 @@ export const LED_EFFECTS = [
 // 季節限定エフェクト（色相固定・2〜3色クロスフェード動作。色相スライダーは無効にする）
 export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 
+// 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
+// グラデーション(8)は静止した配色で時間変化が無く、キー反応(14)はフェード時間が
+// 固定（ファーム側でFADE_MS定数）で速度設定を参照していないため。
+export const LED_NO_SPEED_EFFECT_IDS = [8, 14] as const;
+
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
 export interface LayerLedConfig {
   enabled:  boolean;  // このレイヤーで専用の光り方を使うか

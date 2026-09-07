@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LedConfig } from '../../lib/protocol';
-import { LED_EFFECTS, LED_SEASONAL_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
+import { LED_EFFECTS, LED_FIXED_HUE_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
 
 interface LEDSettingsProps {
   config: LedConfig;
@@ -49,9 +49,9 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
     }, COMMIT_DELAY_MS);
   };
 
-  const isSeasonal = (LED_SEASONAL_EFFECT_IDS as readonly number[]).includes(local.effectId);
+  const isFixedHue = (LED_FIXED_HUE_EFFECT_IDS as readonly number[]).includes(local.effectId);
   const showColor = local.effectId !== 0;
-  const showHue   = showColor && !isSeasonal;  // 季節限定エフェクトは色相固定（テーマカラー）
+  const showHue   = showColor && !isFixedHue;  // クリスマス・ハロウィン・イースターは色相固定
   const showSpeed = local.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(local.effectId);
 
   return (
@@ -90,7 +90,7 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
               />
             </div>
           )}
-          {isSeasonal && (
+          {isFixedHue && (
             <p className="settings-desc">このエフェクトは色相固定（テーマカラー）です。彩度・明度は調整できます。</p>
           )}
 

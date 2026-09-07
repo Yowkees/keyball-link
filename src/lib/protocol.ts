@@ -168,13 +168,13 @@ export interface LedConfig {
 // このIDに対応が無いため単純に無視される（ファーム側の境界チェックでオフ扱いになる）。
 export const LED_EFFECTS = [
   { id: 0,  label: 'オフ' },
-  { id: 1,  label: '単色' },
-  { id: 2,  label: '呼吸' },
+  { id: 1,  label: 'ソリッド' },
+  { id: 2,  label: 'ブリージング' },
   { id: 14, label: 'リアクティブ' },
   { id: 8,  label: 'グラデーション' },
   { id: 3,  label: 'レインボー' },
   { id: 4,  label: 'スワール' },
-  { id: 9,  label: 'きらめき' },
+  { id: 9,  label: 'トゥインクル' },
   { id: 7,  label: 'クリスマス' },
   { id: 11, label: 'ハロウィン' },
   { id: 13, label: 'イースター' },

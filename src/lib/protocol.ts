@@ -60,9 +60,17 @@ export const SCROLL_INERTIA_STRENGTH_MIN     = 0;
 export const SCROLL_INERTIA_STRENGTH_MAX     = 254;
 export const SCROLL_INERTIA_STRENGTH_DEFAULT = 128;
 
+// 発動しきい値の倍率×10（例:30なら3.0倍）。ゆっくり動かした時は発動させず、
+// 速く弾いた時だけ発動させるためのしきい値。大きいほど「よほど速く弾かないと
+// 発動しない」、小さいほど「そこそこの速さでも発動する」。
+export const SCROLL_INERTIA_FLICK_MULT_MIN     = 5;    // 0.5倍
+export const SCROLL_INERTIA_FLICK_MULT_MAX     = 100;  // 10.0倍
+export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 30;   // 3.0倍
+
 export interface ScrollInertiaConfig {
-  enable:   boolean;
-  strength: number;  // 0-254。大きいほど長く・遠くまで滑る
+  enable:    boolean;
+  strength:  number;  // 0-254。大きいほど長く・遠くまで滑る
+  flickMult: number;  // 5-100（×10した整数、例:30=3.0倍）。発動に必要な速さのしきい値
 }
 
 export const MACRO_SLOT_COUNT   = 10;

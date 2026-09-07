@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { KbSettings, GestureConfig, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../../lib/protocol';
-import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT } from '../../lib/protocol';
+import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
@@ -12,9 +12,10 @@ import type { ModelKey } from '../../layouts';
 const LAYER_LED_DEFAULT: LayerLedConfig = { enabled: false, effectId: 1, hue: 0, sat: 255, val: 150, speed: 128 };
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
-function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
+function SliderControl({ value, min, max, step, disabled, unit, onCommit, format }: {
   value: number; min: number; max: number; step: number;
   disabled: boolean; unit: string; onCommit: (v: number) => void;
+  format?: (v: number) => string;  // 表示用の値の整形（例: ×10保持の値を1桁小数で表示）
 }) {
   const [local, setLocal] = useState(value);
   // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
@@ -35,7 +36,7 @@ function SliderControl({ value, min, max, step, disabled, unit, onCommit }: {
         onKeyUp={commit}
         className="tapping-term-slider"
       />
-      <span className="tapping-term-value">{local} {unit}</span>
+      <span className="tapping-term-value">{format ? format(local) : `${local} ${unit}`}</span>
     </div>
   );
 }
@@ -444,6 +445,21 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
               <span>0（すぐ止まる）</span>
               <span>デフォルト: {SCROLL_INERTIA_STRENGTH_DEFAULT}</span>
               <span>{SCROLL_INERTIA_STRENGTH_MAX}（長く滑る）</span>
+            </div>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>発動しやすさ</p>
+            <p className="settings-desc">
+              どれくらい速くボールを弾いたら発動するかのしきい値です。倍率が大きいほど、よほど速く弾かないと発動しなくなります（ゆっくりした意図的なスクロールでは発動させたくない場合は大きく）。
+            </p>
+            <SliderControl
+              value={scrollInertia.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
+              disabled={disabled || !scrollInertia.enable} unit=""
+              format={v => `${(v / 10).toFixed(1)}倍`}
+              onCommit={v => onScrollInertiaChange({ ...scrollInertia, flickMult: v })}
+            />
+            <div className="tapping-term-hints">
+              <span>{(SCROLL_INERTIA_FLICK_MULT_MIN / 10).toFixed(1)}倍（発動しやすい）</span>
+              <span>デフォルト: {(SCROLL_INERTIA_FLICK_MULT_DEFAULT / 10).toFixed(1)}倍</span>
+              <span>{(SCROLL_INERTIA_FLICK_MULT_MAX / 10).toFixed(1)}倍（よほど速くないと発動しない）</span>
             </div>
           </>
         )}

@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
 
 export class KeyballHID {
@@ -281,11 +281,19 @@ export class KeyballHID {
   async getScrollInertiaConfig(): Promise<ScrollInertiaConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_SCROLL_INERTIA));
     if (r[0] !== CMD.GET_SCROLL_INERTIA) throw new Error('慣性スクロール非対応のファームです');
-    return { enable: r[1] !== 0, strength: r[2] };
+    const flickMult = r[3] ?? 0;
+    return {
+      enable:    r[1] !== 0,
+      strength:  r[2],
+      // 発動しきい値の倍率追加前の旧ファームや不正値からは既定値へフォールバックする
+      flickMult: (flickMult < SCROLL_INERTIA_FLICK_MULT_MIN || flickMult > SCROLL_INERTIA_FLICK_MULT_MAX)
+        ? SCROLL_INERTIA_FLICK_MULT_DEFAULT
+        : flickMult,
+    };
   }
 
   async setScrollInertiaConfig(c: ScrollInertiaConfig): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_SCROLL_INERTIA, c.enable ? 1 : 0, c.strength & 0xFF));
+    await this.sendCommand(makePacket(CMD.SET_SCROLL_INERTIA, c.enable ? 1 : 0, c.strength & 0xFF, c.flickMult & 0xFF));
   }
 
   // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）

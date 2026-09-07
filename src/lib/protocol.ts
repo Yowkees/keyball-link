@@ -164,13 +164,16 @@ export interface LedConfig {
 //   本家RGBLIGHT版と共有のリストのため一旦保留。
 // 11・13は季節限定エフェクト（クリスマスと同じ市松模様の交互点灯。色相固定なので
 // 色相スライダーは無効）。
-// 14はRGB_MATRIX版限定の追加エフェクト（リアクティブ）。本家RGBLIGHT版のファームでは
-// このIDに対応が無いため単純に無視される（ファーム側の境界チェックでオフ扱いになる）。
+// 14・15・16・17はRGB_MATRIX版限定の追加エフェクト。本家RGBLIGHT版のファームでは
+// これらのIDに対応が無いため単純に無視される（ファーム側の境界チェックでオフ扱いになる）。
 export const LED_EFFECTS = [
   { id: 0,  label: 'オフ' },
   { id: 1,  label: 'ソリッド' },
   { id: 2,  label: 'ブリージング' },
   { id: 14, label: 'リアクティブ' },
+  { id: 17, label: 'リップル' },
+  { id: 15, label: 'タイピングヒートマップ' },
+  { id: 16, label: 'トラックボールリアクティブ' },
   { id: 8,  label: 'グラデーション' },
   { id: 3,  label: 'レインボー' },
   { id: 4,  label: 'スワール' },
@@ -184,14 +187,17 @@ export const LED_EFFECTS = [
 export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 
 // 色相を固定パレットで決め打ちしていて色相スライダーが効かないエフェクト。
-// クリスマス(7)・ハロウィン(11)・イースター(13)はいずれもrender_checkerboard()
-// （rgb_matrix_user.inc）で固定色相の配列を使っており、色相設定を参照していない。
-export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13] as const;
+// クリスマス(7)・ハロウィン(11)・イースター(13)はrender_checkerboard()
+// （rgb_matrix_user.inc）で固定色相の配列を使っている。タイピングヒートマップ(15)は
+// 組み込みRGB_MATRIX_TYPING_HEATMAPの実装が蓄積値から色相を計算しており、色相設定を
+// 参照していない。
+export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
 
 // 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
 // グラデーション(8)は静止した配色で時間変化が無く、リアクティブ(14)はフェード時間が
-// 固定（ファーム側でFADE_MS定数）で速度設定を参照していないため。
-export const LED_NO_SPEED_EFFECT_IDS = [8, 14] as const;
+// 固定（ファーム側でFADE_MS定数）で速度設定を参照していない。タイピングヒートマップ(15)
+// も減衰間隔が固定（ファーム側でDECREASE_DELAY_MS定数）で速度設定を参照していない。
+export const LED_NO_SPEED_EFFECT_IDS = [8, 14, 15] as const;
 
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
 export interface LayerLedConfig {

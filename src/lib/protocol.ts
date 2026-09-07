@@ -189,9 +189,9 @@ export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 // 色相を固定パレットで決め打ちしていて色相スライダーが効かないエフェクト。
 // クリスマス(7)・ハロウィン(11)・イースター(13)はrender_checkerboard()
 // （rgb_matrix_user.inc）で固定色相の配列を使っている。タイピングヒートマップ(15)は
-// 自作HEATMAP実装（rgb_matrix_user.inc）に置き換え、色相・彩度は通常どおり
-// rgb_matrix_config.hsvを参照するようにしたため色相調整が効く（固定色相ではない）。
-export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13] as const;
+// 自作HEATMAP実装（rgb_matrix_user.inc）で、押した回数（蓄熱量）に応じて色相を
+// 寒色→暖色へ内部計算するため色相スライダーは効かない（彩度・明るさは設定値を使う）。
+export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
 
 // 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
 // グラデーション(8)は静止した配色で時間変化が無く、リアクティブ(14)はフェード時間が

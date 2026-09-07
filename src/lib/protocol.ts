@@ -189,14 +189,15 @@ export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 // 色相を固定パレットで決め打ちしていて色相スライダーが効かないエフェクト。
 // クリスマス(7)・ハロウィン(11)・イースター(13)はrender_checkerboard()
 // （rgb_matrix_user.inc）で固定色相の配列を使っている。タイピングヒートマップ(15)は
-// 組み込みRGB_MATRIX_TYPING_HEATMAPの実装が蓄積値から色相を計算しており、色相設定を
-// 参照していない。
-export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
+// 自作HEATMAP実装（rgb_matrix_user.inc）に置き換え、色相・彩度は通常どおり
+// rgb_matrix_config.hsvを参照するようにしたため色相調整が効く（固定色相ではない）。
+export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13] as const;
 
 // 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
 // グラデーション(8)は静止した配色で時間変化が無く、リアクティブ(14)はフェード時間が
 // 固定（ファーム側でFADE_MS定数）で速度設定を参照していない。タイピングヒートマップ(15)
-// も減衰間隔が固定（ファーム側でDECREASE_DELAY_MS定数）で速度設定を参照していない。
+// も自作HEATMAP実装で減衰間隔が固定（ファーム側でHEATMAP_DECAY_INTERVAL_MS定数）の
+// ため速度設定を参照していない。
 export const LED_NO_SPEED_EFFECT_IDS = [8, 14, 15] as const;
 
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定

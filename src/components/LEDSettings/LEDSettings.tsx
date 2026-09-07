@@ -22,7 +22,13 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
         <select
           className="trackball-bar__select"
           value={config.effectId}
-          onChange={e => onChange({ ...config, effectId: Number(e.target.value) })}
+          onChange={e => {
+            const effectId = Number(e.target.value);
+            // イースター(13)は彩度255だとパステル感が薄れるため、選択時の初期値として185にする
+            // （既にイースターを選んでいた状態からの変更ではないので、彩度を上書きしても事故にならない）
+            const sat = effectId === 13 && config.effectId !== 13 ? 185 : config.sat;
+            onChange({ ...config, effectId, sat });
+          }}
         >
           {LED_EFFECTS.map(e => (
             <option key={e.id} value={e.id}>{e.label}</option>

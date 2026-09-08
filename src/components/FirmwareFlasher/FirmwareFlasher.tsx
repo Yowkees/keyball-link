@@ -177,8 +177,8 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
         <summary>正規ファームウェアなど他のファームウェアに戻す方へ（書き込み前にお読みください）</summary>
         <p>
           Keyball Linkから正規ファームウェアなど別のファームウェアに書き戻す場合は、
-          <strong>先に画面上部の「初期化」ボタンを押してKeyball Link独自の設定を消してから</strong>
-          書き込んでください。<br />
+          <strong>先に画面上部の「初期化」▾ から「すべての設定を初期化する」を選んでKeyball Link独自の設定を消してから</strong>
+          書き込んでください（「キーマップをRemap版の初期設定にする」ではKeyball Link独自の設定は消えないのでご注意ください）。<br />
           設定を消さずに書き込むと、Keyball Link独自の設定がEEPROMに残ったまま新しいファームウェアが動き出し、
           レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
         </p>

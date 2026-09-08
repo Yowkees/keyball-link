@@ -63,9 +63,9 @@ export const SCROLL_INERTIA_STRENGTH_DEFAULT = 128;
 // 発動しきい値の倍率×10（例:30なら3.0倍）。ゆっくり動かした時は発動させず、
 // 速く弾いた時だけ発動させるためのしきい値。大きいほど「よほど速く弾かないと
 // 発動しない」、小さいほど「そこそこの速さでも発動する」。
-export const SCROLL_INERTIA_FLICK_MULT_MIN     = 5;    // 0.5倍
-export const SCROLL_INERTIA_FLICK_MULT_MAX     = 100;  // 10.0倍
-export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 30;   // 3.0倍
+export const SCROLL_INERTIA_FLICK_MULT_MIN     = 1;   // 0.1倍
+export const SCROLL_INERTIA_FLICK_MULT_MAX     = 30;  // 3.0倍
+export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 30;  // 3.0倍
 
 export interface ScrollInertiaConfig {
   enable:    boolean;

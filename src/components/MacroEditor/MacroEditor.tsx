@@ -135,6 +135,14 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
     setEditorState('editing');
   };
 
+  // 左のスロット一覧をクリックしたときは、いきなり手動編集にはせず
+  // 「記録開始」「手動編集」を選べる画面（idle状態）を表示する
+  const pickSlot = (idx: number) => {
+    setSelected(idx);
+    setEditorState('idle');
+    setDraft(null);
+  };
+
   const cancelEdit = () => { setEditorState('idle'); setDraft(null); };
 
   const updateStep = (i: number, patch: Partial<MacroStep>) => {
@@ -200,8 +208,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
             const hasContent = s && s.steps.length > 0;
             return (
               <button key={i}
-                className={`macro-slot-btn ${selected === i && editorState !== 'idle' ? 'macro-slot-btn--active' : ''} ${hasContent ? 'macro-slot-btn--has-data' : ''}`}
-                onClick={() => selectSlot(i)}
+                className={`macro-slot-btn ${selected === i ? 'macro-slot-btn--active' : ''} ${hasContent ? 'macro-slot-btn--has-data' : ''}`}
+                onClick={() => pickSlot(i)}
                 disabled={!isConnected || editorState === 'recording'}>
                 <span className="macro-slot-id">M{i}</span>
                 <span className="macro-slot-preview">

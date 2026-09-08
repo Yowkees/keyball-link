@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getKeyDisplayLabel, KEYCODES } from '../../lib/keycodes';
+import { getKeyDisplayLabel } from '../../lib/keycodes';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, MacroStep } from '../../lib/protocol';
 import { MACRO_SLOT_COUNT, MACRO_BUFFER_SIZE } from '../../lib/protocol';
 import { browserEventToKeycode } from '../../lib/browserKeymap';
+import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // 1レコーディングセッションの上限（バッファの約1/3を目安）
 const MAX_RECORD_STEPS = 40;
+
+// マクロのステップとして選べるキーのグループ（レイヤー切替・RGB・マクロ自身などは
+// tap_code16/register_code16では正しく動作しないため候補から除外する）
+const MACRO_ALLOWED_GROUPS = [
+  '文字', '数字', '記号', 'Shift記号', 'JIS記号', '基本', '矢印', 'F',
+  '修飾', '日本語', 'マウス', 'メディア', 'テンキー', 'システム',
+];
 
 interface MacroEditorProps {
   slots: MacroSlot[];
@@ -23,6 +31,7 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
   onChangeDelay: (ms: number) => void; onChangeKey: (kc: number) => void;
   onToggleHold: () => void;
 }) {
+  const [showPicker, setShowPicker] = useState(false);
   const label = step.keycode ? getKeyDisplayLabel(step.keycode, keyLayout) : '（キーなし）';
   return (
     <div className="mstep">
@@ -43,16 +52,9 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
       )}
       <div className="mstep-key">
         <span className="mstep-num">{index + 1}</span>
-        <select className="mstep-key-select" value={step.keycode}
-          onChange={e => onChangeKey(Number(e.target.value))}>
-          <option value={0}>（キーなし）</option>
-          {KEYCODES.filter(k => k.code <= 0x00FF || (k.code >= 0x0200 && k.code <= 0x02FF)).map(k => (
-            <option key={k.code} value={k.code}>
-              {getKeyDisplayLabel(k.code, keyLayout)} — {k.short}
-            </option>
-          ))}
-        </select>
-        <span className="mstep-key-label">{label}</span>
+        <button className="mstep-key-btn" onClick={() => setShowPicker(true)}>
+          {label.replace('\n', ' / ')}
+        </button>
         <button
           className={`mstep-hold-btn ${step.hold ? 'mstep-hold-btn--on' : ''}`}
           onClick={onToggleHold}
@@ -62,6 +64,16 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
         </button>
         <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
       </div>
+      {showPicker && (
+        <KeyConfigModal
+          currentCode={step.keycode}
+          keyLayout={keyLayout}
+          hideHold
+          allowedGroups={MACRO_ALLOWED_GROUPS}
+          onSelect={kc => onChangeKey(kc)}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
     </div>
   );
 }

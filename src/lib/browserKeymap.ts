@@ -1,5 +1,7 @@
 // ブラウザの KeyboardEvent.code → QMKキーコード変換マップ
 
+import { makeModsKeycode } from './protocol';
+
 // 修飾なし（単押し）
 const BASE_MAP: Record<string, number> = {
   KeyA: 0x0004, KeyB: 0x0005, KeyC: 0x0006, KeyD: 0x0007,
@@ -73,11 +75,25 @@ export function browserEventToKeycode(e: KeyboardEvent): number | null {
     return null;
   }
 
+  const base = BASE_MAP[e.code];
+  if (base === undefined) return null;
+
+  // Ctrl/Alt/GUIのいずれかを押しながらの場合は「修飾＋キー」の合成キーコードにする
+  // （例: Ctrl+A → Ctrl+Aを1ステップで表す合成キーコード）
+  if (e.ctrlKey || e.altKey || e.metaKey) {
+    let mods = 0;
+    if (e.ctrlKey)  mods |= 0x01;
+    if (e.shiftKey) mods |= 0x02;
+    if (e.altKey)   mods |= 0x04;
+    if (e.metaKey)  mods |= 0x08;
+    return makeModsKeycode(mods, base);
+  }
+
   if (e.shiftKey && SHIFT_MAP[e.code] !== undefined) {
     return SHIFT_MAP[e.code];
   }
 
-  return BASE_MAP[e.code] ?? null;
+  return base;
 }
 
 /** キーコードから短い表示名を返す（録音プレビュー用） */

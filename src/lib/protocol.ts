@@ -65,7 +65,7 @@ export const SCROLL_INERTIA_STRENGTH_DEFAULT = 128;
 // 発動しない」、小さいほど「そこそこの速さでも発動する」。
 export const SCROLL_INERTIA_FLICK_MULT_MIN     = 1;   // 0.1倍
 export const SCROLL_INERTIA_FLICK_MULT_MAX     = 30;  // 3.0倍
-export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 30;  // 3.0倍
+export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 25;  // 2.5倍
 
 export interface ScrollInertiaConfig {
   enable:    boolean;

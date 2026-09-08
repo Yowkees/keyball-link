@@ -781,7 +781,13 @@ body { background: var(--bg); }
 .builder-mod-buttons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+.builder-mod-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 4px;
 }
 .builder-layer-buttons {
   display: flex;
@@ -2195,23 +2201,20 @@ body { background: var(--bg); }
   min-width: 16px;
   text-align: right;
 }
-.mstep-key-select {
-  padding: 3px 6px;
+.mstep-key-btn {
+  padding: 4px 10px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--text);
-  font-size: 12px;
-  flex: 1;
-}
-.mstep-key-select:focus { outline: none; border-color: var(--accent); }
-.mstep-key-label {
+  color: var(--accent);
   font-size: 13px;
   font-weight: 700;
-  color: var(--accent);
-  min-width: 28px;
+  flex: 1;
   text-align: center;
+  cursor: pointer;
+  white-space: pre-line;
 }
+.mstep-key-btn:hover { border-color: var(--accent); }
 .mstep-hold-btn {
   flex-shrink: 0;
   padding: 3px 8px;

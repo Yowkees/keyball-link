@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS, isKeycodeUnavailable, FW_ALL_AVAILABLE } from '../../lib/keycodes';
 import type { KeycodeEntry, KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import {
-  makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, getLayerTapLayers,
+  makeModTapKeycode, makeLtKeycode, getLayerTapLayers,
   makeModsKeycode, MODIFIER_BITS, MOD_RIGHT_BIT,
 } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
@@ -10,13 +10,14 @@ import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 export type PanelType = '通常' | 'ホールド' | 'カスタム';
 
 interface KeyConfigModalProps {
-  keyIndex: number;
+  keyIndex?: number;
   currentCode: number;
   keyLayout: KeyLayout;
   defaultPanel?: PanelType;
   hideHold?: boolean;     // ホールドタブを隠す（ジェスチャー割り当てなど押下時間の概念がない用途）
   avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
   layerCount?: number;    // 接続中ファームの実際のレイヤー数（未指定時は4）
+  allowedGroups?: string[]; // 指定時、通常パネルの候補をこのグループのみに絞る（マクロ登録など）
   onSelect: (keycode: number) => void;
   onClose: () => void;
 }
@@ -125,10 +126,11 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
 }
 
 // ── 通常キーパネル（修飾キー付加対応） ────────────────────
-function NormalPanel({ currentCode, keyLayout, avail, onSelect }: {
+function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
+  allowedGroups?: string[];
   onSelect: (c: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState('すべて');
@@ -138,7 +140,14 @@ function NormalPanel({ currentCode, keyLayout, avail, onSelect }: {
   const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
   const [mods, setMods] = useState(isMods ? (currentCode >> 8) & 0x1F : 0);
 
-  const baseKeys = KEYCODES.filter(k => k.group !== 'タップダンス' || FIRMWARE_FEATURES.tapDance);
+  const categories = allowedGroups
+    ? GROUP_CATEGORIES.filter(cat => cat.groups.length === 0 || cat.groups.some(g => allowedGroups.includes(g)))
+    : GROUP_CATEGORIES;
+
+  const baseKeys = KEYCODES.filter(k =>
+    (k.group !== 'タップダンス' || FIRMWARE_FEATURES.tapDance) &&
+    (!allowedGroups || allowedGroups.includes(k.group))
+  );
 
   const filtered = baseKeys.filter(k => {
     if (k.layout && k.layout !== keyLayout) return false;
@@ -208,7 +217,7 @@ function NormalPanel({ currentCode, keyLayout, avail, onSelect }: {
       </div>
       {!search && (
         <div className="modal-panel__tabs">
-          {GROUP_CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button key={cat.label} className={`tab ${activeCategory === cat.label ? 'tab--active' : ''}`} onClick={() => setActiveCategory(cat.label)}>{cat.label}</button>
           ))}
         </div>
@@ -261,10 +270,15 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
   const [baseKc, setBaseKc] = useState((isMT || isLT) ? currentCode & 0xFF : 0x00);
   const layerTapLayers = getLayerTapLayers(layerCount);
 
+  const toggleMod = (bit: number) => setMod(m => m ^ bit);
+  const modRight  = (mod & MOD_RIGHT_BIT) !== 0;
+  const modActive = (mod & 0x0F) !== 0;
+
   const preview = kind === 'mod' ? makeModTapKeycode(mod, baseKc) : makeLtKeycode(layer, baseKc);
   const tapDisp = baseKc ? getKeyDisplayLabel(baseKc, keyLayout).replace('\n', '/') : '—';
+  const modLabel = MODIFIER_BITS.filter(m => mod & m.bit).map(m => (modRight ? 'R' : '') + m.label).join('+');
   const holdLabel = kind === 'mod'
-    ? (MOD_TAP_MODS.find(m => m.value === mod)?.label ?? `Mod(${mod})`)
+    ? (modActive ? modLabel : '（修飾キー未選択）')
     : (layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
 
   return (
@@ -282,9 +296,19 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
         </div>
         {kind === 'mod' ? (
           <div className="builder-mod-buttons">
-            {MOD_TAP_MODS.map(m => (
-              <button key={m.value} className={`btn btn--layer btn--small ${mod === m.value ? 'btn--layer-active' : ''}`} onClick={() => setMod(m.value)}>{m.label}</button>
+            {MODIFIER_BITS.map(m => (
+              <button key={m.bit} className={`btn btn--layer btn--small ${mod & m.bit ? 'btn--layer-active' : ''}`} onClick={() => toggleMod(m.bit)}>
+                {(modRight ? 'R' : '') + m.label}
+              </button>
             ))}
+            <button
+              className={`btn btn--layer btn--small ${modRight ? 'btn--layer-active' : ''}`}
+              onClick={() => toggleMod(MOD_RIGHT_BIT)}
+              title="左右の修飾キーを切り替え"
+            >
+              右側
+            </button>
+            <span className="builder-mod-hint">複数選択でCtrl+Shiftなどの組み合わせにできます</span>
           </div>
         ) : (
           <div className="builder-layer-buttons">
@@ -304,7 +328,7 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
       <div className="builder-preview">
         タップ: <strong>{tapDisp}</strong>{' / '}ホールド: <strong>{holdLabel}</strong>
       </div>
-      <button className="btn btn--primary builder-panel__set" disabled={baseKc === 0} onClick={() => onSelect(preview)}>
+      <button className="btn btn--primary builder-panel__set" disabled={baseKc === 0 || (kind === 'mod' && !modActive)} onClick={() => onSelect(preview)}>
         この設定を適用
       </button>
     </div>
@@ -373,7 +397,7 @@ function detectPanelType(code: number): PanelType {
 }
 
 export function KeyConfigModal({
-  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, layerCount, onSelect, onClose,
+  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, layerCount, allowedGroups, onSelect, onClose,
 }: KeyConfigModalProps) {
   const initialPanel = defaultPanel ?? detectPanelType(currentCode);
   const [panel, setPanel] = useState<PanelType>(
@@ -412,7 +436,7 @@ export function KeyConfigModal({
         </div>
 
         <div className="modal-body">
-          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} onSelect={handleSelect} />}
+          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} allowedGroups={allowedGroups} onSelect={handleSelect} />}
           {panel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} layerCount={layerCount} onSelect={handleSelect} />}
           {panel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
         </div>

@@ -18,6 +18,7 @@ import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from 
 import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
+import { PRESETS } from './lib/presets';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'settings' | 'firmware' | 'feedback';
@@ -32,7 +33,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -55,6 +56,8 @@ export default function App() {
   const [dragLayer, setDragLayer] = useState<number | null>(null);
   const [savingReorder, setSavingReorder] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
+  const [showResetMenu, setShowResetMenu] = useState(false);
+  const [loadingPreset, setLoadingPreset] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
   const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'done'>('flash');
   const [showGuide, setShowGuide] = useState(false);
@@ -339,6 +342,25 @@ export default function App() {
     }
   };
 
+  // 接続中の機種に対応する「標準ファームウェア互換」プリセット（未対応機種ならundefined）
+  const avrPreset = state.model ? PRESETS.find(p => p.id === `${state.model}-via`) : undefined;
+
+  const handleLoadAvrPreset = async () => {
+    if (!avrPreset) return;
+    if (!confirm(`キーマップを「${avrPreset.name}」に置き換えます。現在のキー配置は上書きされます。よろしいですか？`)) return;
+    setLoadingPreset(true);
+    try {
+      await loadPreset(avrPreset);
+      setHasUnsaved(false);
+      await save();
+      showToast(`「${avrPreset.name}」を読み込みました`, 'success');
+    } catch (err) {
+      showToast(`読み込み失敗: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoadingPreset(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       await save();
@@ -389,7 +411,32 @@ export default function App() {
             <>
               <span className="status status--connected">● {state.deviceName}</span>
               <button className="btn btn--ghost" onClick={disconnect}>切断</button>
-              <button className="btn btn--ghost" onClick={handleResetKeymap}>初期化</button>
+              <div className="import-menu-wrap">
+                <button className="btn btn--ghost" onClick={() => setShowResetMenu(v => !v)} disabled={loadingPreset}>
+                  初期化 {loadingPreset ? '…' : '▾'}
+                </button>
+                {showResetMenu && (
+                  <div className="import-menu" onMouseLeave={() => setShowResetMenu(false)}>
+                    <button
+                      className="import-menu__item"
+                      onClick={() => { setShowResetMenu(false); handleResetKeymap(); }}
+                    >
+                      すべての設定を初期化する
+                      <span className="import-menu__desc">キーマップ・トラックボール（CPI/スクロール等）など全ての設定をKeyball Linkの初期状態に戻します</span>
+                    </button>
+                    <button
+                      className="import-menu__item"
+                      onClick={() => { setShowResetMenu(false); handleLoadAvrPreset(); }}
+                      disabled={!avrPreset}
+                    >
+                      キーマップをRemap版の初期設定にする
+                      <span className="import-menu__desc">
+                        {avrPreset ? 'キーマップだけを置き換えます（トラックボールなど他の設定はそのまま）' : 'このモデルには未対応です'}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 className="btn btn--ghost"
                 onClick={handleUndo}

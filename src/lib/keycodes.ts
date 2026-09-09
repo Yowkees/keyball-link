@@ -253,6 +253,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
   K(0x7E10, 'ジェスチャー', 'GST_HOLD', 'Keyball'),  // 押しながらトラックボールを振るとジェスチャー
   K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて超低速（精密作業）モードにする（RP2040版など対応FWのみ）
+  K(0x7E12, '自動マウスレイヤー解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たず自動マウスレイヤーを即座に解除
 
   // レイヤー拡張（DF / OSL / TT）
   K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),
@@ -622,6 +623,7 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
   if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
   if (code === 0x7E10) return '押しながらトラックボールを上下左右に振るとジェスチャーが発動します（設定タブで各方向の操作を変更できます）';
+  if (code === 0x7E12) return '自動マウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
 
   // ワンショット修飾
   if (code === 0x5501) return '次の1キーだけ Ctrl として動作します（ワンショット）';

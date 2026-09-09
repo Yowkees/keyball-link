@@ -42,6 +42,12 @@ if [ ! -d "$PLUS_SRC/keyboards/keyball" ]; then
   exit 1
 fi
 
+echo "== Keyballキーコード番号の衝突チェック =="
+# 2026-09-09、AVR版で追加したAML_OFFのキーコード番号が、Web UI側で既に
+# 「精密モード(RP2040版専用)」として登録済みの番号と衝突していた事故が
+# あったため、ビルド前に必ず検証する。
+node "$(dirname "${BASH_SOURCE[0]}")/check-keycodes.cjs"
+
 echo "== Keyball Link: ソースをビルド環境に同期 =="
 rsync -a --delete "$LINK_SRC/keyboards/keyball/" "$LINK_QMK/keyboards/keyball/" --exclude '.git'
 

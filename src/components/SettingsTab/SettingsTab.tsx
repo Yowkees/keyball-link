@@ -253,7 +253,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
     if (gestureModes) {
       gestureModes.forEach((m, i) => {
         if (target === 'gestureMode' && i === excludeMode) return;
-        if (m.layer !== LAYER_NONE) others.push([`ジェスチャーモード${i + 1}`, m.layer]);
+        if (m.layer !== LAYER_NONE) others.push([`ジェスチャー${i + 1}`, m.layer]);
       });
     }
     const hit = others.find(([, l]) => l === val);
@@ -491,7 +491,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
                   className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}
                   onClick={() => setGestureModeTab(m)}
                 >
-                  モード{m + 1}
+                  ジェスチャー{m + 1}
                 </button>
               ))}
             </div>

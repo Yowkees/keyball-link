@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { KbSettings, GestureConfig, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../../lib/protocol';
+import type { KbSettings, GestureConfig, GestureModeConfig, GestureThreshold, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../../lib/protocol';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -50,6 +50,10 @@ interface SettingsTabProps {
   onChange: (s: KbSettings) => Promise<void>;
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
+  gestureModes: GestureModeConfig[] | null;  // 複数ジェスチャーモード（RP2040版限定）。null = 非対応ファーム
+  onGestureModeChange: (mode: number, g: GestureModeConfig) => Promise<void>;
+  gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応ファーム
+  onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
@@ -205,7 +209,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
@@ -213,7 +217,9 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
   const [saving, setSaving] = useState(false);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
-  const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture'; msg: string } | null>(null);
+  const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)
+  const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
+  const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture' | 'gestureMode'; msg: string; mode?: number } | null>(null);
   const [ledEditLayer, setLedEditLayer] = useState(1);  // レイヤー連動LEDで現在編集中のレイヤー
   const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
 
@@ -235,7 +241,7 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
   // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
   // 超低速モードは「動きの意味」ではなく「感度」を変えるだけなので、これらとは併用可能。
   // （例：スクロールレイヤーと同じレイヤーに設定すれば、精密な低速スクロールになる）
-  const conflictName = (target: 'aml' | 'scroll' | 'gesture', val: number): string | null => {
+  const conflictName = (target: 'aml' | 'scroll' | 'gesture' | 'gestureMode', val: number, excludeMode?: number): string | null => {
     if (val === LAYER_NONE) return null;  // 「なし」は重複しない
     const others: [string, number][] = [];
     if (target !== 'aml' && settings.autoMouseEnable)
@@ -244,15 +250,22 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
       others.push(['スクロールレイヤー', settings.scrollLayer]);
     if (target !== 'gesture' && gesture && gesture.layer !== LAYER_NONE)
       others.push(['ジェスチャーレイヤー', gesture.layer]);
+    if (gestureModes) {
+      gestureModes.forEach((m, i) => {
+        if (target === 'gestureMode' && i === excludeMode) return;
+        if (m.layer !== LAYER_NONE) others.push([`ジェスチャーモード${i + 1}`, m.layer]);
+      });
+    }
     const hit = others.find(([, l]) => l === val);
     return hit ? hit[0] : null;
   };
 
   // レイヤー選択の共通ハンドラ。重複なら警告して保存しない。
-  const changeLayer = (target: 'aml' | 'scroll' | 'gesture', val: number, save: () => void) => {
-    const c = conflictName(target, val);
+  // excludeModeは対象が'gestureMode'のとき、今編集中のモード自身を重複判定から除くために使う。
+  const changeLayer = (target: 'aml' | 'scroll' | 'gesture' | 'gestureMode', val: number, save: () => void, excludeMode?: number) => {
+    const c = conflictName(target, val, excludeMode);
     if (c) {
-      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。` });
+      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。`, mode: excludeMode });
     } else {
       setLayerWarn(null);
       save();
@@ -466,7 +479,112 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
       </CollapsibleCard>
 
       <CollapsibleCard title={<>ジェスチャー <span className="settings-unit">トラックボールを振って操作</span></>}>
-        {gesture === null ? (
+        {gestureModes && gestureThreshold ? (
+          <>
+            <p className="settings-desc">
+              パレットの「Keyball」にある<strong>「ジェスチャー1〜4」キー</strong>のいずれかをキーマップに置き、<strong>押しながらトラックボールを上下左右に振る</strong>と、そのモードに割り当てた操作が実行されます。モードごとに割当キーを分けられ、方向ごとに「連続入力」をONにすると、割当キーを回転速度に応じた間隔でタップし続けます（音量調整やフォントサイズ変更などのシームレスな連続操作に便利です）。
+            </p>
+            <div className="led-effect-selector" style={{ marginTop: 8 }}>
+              {[0, 1, 2, 3].map(m => (
+                <button
+                  key={m}
+                  className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}
+                  onClick={() => setGestureModeTab(m)}
+                >
+                  モード{m + 1}
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const mode = gestureModes[gestureModeTab];
+              const dirs = [
+                ['up', '上 ↑', 'continuousUp'],
+                ['down', '下 ↓', 'continuousDown'],
+                ['left', '左 ←', 'continuousLeft'],
+                ['right', '右 →', 'continuousRight'],
+              ] as const;
+              return (
+                <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                  <div className="gesture-grid">
+                    {dirs.map(([dir, label, contKey]) => (
+                      <div key={dir} className="gesture-row">
+                        <span className="gesture-dir">{label}</span>
+                        <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditModeDir({ mode: gestureModeTab, dir })}>
+                          {getKeyDisplayLabel(mode[dir], keyLayout) || '未設定'}
+                        </button>
+                        <label className="setting-row__desc" style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                          <input
+                            type="checkbox"
+                            disabled={disabled}
+                            checked={mode[contKey]}
+                            onChange={e => onGestureModeChange(gestureModeTab, { ...mode, [contKey]: e.target.checked })}
+                          />
+                          連続入力
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="settings-desc" style={{ marginTop: 8 }}>
+                    「連続入力」をONにした方向は、ボールを回している間ずっと割当キーがタップされ続けます（速く回すほど間隔が短くなります）。OFFの方向は振るたびに1回だけ送出します。
+                  </p>
+
+                  <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                    <div className="setting-row">
+                      <div className="setting-row__text">
+                        <span className="setting-row__label">連動レイヤー</span>
+                        <span className="setting-row__desc">選んだレイヤーにいる間、キーを押さなくてもこのモードが自動的に有効になります。「なし」で無効（ジェスチャー{gestureModeTab + 1}キーでの手動切替のみ）。</span>
+                      </div>
+                      <select
+                        className="trackball-bar__select"
+                        value={mode.layer}
+                        disabled={disabled}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          changeLayer('gestureMode', v, () => onGestureModeChange(gestureModeTab, { ...mode, layer: v }), gestureModeTab);
+                        }}
+                      >
+                        <option value={LAYER_NONE}>なし</option>
+                        {switchableLayers.map(l => (
+                          <option key={l} value={l}>Layer {l}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {layerWarn?.target === 'gestureMode' && layerWarn.mode === gestureModeTab && (
+                      <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+                    )}
+                    <p className="settings-desc" style={{ marginTop: 8 }}>
+                      ※ 自動マウス／スクロール／他のジェスチャーモードと同じレイヤーは選べません。押している間だけ優先させたい場合は「ジェスチャー{gestureModeTab + 1}」キーをキーマップに置いてください（離すとこの設定に戻ります）。
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <p className="settings-desc">
+                <strong>感度</strong>（4モード共通）：トラックボールをどれくらい動かしたら反応するかです。小さいほど少しの動きで反応し（敏感）、大きいほどしっかり振らないと反応しません（鈍感）。
+              </p>
+              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
+              <SliderControl
+                value={gestureThreshold.h} min={10} max={200} step={5}
+                disabled={disabled} unit=""
+                onCommit={v => onGestureThresholdChange({ ...gestureThreshold, h: v })}
+              />
+              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
+              <SliderControl
+                value={gestureThreshold.v} min={10} max={200} step={5}
+                disabled={disabled} unit=""
+                onCommit={v => onGestureThresholdChange({ ...gestureThreshold, v: v })}
+              />
+              <div className="tapping-term-hints">
+                <span>10（敏感）</span>
+                <span>デフォルト: 50</span>
+                <span>200（鈍感）</span>
+              </div>
+            </div>
+          </>
+        ) : gesture === null ? (
           <p className="settings-desc">
             このファーム（機種・バージョン）は<strong>ジェスチャー非対応</strong>です。対応版を書き込むと設定できます。
           </p>
@@ -752,6 +870,21 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
           hideHold
           onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}
+        />
+      )}
+
+      {editModeDir && gestureModes && (
+        <KeyConfigModal
+          keyIndex={-1}
+          currentCode={gestureModes[editModeDir.mode][editModeDir.dir]}
+          keyLayout={keyLayout}
+          defaultPanel="カスタム"
+          hideHold
+          onSelect={async (kc) => {
+            await onGestureModeChange(editModeDir.mode, { ...gestureModes[editModeDir.mode], [editModeDir.dir]: kc });
+            setEditModeDir(null);
+          }}
+          onClose={() => setEditModeDir(null)}
         />
       )}
 

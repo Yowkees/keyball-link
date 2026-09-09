@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../lib/protocol';
-import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../lib/protocol';
+import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
 
@@ -20,6 +20,8 @@ export interface KeyballState {
   tdSlots: TdSlot[];
   kbSettings: KbSettings;
   gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
+  gestureModes: GestureModeConfig[] | null;  // 複数ジェスチャーモード（RP2040版限定）。null = 非対応
+  gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
@@ -54,6 +56,8 @@ export function useKeyball() {
     tdSlots: [],
     kbSettings: KB_SETTINGS_DEFAULT,
     gesture: null,
+    gestureModes: null,
+    gestureThreshold: null,
     firmwareVersion: null,
     precision: null,
     scrollInertia: null,
@@ -103,6 +107,14 @@ export function useKeyball() {
       try { macroSlots = await hid.current.getAllMacroSlots(); } catch { /* 旧FWは非対応 */ }
       let gesture: GestureConfig | null = null;
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
+      let gestureModes: GestureModeConfig[] | null = null;
+      let gestureThreshold: GestureThreshold | null = null;
+      try {
+        const modes: GestureModeConfig[] = [];
+        for (let m = 0; m < GESTURE_MODE_COUNT; m++) modes.push(await hid.current.getGestureMode(m));
+        gestureThreshold = await hid.current.getGestureThreshold();
+        gestureModes = modes;
+      } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
       let firmwareVersion: FirmwareVersion | null = null;
       try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
       let precision: PrecisionConfig | null = null;
@@ -130,6 +142,8 @@ export function useKeyball() {
         kbSettings,
         macroSlots,
         gesture,
+        gestureModes,
+        gestureThreshold,
         firmwareVersion,
         precision,
         scrollInertia,
@@ -210,6 +224,21 @@ export function useKeyball() {
   const setGesture = useCallback(async (g: GestureConfig) => {
     await hid.current.setGesture(g);
     setPartial({ gesture: g });
+  }, []);
+
+  const setGestureMode = useCallback(async (mode: number, g: GestureModeConfig) => {
+    await hid.current.setGestureMode(mode, g);
+    setState(prev => {
+      if (!prev.gestureModes) return prev;
+      const gestureModes = [...prev.gestureModes];
+      gestureModes[mode] = g;
+      return { ...prev, gestureModes };
+    });
+  }, []);
+
+  const setGestureThreshold = useCallback(async (t: GestureThreshold) => {
+    await hid.current.setGestureThreshold(t);
+    setPartial({ gestureThreshold: t });
   }, []);
 
   const setPrecisionConfig = useCallback(async (p: PrecisionConfig) => {
@@ -318,5 +347,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

@@ -251,9 +251,12 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0D, 'Scroll 縦',  'SSNP_VRT','Keyball'),
   K(0x7E0E, 'Scroll 横',  'SSNP_HOR','Keyball'),
   K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
-  K(0x7E10, 'ジェスチャー', 'GST_HOLD', 'Keyball'),  // 押しながらトラックボールを振るとジェスチャー
+  K(0x7E10, 'ジェスチャー1', 'GST_HOLD', 'Keyball'),  // 押している間ジェスチャーモード1に切り替え（RP2040版）。振るとモード1の割当キー送出
   K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて超低速（精密作業）モードにする（RP2040版など対応FWのみ）
   K(0x7E12, 'AML解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たず自動マウスレイヤーを即座に解除
+  K(0x7E13, 'ジェスチャー2', 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
+  K(0x7E14, 'ジェスチャー3', 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
+  K(0x7E15, 'ジェスチャー4', 'GST_HOLD4', 'Keyball'),  // 押している間ジェスチャーモード4に切り替え（RP2040版限定）
 
   // レイヤー拡張（DF / OSL / TT）
   K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),
@@ -622,8 +625,11 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E0D) return 'スクロール方向を縦のみに固定します';
   if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
   if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
-  if (code === 0x7E10) return '押しながらトラックボールを上下左右に振るとジェスチャーが発動します（設定タブで各方向の操作を変更できます）';
+  if (code === 0x7E10) return '押している間ジェスチャーモード1に切り替わり、トラックボールを上下左右に振るとそのモードの割当キーが発動します（設定タブで各モードの操作を変更できます）';
   if (code === 0x7E12) return '自動マウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
+  if (code === 0x7E13) return '押している間ジェスチャーモード2に切り替わります（RP2040版限定）';
+  if (code === 0x7E14) return '押している間ジェスチャーモード3に切り替わります（RP2040版限定）';
+  if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';
 
   // ワンショット修飾
   if (code === 0x5501) return '次の1キーだけ Ctrl として動作します（ワンショット）';
@@ -681,10 +687,11 @@ export interface FirmwareAvail {
   rgb:        boolean;  // RGB系キー。LED版のみ
   macro:      boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
   precision:  boolean;  // 超低速モードキー（PRC_MO）。RP2040版など対応ファームのみ
+  gestureModes: boolean;  // 複数ジェスチャーモードの手動切替キー（GST_HOLD2〜4）。RP2040版限定
   layerCount: number;   // 実際のレイヤー数（AVR版4、RP2040版8など）。MO(n)等の上限判定に使う
 }
 
-export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true, precision: true, layerCount: 4 };
+export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true, precision: true, gestureModes: true, layerCount: 4 };
 
 // MO(4) / TG(7) のような「レイヤー切替」キーの末尾の数字を取り出す（該当しなければnull）
 function parseLayerSwitchTarget(entry: { group: string; short: string }): number | null {
@@ -703,6 +710,7 @@ export function isKeycodeUnavailable(
   if (entry.group === 'マクロ'   && !avail.macro)     return true;
   if (entry.short === 'GST_HOLD' && !avail.gesture)   return true;
   if (entry.short === 'PRC_MO'   && !avail.precision) return true;
+  if ((entry.short === 'GST_HOLD2' || entry.short === 'GST_HOLD3' || entry.short === 'GST_HOLD4') && !avail.gestureModes) return true;
   const layer = parseLayerSwitchTarget(entry);
   if (layer !== null && layer >= avail.layerCount) return true;
   return false;

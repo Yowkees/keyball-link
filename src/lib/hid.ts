@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -261,6 +261,50 @@ export class KeyballHID {
       g.thresholdH & 0xFF,
       g.thresholdV & 0xFF,
     ));
+  }
+
+  // 複数ジェスチャーモード（RP2040版限定。非対応FWでは例外＝旧単一モードのgestureにフォールバック）
+  async getGestureMode(mode: number): Promise<GestureModeConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_MODE, mode));
+    if (r[0] !== CMD.GET_GESTURE_MODE) throw new Error('複数ジェスチャーモード非対応のファームです');
+    const cont = r[10] ?? 0;
+    return {
+      up:    (r[2] << 8) | r[3],
+      down:  (r[4] << 8) | r[5],
+      left:  (r[6] << 8) | r[7],
+      right: (r[8] << 8) | r[9],
+      continuousUp:    !!(cont & 1),
+      continuousDown:  !!(cont & 2),
+      continuousLeft:  !!(cont & 4),
+      continuousRight: !!(cont & 8),
+      layer: (r[11] !== undefined && r[11] <= 7) ? r[11] : LAYER_NONE,
+    };
+  }
+
+  async setGestureMode(mode: number, g: GestureModeConfig): Promise<void> {
+    const cont = (g.continuousUp ? 1 : 0) | (g.continuousDown ? 2 : 0) | (g.continuousLeft ? 4 : 0) | (g.continuousRight ? 8 : 0);
+    await this.sendCommand(makePacket(
+      CMD.SET_GESTURE_MODE, mode,
+      (g.up >> 8) & 0xFF,    g.up & 0xFF,
+      (g.down >> 8) & 0xFF,  g.down & 0xFF,
+      (g.left >> 8) & 0xFF,  g.left & 0xFF,
+      (g.right >> 8) & 0xFF, g.right & 0xFF,
+      cont,
+      g.layer & 0xFF,
+    ));
+  }
+
+  async getGestureThreshold(): Promise<GestureThreshold> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_THRESHOLD));
+    if (r[0] !== CMD.GET_GESTURE_THRESHOLD) throw new Error('複数ジェスチャーモード非対応のファームです');
+    return {
+      h: (r[1] >= GESTURE_TH_MIN && r[1] <= GESTURE_TH_MAX) ? r[1] : GESTURE_TH_DEFAULT,
+      v: (r[2] >= GESTURE_TH_MIN && r[2] <= GESTURE_TH_MAX) ? r[2] : GESTURE_TH_DEFAULT,
+    };
+  }
+
+  async setGestureThreshold(t: GestureThreshold): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_THRESHOLD, t.h & 0xFF, t.v & 0xFF));
   }
 
   // 超低速（精密作業）モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）

@@ -13,7 +13,7 @@ import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import { KeyPalette } from './components/KeyPalette/KeyPalette';
-import type { KbSettings, MacroSlot, GestureConfig } from './lib/protocol';
+import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from './lib/protocol';
 import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
 import type { KeyLayout } from './lib/keycodes';
@@ -33,7 +33,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -261,6 +261,16 @@ export default function App() {
     catch (e) { showToast(`ジェスチャー設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
+  const handleGestureModeChange = async (mode: number, g: GestureModeConfig) => {
+    try { await setGestureMode(mode, g); }
+    catch (e) { showToast(`ジェスチャーモード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleGestureThresholdChange = async (t: GestureThreshold) => {
+    try { await setGestureThreshold(t); }
+    catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
@@ -282,6 +292,8 @@ export default function App() {
       trackball: state.trackball,
       kbSettings: state.kbSettings,
       gesture: state.gesture,
+      gestureModes: state.gestureModes,
+      gestureThreshold: state.gestureThreshold,
       precision: state.precision,
       scrollInertia: state.scrollInertia,
       layerLedEnable: state.layerLedEnable,
@@ -345,6 +357,15 @@ export default function App() {
         }
         if (data.gesture) {
           try { await setGesture(data.gesture); } catch { /* 非対応FW */ }
+        }
+        if (Array.isArray(data.gestureModes)) {
+          for (let m = 0; m < data.gestureModes.length; m++) {
+            if (!data.gestureModes[m]) continue;
+            try { await setGestureMode(m, data.gestureModes[m]); } catch { /* 非対応FW */ }
+          }
+        }
+        if (data.gestureThreshold) {
+          try { await setGestureThreshold(data.gestureThreshold); } catch { /* 非対応FW */ }
         }
         if (data.precision) {
           try { await setPrecisionConfig(data.precision); } catch { /* 非対応FW */ }
@@ -423,6 +444,7 @@ export default function App() {
     rgb:        !isConnected || state.led !== null,          // RGB系キー（LED版のみ）
     macro:      !isConnected || state.gesture !== null,      // マクロキー（v1.1.0〜非LED版のみ）
     precision:  !isConnected || state.precision !== null, // 超低速モードキー（RP2040版など対応FWのみ）
+    gestureModes: !isConnected || state.gestureModes !== null, // 複数ジェスチャーモード（RP2040版限定）
     layerCount: state.info?.layers ?? 4,                     // 実際のレイヤー数（未接続時は4扱い）
   };
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
@@ -738,6 +760,10 @@ export default function App() {
                 onChange={handleKbSettingsChange}
                 gesture={state.gesture}
                 onGestureChange={handleGestureChange}
+                gestureModes={state.gestureModes}
+                onGestureModeChange={handleGestureModeChange}
+                gestureThreshold={state.gestureThreshold}
+                onGestureThresholdChange={handleGestureThresholdChange}
                 precision={state.precision}
                 onPrecisionChange={setPrecisionConfig}
                 scrollInertia={state.scrollInertia}

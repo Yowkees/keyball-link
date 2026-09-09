@@ -38,6 +38,10 @@ export const CMD = {
   SET_LAYER_LED:        0x1D,
   GET_SCROLL_INERTIA:   0x1E,
   SET_SCROLL_INERTIA:   0x1F,
+  GET_GESTURE_MODE:      0x20,
+  SET_GESTURE_MODE:      0x21,
+  GET_GESTURE_THRESHOLD: 0x22,
+  SET_GESTURE_THRESHOLD: 0x23,
 } as const;
 
 // 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
@@ -368,6 +372,29 @@ export interface GestureConfig {
 export const GESTURE_TH_DEFAULT = 50;
 export const GESTURE_TH_MIN     = 10;
 export const GESTURE_TH_MAX     = 200;
+
+// 複数ジェスチャーモード（RP2040版限定。GST_HOLD〜4キーまたはレイヤー連動で
+// 4つのモードを切り替えて使う）。旧・単一モードのGestureConfigとは互換性がなく、
+// 対応ファームでは併用せずこちらだけを使う。
+export const GESTURE_MODE_COUNT = 4;
+
+// ジェスチャーモード1件分の設定。continuous*がtrueの方向は、割当キーを
+// 回転速度に応じた間隔で連続タップする（音量調整・フォントサイズ変更など向け）。
+// falseの方向は従来のジェスチャーと同様に1回だけ送出する。
+export interface GestureModeConfig {
+  up: number; down: number; left: number; right: number;  // 割当キーコード（0=未設定）
+  continuousUp: boolean;
+  continuousDown: boolean;
+  continuousLeft: boolean;
+  continuousRight: boolean;
+  layer: number;  // 連動レイヤー（0-7 / LAYER_NONE=なし）
+}
+
+// 発動しきい値（全モード共通）
+export interface GestureThreshold {
+  h: number;  // 横方向（左右）
+  v: number;  // 縦方向（上下）
+}
 
 // 接続中のファームウェアのバージョン（GET_VERSION未対応の旧ファームは null）
 export interface FirmwareVersion {

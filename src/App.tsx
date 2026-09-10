@@ -33,7 +33,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -271,6 +271,16 @@ export default function App() {
     catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
+  const handleGestureWaveSpeedChange = async (speed: number) => {
+    try { await setGestureWaveSpeed(speed); }
+    catch (e) { showToast(`ジェスチャーウェーブ速度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleGestureWaveEnableChange = async (v: boolean) => {
+    try { await setGestureWaveEnable(v); }
+    catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
@@ -294,6 +304,8 @@ export default function App() {
       gesture: state.gesture,
       gestureModes: state.gestureModes,
       gestureThreshold: state.gestureThreshold,
+      gestureWaveSpeed: state.gestureWaveSpeed,
+      gestureWaveEnable: state.gestureWaveEnable,
       precision: state.precision,
       scrollInertia: state.scrollInertia,
       layerLedEnable: state.layerLedEnable,
@@ -366,6 +378,12 @@ export default function App() {
         }
         if (data.gestureThreshold) {
           try { await setGestureThreshold(data.gestureThreshold); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.gestureWaveSpeed === 'number') {
+          try { await setGestureWaveSpeed(data.gestureWaveSpeed); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.gestureWaveEnable === 'boolean') {
+          try { await setGestureWaveEnable(data.gestureWaveEnable); } catch { /* 非対応FW */ }
         }
         if (data.precision) {
           try { await setPrecisionConfig(data.precision); } catch { /* 非対応FW */ }
@@ -764,6 +782,10 @@ export default function App() {
                 onGestureModeChange={handleGestureModeChange}
                 gestureThreshold={state.gestureThreshold}
                 onGestureThresholdChange={handleGestureThresholdChange}
+                gestureWaveSpeed={state.gestureWaveSpeed}
+                onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
+                gestureWaveEnable={state.gestureWaveEnable}
+                onGestureWaveEnableChange={handleGestureWaveEnableChange}
                 precision={state.precision}
                 onPrecisionChange={setPrecisionConfig}
                 scrollInertia={state.scrollInertia}

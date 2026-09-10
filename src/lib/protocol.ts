@@ -42,6 +42,10 @@ export const CMD = {
   SET_GESTURE_MODE:      0x21,
   GET_GESTURE_THRESHOLD: 0x22,
   SET_GESTURE_THRESHOLD: 0x23,
+  GET_GESTURE_WAVE_SPEED: 0x24,
+  SET_GESTURE_WAVE_SPEED: 0x25,
+  GET_GESTURE_WAVE_ENABLE: 0x26,
+  SET_GESTURE_WAVE_ENABLE: 0x27,
 } as const;
 
 // 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
@@ -192,6 +196,11 @@ export interface LedConfig {
 // 色相スライダーは無効）。
 // 14・15・16・17はRGB_MATRIX版限定の追加エフェクト。本家RGBLIGHT版のファームでは
 // これらのIDに対応が無いため単純に無視される（ファーム側の境界チェックでオフ扱いになる）。
+// 18(ジェスチャーウェーブ)は選択式エフェクトではないためここには含めない。複数
+// ジェスチャーモード機能と連動する常時有効なオーバーレイで、ジェスチャーで実際に
+// キーが送出された瞬間だけファーム側(keyball_gesture_wave_task)が現在のLED表示を
+// 自動的に一時上書きする（通常LED・レイヤー連動LEDのどちらが選ばれていても発動する）。
+// 速度はgestureWaveSpeed（GET/SET_GESTURE_WAVE_SPEED）で別途設定する。
 export const LED_EFFECTS = [
   { id: 0,  label: 'オフ' },
   { id: 1,  label: 'ソリッド' },
@@ -395,6 +404,13 @@ export interface GestureThreshold {
   h: number;  // 横方向（左右）
   v: number;  // 縦方向（上下）
 }
+
+// ジェスチャー連動LEDウェーブの速さ（大きいほど速く流れて早く消える）。通常LED・
+// レイヤー連動LEDの速度設定とは独立（ウェーブは選択式のエフェクトではなく、それらの
+// 表示をジェスチャー発火時だけ自動的に一時上書きする演出のため）。
+export const GESTURE_WAVE_SPEED_DEFAULT = 200;
+export const GESTURE_WAVE_SPEED_MIN     = 1;
+export const GESTURE_WAVE_SPEED_MAX     = 255;
 
 // 接続中のファームウェアのバージョン（GET_VERSION未対応の旧ファームは null）
 export interface FirmwareVersion {

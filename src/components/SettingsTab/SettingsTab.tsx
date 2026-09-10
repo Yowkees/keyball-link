@@ -54,6 +54,10 @@ interface SettingsTabProps {
   onGestureModeChange: (mode: number, g: GestureModeConfig) => Promise<void>;
   gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応ファーム
   onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
+  gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応ファーム
+  onGestureWaveSpeedChange: (speed: number) => Promise<void>;
+  gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応ファーム
+  onGestureWaveEnableChange: (v: boolean) => Promise<void>;
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
@@ -209,7 +213,7 @@ function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout
   );
 }
 
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
+export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange, gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
   // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
@@ -583,6 +587,29 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
                 <span>200（鈍感）</span>
               </div>
             </div>
+
+            {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
+              <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                <ToggleRow
+                  label="ジェスチャーウェーブ"
+                  desc="ジェスチャーでキーが送出された瞬間、LEDが流れるように光ります（通常LED・レイヤー連動LEDのどちらを設定していても、その表示を一時的に上書きして発動します）。連続入力中は前のウェーブが終わってから次が発動します。"
+                  checked={gestureWaveEnable}
+                  disabled={disabled}
+                  onChange={onGestureWaveEnableChange}
+                />
+                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
+                <SliderControl
+                  value={gestureWaveSpeed} min={1} max={255} step={1}
+                  disabled={disabled || !gestureWaveEnable} unit=""
+                  onCommit={v => onGestureWaveSpeedChange(v)}
+                />
+                <div className="tapping-term-hints">
+                  <span>1（ゆっくり）</span>
+                  <span>デフォルト: 200</span>
+                  <span>255（速い）</span>
+                </div>
+              </div>
+            )}
           </>
         ) : gesture === null ? (
           <p className="settings-desc">

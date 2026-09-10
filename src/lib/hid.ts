@@ -1,6 +1,6 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, GESTURE_WAVE_SPEED_DEFAULT, GESTURE_WAVE_SPEED_MIN, GESTURE_WAVE_SPEED_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from './protocol';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
 
 export class KeyballHID {
@@ -305,6 +305,27 @@ export class KeyballHID {
 
   async setGestureThreshold(t: GestureThreshold): Promise<void> {
     await this.sendCommand(makePacket(CMD.SET_GESTURE_THRESHOLD, t.h & 0xFF, t.v & 0xFF));
+  }
+
+  // ジェスチャー連動LEDウェーブの速さ（複数ジェスチャーモードと同じくRP2040版限定）
+  async getGestureWaveSpeed(): Promise<number> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_SPEED));
+    if (r[0] !== CMD.GET_GESTURE_WAVE_SPEED) throw new Error('ジェスチャーウェーブ非対応のファームです');
+    return (r[1] >= GESTURE_WAVE_SPEED_MIN && r[1] <= GESTURE_WAVE_SPEED_MAX) ? r[1] : GESTURE_WAVE_SPEED_DEFAULT;
+  }
+
+  async setGestureWaveSpeed(speed: number): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_SPEED, speed & 0xFF));
+  }
+
+  async getGestureWaveEnable(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_ENABLE));
+    if (r[0] !== CMD.GET_GESTURE_WAVE_ENABLE) throw new Error('ジェスチャーウェーブ非対応のファームです');
+    return r[1] !== 0;
+  }
+
+  async setGestureWaveEnable(v: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_ENABLE, v ? 1 : 0));
   }
 
   // 超低速（精密作業）モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）

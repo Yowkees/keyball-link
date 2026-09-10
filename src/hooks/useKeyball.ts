@@ -22,6 +22,8 @@ export interface KeyballState {
   gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
   gestureModes: GestureModeConfig[] | null;  // 複数ジェスチャーモード（RP2040版限定）。null = 非対応
   gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応
+  gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応
+  gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
   precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
@@ -58,6 +60,8 @@ export function useKeyball() {
     gesture: null,
     gestureModes: null,
     gestureThreshold: null,
+    gestureWaveSpeed: null,
+    gestureWaveEnable: null,
     firmwareVersion: null,
     precision: null,
     scrollInertia: null,
@@ -109,10 +113,14 @@ export function useKeyball() {
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
+      let gestureWaveSpeed: number | null = null;
+      let gestureWaveEnable: boolean | null = null;
       try {
         const modes: GestureModeConfig[] = [];
         for (let m = 0; m < GESTURE_MODE_COUNT; m++) modes.push(await hid.current.getGestureMode(m));
         gestureThreshold = await hid.current.getGestureThreshold();
+        gestureWaveSpeed = await hid.current.getGestureWaveSpeed();
+        gestureWaveEnable = await hid.current.getGestureWaveEnable();
         gestureModes = modes;
       } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
       let firmwareVersion: FirmwareVersion | null = null;
@@ -144,6 +152,8 @@ export function useKeyball() {
         gesture,
         gestureModes,
         gestureThreshold,
+        gestureWaveSpeed,
+        gestureWaveEnable,
         firmwareVersion,
         precision,
         scrollInertia,
@@ -239,6 +249,16 @@ export function useKeyball() {
   const setGestureThreshold = useCallback(async (t: GestureThreshold) => {
     await hid.current.setGestureThreshold(t);
     setPartial({ gestureThreshold: t });
+  }, []);
+
+  const setGestureWaveSpeed = useCallback(async (speed: number) => {
+    await hid.current.setGestureWaveSpeed(speed);
+    setPartial({ gestureWaveSpeed: speed });
+  }, []);
+
+  const setGestureWaveEnable = useCallback(async (v: boolean) => {
+    await hid.current.setGestureWaveEnable(v);
+    setPartial({ gestureWaveEnable: v });
   }, []);
 
   const setPrecisionConfig = useCallback(async (p: PrecisionConfig) => {
@@ -347,5 +367,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

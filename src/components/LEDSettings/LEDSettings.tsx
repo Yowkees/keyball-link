@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { LedConfig } from '../../lib/protocol';
 import { LED_EFFECTS, LED_FIXED_HUE_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
 
 interface LEDSettingsProps {
   config: LedConfig;
   onChange: (cfg: LedConfig) => void;
-  onSave?: () => void;
+  headerLeft?: ReactNode;   // エフェクト選択の左隣に表示する要素（レイヤー選択タブなど）
+  extraRow?: ReactNode;     // エフェクト選択の下・色相バーの上に追加する行
 }
 
 // スライダー操作のたびにonChange（EEPROM書き込みを伴うHIDコマンド）を即送信すると、
@@ -14,7 +16,36 @@ interface LEDSettingsProps {
 // 更新しつつ、実際の送信は操作が止まってから150msデバウンスする。
 const COMMIT_DELAY_MS = 150;
 
-export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
+// エフェクトの種類に関わらず常に全色相(360°)を表示する色相環バー。
+// 現在の彩度・明度を反映しつつ、色相スライダーの位置を視覚的に把握するためのもの。
+function buildGradient(cfg: LedConfig): string {
+  const sat = Math.round((cfg.sat / 255) * 100);
+  const light = Math.max(6, Math.min(62, Math.round((cfg.val / 200) * 62)));
+  const stops: string[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const hDeg = Math.round((360 * i) / 12);
+    stops.push(`hsl(${hDeg} ${sat}% ${light}%) ${(i * 100 / 12).toFixed(1)}%`);
+  }
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
+function LedSlider({ label, value, max, onChange }: {
+  label: string; value: number; max: number; onChange: (v: number) => void;
+}) {
+  return (
+    <div className="led-panel__slider">
+      <span className="led-panel__slider-label">{label}</span>
+      <input
+        type="range" min={0} max={max} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="slider"
+      />
+      <span className="led-panel__slider-value">{value}</span>
+    </div>
+  );
+}
+
+export function LEDSettings({ config, onChange, headerLeft, extraRow }: LEDSettingsProps) {
   const [local, setLocal] = useState(config);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,13 +86,11 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
   const showSpeed = local.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(local.effectId);
 
   return (
-    <div className="trackball-bar">
-      <span className="trackball-bar__title">LED</span>
-
-      <div className="trackball-bar__item">
-        <span className="trackball-bar__label">エフェクト</span>
+    <div className="led-panel">
+      <div className="led-panel__toprow">
+        {headerLeft}
         <select
-          className="trackball-bar__select"
+          className="trackball-bar__select led-panel__effect-select"
           value={local.effectId}
           onChange={e => {
             const effectId = Number(e.target.value);
@@ -77,56 +106,33 @@ export function LEDSettings({ config, onChange, onSave }: LEDSettingsProps) {
         </select>
       </div>
 
-      {showColor && (
-        <>
-          {showHue && (
-            <div className="trackball-bar__item">
-              <span className="trackball-bar__label">色相: <strong>{local.hue}</strong></span>
-              <input
-                type="range" min={0} max={255} value={local.hue}
-                onChange={e => commitDebounced({ ...local, hue: Number(e.target.value) })}
-                className="slider slider--hue"
-                style={{ background: `linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))` }}
-              />
-            </div>
-          )}
-          {isFixedHue && (
-            <p className="settings-desc">このエフェクトは色相固定（テーマカラー）です。彩度・明度は調整できます。</p>
-          )}
+      {extraRow}
 
-          <div className="trackball-bar__item">
-            <span className="trackball-bar__label">彩度: <strong>{local.sat}</strong></span>
-            <input
-              type="range" min={0} max={255} value={local.sat}
-              onChange={e => commitDebounced({ ...local, sat: Number(e.target.value) })}
-              className="slider"
-            />
-          </div>
+      <div className="led-panel__bar">
+        <div className="led-panel__bar-fill" style={{ background: buildGradient(local) }} />
+        {showHue && (
+          <div className="led-panel__marker" style={{ left: `${(local.hue / 255 * 100).toFixed(1)}%` }} />
+        )}
+      </div>
 
-          <div className="trackball-bar__item">
-            <span className="trackball-bar__label">明度: <strong>{local.val}</strong></span>
-            <input
-              type="range" min={0} max={200} value={local.val}
-              onChange={e => commitDebounced({ ...local, val: Number(e.target.value) })}
-              className="slider"
-            />
-          </div>
-        </>
+      {isFixedHue && (
+        <p className="settings-desc">このエフェクトは色相固定（テーマカラー）です。彩度・明度は調整できます。</p>
       )}
 
-      {showSpeed && (
-        <div className="trackball-bar__item">
-          <span className="trackball-bar__label">速度: <strong>{local.speed}</strong></span>
-          <input
-            type="range" min={0} max={255} value={local.speed}
-            onChange={e => commitDebounced({ ...local, speed: Number(e.target.value) })}
-            className="slider"
-          />
-          <span className="trackball-bar__scale">遅〜速</span>
-        </div>
-      )}
-
-      {onSave && <button className="btn btn--ghost btn--small" onClick={onSave}>保存</button>}
+      <div className="led-panel__sliders">
+        {showHue && (
+          <LedSlider label="色相" value={local.hue} max={255} onChange={v => commitDebounced({ ...local, hue: v })} />
+        )}
+        {showColor && (
+          <LedSlider label="彩度" value={local.sat} max={255} onChange={v => commitDebounced({ ...local, sat: v })} />
+        )}
+        {showColor && (
+          <LedSlider label="明度" value={local.val} max={200} onChange={v => commitDebounced({ ...local, val: v })} />
+        )}
+        {showSpeed && (
+          <LedSlider label="速度" value={local.speed} max={255} onChange={v => commitDebounced({ ...local, speed: v })} />
+        )}
+      </div>
     </div>
   );
 }

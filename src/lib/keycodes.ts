@@ -207,6 +207,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00AD, 'Stop',   'MSTP',  'メディア'),
   K(0x00AE, 'Play',   'MPLY',  'メディア'),
   K(0x00AF, 'Select', 'MSEL',  'メディア'),
+  K(0x00BD, '画面 明るさ+', 'BRIU', 'メディア'),  // PC画面の明るさ調整（OS/ディスプレイがUSB HIDの明るさキーに対応している場合のみ有効。外部モニタ等では反応しないことがある）
+  K(0x00BE, '画面 明るさ-', 'BRID', 'メディア'),  // 同上
 
   // マウス移動・ホイール（既存 MB1〜MB5 に追加）
   K(0x00CD, 'M↑',    'MS_U',  'マウス'),
@@ -222,6 +224,15 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00DF, 'ACL2',  'ACL2',  'マウス'),
 
   // RGB / LED（QK_UNDERGLOW = 0x7820。旧番台0x5B00は現行ファームでは無効なため修正済み）
+  // 2026-09-11、「RGB Plain/Breathe/Rainbow/Swirl/Snake/Knight/Xmas/Gradient/Test/Twinkle」
+  // （旧RGB_MODE_*直接指定キー、0x782B-0x7834）を削除した。現行QMKにはこれらの
+  // キーコードを実際に処理するコード自体が存在せず（enumの値だけが後方互換で
+  // 残っているだけで、process_underglow.c等どこにも case が無い）、キーマップに
+  // 置いても何も起きない死んだキーだった（本人のOSM不具合報告を受けた全キー
+  // コード監査で発覚）。この機種のLEDエフェクト切替は既に「LED設定」タブで
+  // effect_id単位で行っており、こちらの直接指定キーは元々不要だったため削除で
+  // 対応した。下のUG_TOGG〜Speed-は現行QMKでもRGB_MATRIX共有キーコードとして
+  // 正しく機能する（rgb_matrix_toggle等に転送される）ため、そのまま残している。
   K(0x7820, 'UG Toggle',    'UG_TOGG', 'RGB'),
   K(0x7821, 'RGB Mod+',     'UG_NEXT', 'RGB'),
   K(0x7822, 'RGB Mod-',     'UG_PREV', 'RGB'),
@@ -233,16 +244,6 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7828, 'Val-',         'UG_VALD', 'RGB'),
   K(0x7829, 'Speed+',       'UG_SPDU', 'RGB'),
   K(0x782A, 'Speed-',       'UG_SPDD', 'RGB'),
-  K(0x782B, 'RGB Plain',    'RGB_M_P', 'RGB'),
-  K(0x782C, 'RGB Breathe',  'RGB_M_B', 'RGB'),
-  K(0x782D, 'RGB Rainbow',  'RGB_M_R', 'RGB'),
-  K(0x782E, 'RGB Swirl',    'RGB_M_SW','RGB'),
-  K(0x782F, 'RGB Snake',    'RGB_M_SN','RGB'),
-  K(0x7830, 'RGB Knight',   'RGB_M_K', 'RGB'),
-  K(0x7831, 'RGB Xmas',     'RGB_M_X', 'RGB'),
-  K(0x7832, 'RGB Gradient', 'RGB_M_G', 'RGB'),
-  K(0x7833, 'RGB Test',     'RGB_M_T', 'RGB'),
-  K(0x7834, 'RGB Twinkle',  'RGB_M_TW','RGB'),
 
   // Keyball 拡張（自動マウスレイヤー・スクロールスナップ）
   K(0x7E0A, 'AML ON/OFF', 'AML_TO',  'Keyball'),
@@ -252,7 +253,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0E, 'Scroll 横',  'SSNP_HOR','Keyball'),
   K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
   K(0x7E10, 'ジェスチャー1', 'GST_HOLD', 'Keyball'),  // 押している間ジェスチャーモード1に切り替え（RP2040版）。振るとモード1の割当キー送出
-  K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて超低速（精密作業）モードにする（RP2040版など対応FWのみ）
+  K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて精密モードにする（RP2040版など対応FWのみ）
   K(0x7E12, 'AML解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たず自動マウスレイヤーを即座に解除
   K(0x7E13, 'ジェスチャー2', 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
   K(0x7E14, 'ジェスチャー3', 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
@@ -282,11 +283,14 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x52C6, 'TT(6)', 'TT6', 'レイヤー'),
   K(0x52C7, 'TT(7)', 'TT7', 'レイヤー'),
 
-  // ワンショット修飾（OSM: QK_ONE_SHOT_MOD = 0x5500）
-  K(0x5501, 'OSM(Ctrl)',  'OSM_C', 'ワンショット'),
-  K(0x5502, 'OSM(Shift)', 'OSM_S', 'ワンショット'),
-  K(0x5504, 'OSM(Alt)',   'OSM_A', 'ワンショット'),
-  K(0x5508, 'OSM(GUI)',   'OSM_G', 'ワンショット'),
+  // ワンショット修飾（OSM: QK_ONE_SHOT_MOD = 0x52A0）
+  // 2026-09-11、値が誤っていたバグを修正。旧0x5500番台は現行QMKでは何の
+  // キーコードにも割り当てられていない空き番地で、OSM(Shift)等を設定しても
+  // ワンショットとして認識されず無反応になっていた（本人の実機テストで発覚）。
+  K(0x52A1, 'OSM(Ctrl)',  'OSM_C', 'ワンショット'),
+  K(0x52A2, 'OSM(Shift)', 'OSM_S', 'ワンショット'),
+  K(0x52A4, 'OSM(Alt)',   'OSM_A', 'ワンショット'),
+  K(0x52A8, 'OSM(GUI)',   'OSM_G', 'ワンショット'),
 
   // マクロ（QK_MACRO = 0x7700）
   K(0x7700, 'Macro 0', 'M0', 'マクロ'),
@@ -568,6 +572,8 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x00AD) return '再生を停止します（Stop）';
   if (code === 0x00AE) return '再生・一時停止を切り替えます（Play/Pause）';
   if (code === 0x00AF) return 'メディア選択ダイアログを開きます（Select）';
+  if (code === 0x00BD) return 'PC画面の明るさを上げます。OSやディスプレイがUSB HIDの明るさキーに対応している場合のみ有効です（ノートPC内蔵ディスプレイでは動作しやすいですが、外部モニタでは反応しないことがあります）';
+  if (code === 0x00BE) return 'PC画面の明るさを下げます（対応状況は明るさ+と同様）';
 
   // システム
   if (code === 0x0046) return 'スクリーンショット（画面キャプチャ）を撮ります（Print Screen）';
@@ -597,16 +603,6 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7828) return 'LEDの明るさを下げます';
   if (code === 0x7829) return 'LEDアニメーションの速度を上げます';
   if (code === 0x782A) return 'LEDアニメーションの速度を下げます';
-  if (code === 0x782B) return 'LED: 常時点灯（Plain）モードにします';
-  if (code === 0x782C) return 'LED: 呼吸するように点滅します（Breathe）';
-  if (code === 0x782D) return 'LED: 虹色に流れるように光ります（Rainbow）';
-  if (code === 0x782E) return 'LED: 渦巻き状に光ります（Swirl）';
-  if (code === 0x782F) return 'LED: ヘビが動くように光ります（Snake）';
-  if (code === 0x7830) return 'LED: 騎士のように往復して光ります（Knight）';
-  if (code === 0x7831) return 'LED: クリスマス風に光ります（Xmas）';
-  if (code === 0x7832) return 'LED: グラデーションで光ります（Gradient）';
-  if (code === 0x7833) return 'LED: 診断用のテストパターンを表示します（Test）';
-  if (code === 0x7834) return 'LED: きらめくように光ります（Twinkle）';
 
   // Keyball 独自
   if (code === 0x7E00) return 'Keyballの全設定をリセットします（要再起動）';
@@ -632,10 +628,10 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';
 
   // ワンショット修飾
-  if (code === 0x5501) return '次の1キーだけ Ctrl として動作します（ワンショット）';
-  if (code === 0x5502) return '次の1キーだけ Shift として動作します（ワンショット）';
-  if (code === 0x5504) return '次の1キーだけ Alt として動作します（ワンショット）';
-  if (code === 0x5508) return '次の1キーだけ ⌘ Command として動作します（ワンショット）';
+  if (code === 0x52A1) return '次の1キーだけ Ctrl として動作します（ワンショット）';
+  if (code === 0x52A2) return '次の1キーだけ Shift として動作します（ワンショット）';
+  if (code === 0x52A4) return '次の1キーだけ Alt として動作します（ワンショット）';
+  if (code === 0x52A8) return '次の1キーだけ ⌘ Command として動作します（ワンショット）';
 
   // ブートローダー
   if (code === 0x7C00) return 'ファームウェア書き込みモード（ブートローダー）に移行します。長押し推奨。';
@@ -686,7 +682,7 @@ export interface FirmwareAvail {
   gesture:    boolean;  // ジェスチャーキー（GST_HOLD）。非LED版のみ
   rgb:        boolean;  // RGB系キー。LED版のみ
   macro:      boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
-  precision:  boolean;  // 超低速モードキー（PRC_MO）。RP2040版など対応ファームのみ
+  precision:  boolean;  // 精密モードキー（PRC_MO）。RP2040版など対応ファームのみ
   gestureModes: boolean;  // 複数ジェスチャーモードの手動切替キー（GST_HOLD2〜4）。RP2040版限定
   layerCount: number;   // 実際のレイヤー数（AVR版4、RP2040版8など）。MO(n)等の上限判定に使う
 }

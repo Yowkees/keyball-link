@@ -61,8 +61,8 @@ const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
   },
   trackball: {
     title: 'トラックボール設定',
-    desc: 'ここでカーソル速度（CPI）・スクロール・自動マウスレイヤーなどを調整できます。以上で基本の使い方は終わりです！',
-    targets: ['[data-guide="trackball-card"]'],
+    desc: 'この「トラックボール設定」タブでカーソル速度（CPI）・スクロール・自動マウスレイヤーなどを調整できます。以上で基本の使い方は終わりです！',
+    targets: ['[data-guide="trackball-tab"]'],
     manual: true,
   },
   backToKeymap: {

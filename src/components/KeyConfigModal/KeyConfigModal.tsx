@@ -126,11 +126,12 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
 }
 
 // ── 通常キーパネル（修飾キー付加対応） ────────────────────
-function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, onSelect }: {
+function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, compact, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
   allowedGroups?: string[];
+  compact?: boolean;  // true: カテゴリはドロップダウン+検索を横並び、キーは5列固定（右側常時パネル用）
   onSelect: (c: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState('すべて');
@@ -183,23 +184,24 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, onSelect }:
     <>
       {/* 修飾キー付加バー */}
       <div className="mod-bar">
-        <span className="mod-bar__label">修飾キーを付加:</span>
-        {MODIFIER_BITS.map(m => (
+        <div className="mod-bar__row">
+          {MODIFIER_BITS.map(m => (
+            <button
+              key={m.bit}
+              className={`btn btn--small btn--layer ${mods & m.bit ? 'btn--layer-active' : ''}`}
+              onClick={() => toggleMod(m.bit)}
+            >
+              {(right ? 'R' : '') + m.label}
+            </button>
+          ))}
           <button
-            key={m.bit}
-            className={`btn btn--small btn--layer ${mods & m.bit ? 'btn--layer-active' : ''}`}
-            onClick={() => toggleMod(m.bit)}
+            className={`btn btn--small btn--layer ${right ? 'btn--layer-active' : ''}`}
+            onClick={() => toggleMod(MOD_RIGHT_BIT)}
+            title="左右の修飾キーを切り替え"
           >
-            {(right ? 'R' : '') + m.label}
+            右側
           </button>
-        ))}
-        <button
-          className={`btn btn--small btn--layer ${right ? 'btn--layer-active' : ''}`}
-          onClick={() => toggleMod(MOD_RIGHT_BIT)}
-          title="左右の修飾キーを切り替え"
-        >
-          右側
-        </button>
+        </div>
         {modsActive && (
           <span className="mod-bar__hint">
             選択中: <strong>{modLabel}</strong> ＋ クリックしたキー
@@ -207,25 +209,48 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, onSelect }:
         )}
       </div>
 
-      <div className="modal-search">
-        <input
-          className="modal-search__input" type="text" placeholder="キーを検索…"
-          value={search} onChange={e => { setSearch(e.target.value); setActiveCategory('すべて'); }}
-          autoFocus
-        />
-        {search && <button className="modal-search__clear" onClick={() => setSearch('')}>✕</button>}
-      </div>
-      {!search && (
-        <div className="modal-panel__tabs">
-          {categories.map(cat => (
-            <button key={cat.label} className={`tab ${activeCategory === cat.label ? 'tab--active' : ''}`} onClick={() => setActiveCategory(cat.label)}>{cat.label}</button>
-          ))}
+      {compact ? (
+        <div className="key-picker-toolbar">
+          <select
+            className="key-picker-toolbar__select"
+            value={activeCategory}
+            onChange={e => setActiveCategory(e.target.value)}
+          >
+            {categories.map(cat => (
+              <option key={cat.label} value={cat.label}>{cat.label}</option>
+            ))}
+          </select>
+          <div className="key-picker-toolbar__search">
+            <span className="key-picker-toolbar__chevron">›</span>
+            <input
+              type="text" placeholder="キーを検索…"
+              value={search} onChange={e => setSearch(e.target.value)}
+            />
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="modal-search">
+            <input
+              className="modal-search__input" type="text" placeholder="キーを検索…"
+              value={search} onChange={e => { setSearch(e.target.value); setActiveCategory('すべて'); }}
+              autoFocus
+            />
+            {search && <button className="modal-search__clear" onClick={() => setSearch('')}>✕</button>}
+          </div>
+          {!search && (
+            <div className="modal-panel__tabs">
+              {categories.map(cat => (
+                <button key={cat.label} className={`tab ${activeCategory === cat.label ? 'tab--active' : ''}`} onClick={() => setActiveCategory(cat.label)}>{cat.label}</button>
+              ))}
+            </div>
+          )}
+        </>
       )}
       <div className="key-desc-bar" style={{ marginBottom: 8 }}>
         {hoverDesc ?? 'キーにマウスを乗せると説明が表示されます'}
       </div>
-      <div className="modal-panel__grid">
+      <div className={`modal-panel__grid ${compact ? 'modal-panel__grid--compact' : ''}`}>
         {filtered.map((e: KeycodeEntry) => {
           const fwUnavail = isKeycodeUnavailable(e, avail);
           const dimmed = (modsActive && !isBasicKey(e.code)) || fwUnavail;
@@ -281,6 +306,14 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
     ? (modActive ? modLabel : '（修飾キー未選択）')
     : (layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
 
+  // ホールド時の動作・タップ時のキーの両方が有効な組み合わせになったら即座に反映する
+  // （「通常」タブが1クリックで即反映されるのと同じ操作感に揃える。適用ボタンは持たない）。
+  useEffect(() => {
+    const valid = baseKc !== 0 && (kind !== 'mod' || modActive);
+    if (valid) onSelect(preview);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, mod, layer, baseKc]);
+
   return (
     <div className="builder-panel">
       <p className="builder-panel__desc">
@@ -327,10 +360,8 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
 
       <div className="builder-preview">
         タップ: <strong>{tapDisp}</strong>{' / '}ホールド: <strong>{holdLabel}</strong>
+        {baseKc === 0 && <span className="builder-preview__hint">（タップ時のキーを選択すると反映されます）</span>}
       </div>
-      <button className="btn btn--primary builder-panel__set" disabled={baseKc === 0 || (kind === 'mod' && !modActive)} onClick={() => onSelect(preview)}>
-        この設定を適用
-      </button>
     </div>
   );
 }
@@ -394,6 +425,64 @@ function CustomPanel({ currentCode, keyLayout, onSelect }: {
 function detectPanelType(code: number): PanelType {
   if (code >= 0x2000 && code <= 0x4FFF) return 'ホールド';  // MT / LT
   return '通常';
+}
+
+interface KeyConfigPanelProps {
+  currentCode: number;
+  keyLayout: KeyLayout;
+  avail?: FirmwareAvail;
+  layerCount?: number;
+  selLabel?: string;   // 選択中キーの位置ラベル（例: "R1 C3"）
+  selected?: boolean;  // false＝キー未選択（ドラッグでの配置のみ。ホールド/カスタムタブは無効）
+  onSelect: (keycode: number) => void;
+}
+
+// キーマップタブ右側に常時表示するキー設定パネル（モーダル版と中身は共通）。
+// 選択中のキーが変わるたびに呼び出し側で key={} を変えて再マウントし、
+// パネル種別やカテゴリ選択などの内部状態を選択キーごとにリセットする想定。
+// キー未選択時は「通常」タブ（＝キー一覧）のみを表示し、そこからキーボードへの
+// ドラッグ&ドロップで配置できるようにする。
+export function KeyConfigPanel({
+  currentCode, keyLayout, avail = FW_ALL_AVAILABLE, layerCount, selLabel, selected = true, onSelect,
+}: KeyConfigPanelProps) {
+  const [panel, setPanel] = useState<PanelType>(selected ? detectPanelType(currentCode) : '通常');
+  const effectivePanel: PanelType = selected ? panel : '通常';
+  const entry = findKeycode(currentCode);
+  const dispLabel = getKeyDisplayLabel(currentCode, keyLayout);
+
+  return (
+    <div className="key-config-panel" data-guide="key-picker">
+      <div className="key-config-panel__header">
+        <span className="key-config-panel__title">キー設定</span>
+        <span className="key-config-panel__current">現在: <strong>{selected ? dispLabel.replace('\n', ' / ') : '—'}</strong></span>
+        {selected && <span className="key-config-panel__code">{entry.short}</span>}
+        {selected && selLabel && <span className="key-config-panel__pos">{selLabel}</span>}
+      </div>
+
+      <div className="modal-type-tabs">
+        {(['通常', 'ホールド', 'カスタム'] as PanelType[]).map(t => {
+          const disabled = !selected && t !== '通常';
+          return (
+            <button
+              key={t}
+              className={`tab ${effectivePanel === t ? 'tab--active' : ''}`}
+              data-guide={t === 'ホールド' ? 'hold-tab' : undefined}
+              disabled={disabled}
+              onClick={() => setPanel(t)}
+            >
+              {t}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="modal-body key-config-panel__body">
+        {effectivePanel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} compact onSelect={onSelect} />}
+        {effectivePanel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} layerCount={layerCount} onSelect={onSelect} />}
+        {effectivePanel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={onSelect} />}
+      </div>
+    </div>
+  );
 }
 
 export function KeyConfigModal({

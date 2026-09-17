@@ -82,6 +82,17 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 - [x] **keyball-rp2040-firmware新機能に対応するWeb UI**: 汎用連続値調整機能（複数ジェスチャーモードの連続入力ON/OFF）・スクロール慣性の強さ調整・LED「波紋」演出（RIPPLE）は`SettingsTab`に実装済み。ジェスチャー連動LEDウェーブの速さ・ON/OFFトグルも実装済み（2026-09-10、`rp2040-dev`ブランチ）。詳細は`~/keyball-rp2040-firmware/HANDOFF.md`参照。
 - [ ] **keyball-rp2040-firmware側の残る未着手アイデアに対応するWeb UI**: 矢印キーモード・軸スナップモード・方向別感度調整（8方向）・パイメニュー・OLEDリッチ化は、ファームウェア側がまだアイデア段階で未着手のため、Web UI対応も未着手（ファームウェア側の実装が先行する見込み）。
 
+### 2026-09-11: OS自動判別・DPIカーブ・キーコード監査（`rp2040-dev`ブランチのみ、ビルド確認のみ・実機未確認・未コミット）
+- [ ] **OS自動判別UI**: 接続中OSの判別結果表示＋macOS/iOS接続時にCmd/Ctrl自動入れ替えのON/OFFトグルを追加（`SettingsTab`）。ファーム側実装は`~/keyball-rp2040-firmware/HANDOFF.md`参照。
+- [ ] **DPIカーブ編集UI**: `src/components/DpiCurveEditor/DpiCurveEditor.tsx`（新規）。Photoshopのトーンカーブ風に、SVG上の点をドラッグしてトラックボールの速度カーブを編集できる。ファーム側の実際の補間（モノトニック3次エルミートスプライン）と見た目を合わせるため、`computeDpiCurveLut()`（`protocol.ts`）でJS側にも同じLUT計算ロジックを移植済み。
+- [x] **「この版（LED版）では使用できません」の誤表示を解除**: Tapping Term・Permissive Hold・Auto ShiftはRP2040版では制約がないのに、AVR版LED版向けの古い制限表示が残っていた。`SettingsTab.tsx`の`tappingUnavail`判定ごと削除。
+- [x] **キーコード全数監査で発覚した不具合の修正**（`src/lib/keycodes.ts`）:
+  - **ワンショットモディファイア(OSM)が反応しない不具合**: OSM(Ctrl/Shift/Alt/GUI)のキーコード値が誤り（`0x5501/02/04/08`→正しくは`0x52A1/02/04/08`）だった。**注意**: 既にこの誤った値でWeb UI経由保存済みのキーは、ファーム/Web更新だけでは直らない。ユーザーがそのキーを選び直して保存する必要がある。
+  - **死んだキーコード`RGB_MODE_PLAIN`等(`0x782B`-`0x7834`)をパレットから削除**: 現行QMKに処理コードが存在しない値だった。`presets.ts`の「Keyball39 デフォルト」プリセットがこれを直接使っていたため、UG_PREV/UG_NEXTによる循環に置き換え済み（本人選択。輝度調整キーへの変更は試したが本人希望により見送り・元に戻し済み）。`via*`系プリセット（本家キーマップの機械的変換、意図的に無変更の方針）はそのまま。
+- [x] **PC画面の明るさキーを追加**: 標準USB HIDキー`KC_BRIGHTNESS_UP`/`DOWN`(`0x00BD`/`0x00BE`)を「メディア」パレットに追加（ファーム側は`EXTRAKEY_ENABLE`が元々ONのため無変更）。OS・ディスプレイが対応している場合のみ有効。
+- （一時実装→完全削除）OLED画面の明るさ調整UI: 「Val」の誤解から一時実装したが、本人が求めていたのはPC画面側だったため関連コード一式を削除済み。
+- **重要**: 上記は全て`rp2040-dev`ブランチのみの変更。`npm run build`は通り、**`wrangler pages deploy dist --project-name=keyball-link --branch=rp2040-dev`で https://rp2040-dev.keyball-link.pages.dev には反映済み**（動作確認用途のデプロイ。originへのgit pushは行っていない）。一方で**ソースコードのgitコミットはまだ**（作業ツリーに変更が残ったまま）。次回セッションでまず`git status`（`rp2040-dev`ブランチにいることを確認）し、実機テスト後にコミットの要否を本人に確認すること。
+
 ---
 
 ## 5. 主要ファイル

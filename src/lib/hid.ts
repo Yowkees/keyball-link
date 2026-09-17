@@ -1,7 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
-import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, GESTURE_WAVE_SPEED_DEFAULT, GESTURE_WAVE_SPEED_MIN, GESTURE_WAVE_SPEED_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from './protocol';
-import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from './protocol';
+import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_COMBO, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, KB_FLAG_OS_AUTO_SWAP, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, GESTURE_WAVE_SPEED_DEFAULT, GESTURE_WAVE_SPEED_MIN, GESTURE_WAVE_SPEED_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT, SHAKE_THRESHOLD_DEFAULT, SHAKE_THRESHOLD_MIN, SHAKE_THRESHOLD_MAX, SHAKE_REVERSALS_DEFAULT, SHAKE_REVERSALS_MIN, SHAKE_REVERSALS_MAX, SHAKE_RUN_MAX_MS_DEFAULT, SHAKE_RUN_MAX_MS_MIN, SHAKE_RUN_MAX_MS_MAX, DFLICK_WINDOW_MS_DEFAULT, DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_FLICK_THRESHOLD_DEFAULT, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_MAX_DURATION_MS_DEFAULT, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, COMBO_SLOT_COUNT, COMBO_MAX_KEYS, DPI_CURVE_X } from './protocol';
+import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from './protocol';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -199,6 +199,7 @@ export class KeyballHID {
     return {
       tappingTerm:    (r[1] << 8) | r[2],
       autoShift:      (flags & KB_FLAG_AUTO_SHIFT)      !== 0,
+      combo:          (flags & KB_FLAG_COMBO)           !== 0,
       permissiveHold: (flags & KB_FLAG_PERMISSIVE_HOLD) !== 0,
       retroTapping:   (flags & KB_FLAG_RETRO_TAPPING)   !== 0,
       scrollInvertV:  (flags & KB_FLAG_SCROLL_INV_V)    !== 0,
@@ -208,17 +209,20 @@ export class KeyballHID {
       autoMouseTimeout:  (((r[5] << 8) | r[6]) >= 100) ? ((r[5] << 8) | r[6]) : 650,
       autoMouseThreshold: (r[7] >= 1 && r[7] <= 100) ? r[7] : 10,
       scrollLayer:    r[9] === LAYER_NONE ? LAYER_NONE : (r[9] <= 7 ? r[9] : 3),
+      osAutoSwap:     (flags & KB_FLAG_OS_AUTO_SWAP)     !== 0,
     };
   }
 
   async setSettings(s: KbSettings): Promise<void> {
     let flags = 0;
     if (s.autoShift)        flags |= KB_FLAG_AUTO_SHIFT;
+    if (s.combo)            flags |= KB_FLAG_COMBO;
     if (s.permissiveHold)   flags |= KB_FLAG_PERMISSIVE_HOLD;
     if (s.retroTapping)     flags |= KB_FLAG_RETRO_TAPPING;
     if (s.scrollInvertV)    flags |= KB_FLAG_SCROLL_INV_V;
     if (s.scrollInvertH)    flags |= KB_FLAG_SCROLL_INV_H;
     if (!s.autoMouseEnable) flags |= KB_FLAG_AML_DISABLE;
+    if (s.osAutoSwap)       flags |= KB_FLAG_OS_AUTO_SWAP;
     await this.sendCommand(makePacket(
       CMD.SET_SETTINGS,
       (s.tappingTerm >> 8) & 0xFF,
@@ -328,10 +332,126 @@ export class KeyballHID {
     await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_ENABLE, v ? 1 : 0));
   }
 
-  // 超低速（精密作業）モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
+  // OS自動判別: 現在検出しているOS種別を返す（0=判別中,1=Linux,2=Windows,3=macOS,4=iOS）。
+  // 非対応ファームでは応答コードが一致しないので例外にする。
+  async getDetectedOs(): Promise<number> {
+    const r = await this.sendCommand(makePacket(CMD.GET_OS));
+    if (r[0] !== CMD.GET_OS) throw new Error('OS自動判別非対応のファームです');
+    return r[1];
+  }
+
+  // DPIカーブ: トラックボールの動きの速さ→実際に送る速さを5点の折れ線で調整する機能
+  async getDpiCurve(): Promise<DpiCurveConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_DPI_CURVE));
+    if (r[0] !== CMD.GET_DPI_CURVE) throw new Error('DPIカーブ非対応のファームです');
+    const points: number[] = [];
+    for (let i = 0; i < DPI_CURVE_X.length; i++) points.push(r[2 + i]);
+    return { enable: r[1] !== 0, points };
+  }
+
+  async setDpiCurve(c: DpiCurveConfig): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_DPI_CURVE, c.enable ? 1 : 0, ...c.points));
+  }
+
+  // シェイク機能（トラックボールを振ると設定したキーを発動。RP2040版限定）
+  async getShakeConfig(): Promise<ShakeConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_SHAKE));
+    if (r[0] !== CMD.GET_SHAKE) throw new Error('シェイク機能非対応のファームです');
+    const threshold = r[3];
+    const reversals = r[4];
+    const runMaxMs  = r[5] * 10;
+    return {
+      key:       (r[1] << 8) | r[2],
+      threshold: (threshold >= SHAKE_THRESHOLD_MIN && threshold <= SHAKE_THRESHOLD_MAX) ? threshold : SHAKE_THRESHOLD_DEFAULT,
+      reversals: (reversals >= SHAKE_REVERSALS_MIN && reversals <= SHAKE_REVERSALS_MAX) ? reversals : SHAKE_REVERSALS_DEFAULT,
+      runMaxMs:  (runMaxMs >= SHAKE_RUN_MAX_MS_MIN && runMaxMs <= SHAKE_RUN_MAX_MS_MAX) ? runMaxMs : SHAKE_RUN_MAX_MS_DEFAULT,
+      enable:    r[6] !== 0,
+    };
+  }
+
+  async setShakeConfig(s: ShakeConfig): Promise<void> {
+    await this.sendCommand(makePacket(
+      CMD.SET_SHAKE,
+      (s.key >> 8) & 0xFF, s.key & 0xFF,
+      s.threshold & 0xFF,
+      s.reversals & 0xFF,
+      Math.round(s.runMaxMs / 10) & 0xFF,
+      s.enable ? 1 : 0,
+    ));
+  }
+
+  // ダブルフリック（同じ方向へ短時間で2回フリックすると追加でキーを発動。RP2040版限定）
+  async getDFlickConfig(): Promise<DFlickConfig> {
+    const r = await this.sendCommand(makePacket(CMD.GET_DFLICK));
+    if (r[0] !== CMD.GET_DFLICK) throw new Error('ダブルフリック非対応のファームです');
+    const windowMs = (r[9] ?? 0) * 10;
+    const flickThreshold = r[10];
+    const maxDurationMs = (r[11] ?? 0) * 10;
+    return {
+      up:    (r[1] << 8) | r[2],
+      down:  (r[3] << 8) | r[4],
+      left:  (r[5] << 8) | r[6],
+      right: (r[7] << 8) | r[8],
+      windowMs: (windowMs >= DFLICK_WINDOW_MS_MIN && windowMs <= DFLICK_WINDOW_MS_MAX) ? windowMs : DFLICK_WINDOW_MS_DEFAULT,
+      flickThreshold: (flickThreshold >= DFLICK_FLICK_THRESHOLD_MIN && flickThreshold <= DFLICK_FLICK_THRESHOLD_MAX) ? flickThreshold : DFLICK_FLICK_THRESHOLD_DEFAULT,
+      maxDurationMs: (maxDurationMs >= DFLICK_MAX_DURATION_MS_MIN && maxDurationMs <= DFLICK_MAX_DURATION_MS_MAX) ? maxDurationMs : DFLICK_MAX_DURATION_MS_DEFAULT,
+      enable: r[12] !== 0,
+    };
+  }
+
+  async setDFlickConfig(d: DFlickConfig): Promise<void> {
+    await this.sendCommand(makePacket(
+      CMD.SET_DFLICK,
+      (d.up >> 8) & 0xFF,    d.up & 0xFF,
+      (d.down >> 8) & 0xFF,  d.down & 0xFF,
+      (d.left >> 8) & 0xFF,  d.left & 0xFF,
+      (d.right >> 8) & 0xFF, d.right & 0xFF,
+      Math.round(d.windowMs / 10) & 0xFF,
+      d.flickThreshold & 0xFF,
+      Math.round(d.maxDurationMs / 10) & 0xFF,
+      d.enable ? 1 : 0,
+    ));
+  }
+
+  // コンボ（複数キー同時押しで別のキーを発動。RP2040版限定）
+  async getComboSlot(idx: number): Promise<ComboSlot> {
+    const r = await this.sendCommand(makePacket(CMD.GET_COMBO, idx));
+    if (r[0] !== CMD.GET_COMBO) throw new Error('コンボ非対応のファームです');
+    const keys: number[] = [];
+    for (let i = 0; i < COMBO_MAX_KEYS; i++) {
+      keys.push((r[2 + i * 2] << 8) | r[3 + i * 2]);
+    }
+    return {
+      keys,
+      keycode: (r[10] << 8) | r[11],
+    };
+  }
+
+  async setComboSlot(idx: number, slot: ComboSlot): Promise<void> {
+    const keyBytes: number[] = [];
+    for (let i = 0; i < COMBO_MAX_KEYS; i++) {
+      const k = slot.keys[i] ?? 0;
+      keyBytes.push((k >> 8) & 0xFF, k & 0xFF);
+    }
+    await this.sendCommand(makePacket(
+      CMD.SET_COMBO, idx,
+      ...keyBytes,
+      (slot.keycode >> 8) & 0xFF, slot.keycode & 0xFF,
+    ));
+  }
+
+  async getAllComboSlots(): Promise<ComboSlot[]> {
+    const slots: ComboSlot[] = [];
+    for (let i = 0; i < COMBO_SLOT_COUNT; i++) {
+      slots.push(await this.getComboSlot(i));
+    }
+    return slots;
+  }
+
+  // 精密モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
   async getPrecisionConfig(): Promise<PrecisionConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_PRECISION));
-    if (r[0] !== CMD.GET_PRECISION) throw new Error('超低速モード非対応のファームです');
+    if (r[0] !== CMD.GET_PRECISION) throw new Error('精密モード非対応のファームです');
     return {
       div:   r[1],
       layer: (r[2] !== undefined && r[2] <= 7) ? r[2] : LAYER_NONE,  // 連動レイヤー（旧応答/未設定はなし）

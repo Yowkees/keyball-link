@@ -4,8 +4,11 @@ import type { FirmwareVersion } from './protocol';
 // ファームウェアの rules.mk と一致させること
 // rules.mk を変更したときはここも更新する
 export const FIRMWARE_FEATURES = {
-  tapDance: false,   // TAP_DANCE_ENABLE = no
-  autoShift: false,  // AUTO_SHIFT_ENABLE = no
+  tapDance: true,    // TAP_DANCE_ENABLE = yes（RP2040版のみ。2026-09-11〜「ダブルタップ機能」として）
+  autoShift: true,   // AUTO_SHIFT_ENABLE = yes（RP2040版のみ。2026-09-11〜）
+  combo: true,       // COMBO_ENABLE = yes（RP2040版のみ。2026-09-10〜）
+  osDetection: true, // OS_DETECTION_ENABLE = yes（RP2040版のみ。2026-09-11〜）
+  dpiCurve: true,    // DPIカーブ（トーンカーブ風の速度調整。RP2040版のみ。2026-09-11〜）
 } as const;
 
 // public/firmware/ に置いている hex（配布中の最新版）のバージョン。

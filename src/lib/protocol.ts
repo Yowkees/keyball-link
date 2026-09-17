@@ -46,19 +46,104 @@ export const CMD = {
   SET_GESTURE_WAVE_SPEED: 0x25,
   GET_GESTURE_WAVE_ENABLE: 0x26,
   SET_GESTURE_WAVE_ENABLE: 0x27,
+  GET_SHAKE:  0x28,
+  SET_SHAKE:  0x29,
+  GET_DFLICK: 0x2A,
+  SET_DFLICK: 0x2B,
+  GET_COMBO: 0x2C,
+  SET_COMBO: 0x2D,
+  GET_OS: 0x2E,
+  GET_DPI_CURVE: 0x2F,
+  SET_DPI_CURVE: 0x30,
 } as const;
 
-// 超低速（精密作業）モードのCPI分周値の範囲（ファームウェア側と合わせる）
+// OS自動判別の種別（ファームウェア os_variant_t と一致させる）
+export const OS_VARIANT_NAMES = ['判別中…', 'Linux', 'Windows', 'macOS', 'iOS'] as const;
+
+// DPIカーブ（Photoshopのトーンカーブのように、トラックボールの「動きの速さ」を
+// 好きな形の折れ線で「実際に送る速さ」に変換する機能。RP2040版限定）。
+// X軸（入力の速さ）はファームウェア側で固定（KB_DPI_CURVE_Xと一致させる）。
+// Y軸（出力の速さ）だけをユーザーが各点0-255で調整する。
+// 2026-09-11、本人希望でより細かく調整できるよう5点→9点に増量。
+export const DPI_CURVE_X = [0, 16, 32, 48, 64, 80, 96, 112, 127] as const;
+export const DPI_CURVE_Y_MAX = 255;
+
+export interface DpiCurveConfig {
+  enable: boolean;
+  points: number[];  // 長さDPI_CURVE_X.length、各0-255（出力の速さ）
+}
+
+// 既定値: Y=X の対角線（＝カーブ無効時と同じ、動きの速さを変えない）
+export function defaultDpiCurvePoints(): number[] {
+  return [...DPI_CURVE_X];
+}
+
+// ファームウェア(kb_settings.cのkb_dpi_curve_rebuild_lut)と全く同じ計算をJS側でも
+// 行い、エディタの見た目と実機の動きを一致させる。単調3次エルミート曲線
+// （Fritsch-Carlsonの簡略版。sqrtを使わず、各区間の接線比を[0,3]にクランプする
+// 十分条件で、オーバーシュートせず滑らかにする）で5点を結び、入力の速さ0-127
+// それぞれに対応する出力値（0-255）を127+1個並べて返す。
+export function computeDpiCurveLut(points: number[]): number[] {
+  const xs = DPI_CURVE_X;
+  const n = xs.length;
+  const ys = points;
+
+  const d: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  }
+
+  const m: number[] = new Array(n);
+  m[0] = d[0];
+  m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    m[i] = (d[i - 1] + d[i]) / 2;
+  }
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const alpha = m[i] / d[i];
+    const beta = m[i + 1] / d[i];
+    if (alpha < 0) m[i] = 0;
+    else if (alpha > 3) m[i] = 3 * d[i];
+    if (beta < 0) m[i + 1] = 0;
+    else if (beta > 3) m[i + 1] = 3 * d[i];
+  }
+
+  const lut: number[] = [];
+  for (let x = 0; x <= xs[n - 1]; x++) {
+    let seg = n - 2;
+    for (let i = 0; i < n - 1; i++) {
+      if (x <= xs[i + 1]) { seg = i; break; }
+    }
+    const x0 = xs[seg], x1 = xs[seg + 1];
+    const h = x1 - x0;
+    const t = h > 0 ? (x - x0) / h : 0;
+    const t2 = t * t, t3 = t2 * t;
+    const h00 = 2 * t3 - 3 * t2 + 1;
+    const h10 = t3 - 2 * t2 + t;
+    const h01 = -2 * t3 + 3 * t2;
+    const h11 = t3 - t2;
+    const y = h00 * ys[seg] + h10 * h * m[seg] + h01 * ys[seg + 1] + h11 * h * m[seg + 1];
+    lut.push(Math.max(0, Math.min(255, Math.round(y))));
+  }
+  return lut;
+}
+
+// 精密モードのCPI分周値の範囲（ファームウェア側と合わせる）
 // 上限は5: 実CPIは100刻みが下限のため、デフォルトCPI(500)ではこれ以上大きくしても
 // 100CPIに張り付くだけで差が出ない（本人判断で5を上限に固定）。
 export const PRECISION_DIV_MIN     = 2;
 export const PRECISION_DIV_MAX     = 5;
 export const PRECISION_DIV_DEFAULT = 4;
 
-// 超低速（精密作業）モード設定
+// 精密モード設定
 export interface PrecisionConfig {
   div:   number;  // CPI分周値（実CPI ÷ この値）。範囲2-20、既定4
-  layer: number;  // このレイヤーにいる間は自動的に超低速モード（0-7 / LAYER_NONE=なし）
+  layer: number;  // このレイヤーにいる間は自動的に精密モード（0-7 / LAYER_NONE=なし）
 }
 
 // 慣性スクロール（ボールを弾いた後、しばらく減衰しながらスクロールが続く）の範囲。
@@ -355,6 +440,7 @@ export const LAYER_NONE = 0xFE;
 export interface KbSettings {
   tappingTerm:    number;   // 50-1000ms
   autoShift:      boolean;
+  combo:          boolean;
   permissiveHold: boolean;
   retroTapping:   boolean;
   scrollInvertV:  boolean;  // 縦スクロール反転
@@ -364,6 +450,7 @@ export interface KbSettings {
   autoMouseTimeout:  number;   // 戻るまでの時間(ms)
   autoMouseThreshold: number;  // 発動しきい値（移動量。小さいほど敏感）
   scrollLayer:    number;   // スクロールになるレイヤー（0-7 / LAYER_NONE=なし）
+  osAutoSwap:     boolean;   // OS自動判別: Mac/iOS接続時にCmd(⌘)とCtrlを自動入れ替え
 }
 
 // ジェスチャー設定（GST_HOLD押下中のトラックボール方向に割り当てるキーコード）
@@ -412,6 +499,75 @@ export const GESTURE_WAVE_SPEED_DEFAULT = 200;
 export const GESTURE_WAVE_SPEED_MIN     = 1;
 export const GESTURE_WAVE_SPEED_MAX     = 255;
 
+// シェイク機能（トラックボールを振ると設定したキーを発動）。ジェスチャーモードの
+// 選択状態に関わらず常時判定する。keyが0の間は機能そのものが無効（キー未設定）。
+// enableはキー設定を消さずに機能ごとON/OFFするための独立したフラグ（シェイクと
+// ダブルフリックのどちらが原因か切り分けたい、という要望で追加）。
+export interface ShakeConfig {
+  key:        number;  // 発動キーコード（0=未設定・無効）
+  threshold:  number;  // 感度（小さいほど敏感）
+  reversals:  number;  // 発動に必要な反転回数（多いほど厳しい）
+  runMaxMs:   number;  // 反転が全て収まるべき時間の上限(ms)（短いほど厳しい）
+  enable:     boolean;
+}
+export const SHAKE_THRESHOLD_DEFAULT = 60;
+export const SHAKE_THRESHOLD_MIN     = 10;
+export const SHAKE_THRESHOLD_MAX     = 200;
+
+// 現状の既定値（反転6回・700ms）を中心に、緩める方向・厳しくする方向の
+// 両方に余白を持たせている（2026-09-10）。
+export const SHAKE_REVERSALS_DEFAULT = 6;
+export const SHAKE_REVERSALS_MIN     = 2;
+export const SHAKE_REVERSALS_MAX     = 12;
+
+export const SHAKE_RUN_MAX_MS_DEFAULT = 700;
+export const SHAKE_RUN_MAX_MS_MIN     = 100;
+export const SHAKE_RUN_MAX_MS_MAX     = 2000;
+export const SHAKE_RUN_MAX_MS_STEP    = 10;  // ファーム側は10ms単位でしか保存できない
+
+// ダブルフリック（同じ方向へ短時間で2回フリックすると発火）。ジェスチャーモード
+// （GST_HOLD〜4キーやジェスチャーレイヤー）とは独立しており、通常のトラックボール
+// 操作（カーソル移動）中に動作する。
+export interface DFlickConfig {
+  up: number; down: number; left: number; right: number;  // 割当キーコード（0=未設定）
+  windowMs: number;  // 2回目のフリックを同じダブルフリックとして認識する時間の上限(ms)
+  flickThreshold: number;  // フリック判定のしきい値（動き始めから止まるまでの移動量合計。小さいほど敏感）
+  maxDurationMs: number;  // 「フリック」とみなす動き続けている時間の上限(ms)。長いほど緩い
+  enable: boolean;
+}
+// 2026-09-11、本人が実機で詰めた値（感度30・時間窓500ms・動作時間上限420ms）を
+// 新しい既定値にし、その値を中心に調整範囲を組み直した。
+export const DFLICK_WINDOW_MS_DEFAULT = 500;
+export const DFLICK_WINDOW_MS_MIN     = 200;
+export const DFLICK_WINDOW_MS_MAX     = 800;
+export const DFLICK_WINDOW_MS_STEP    = 10;  // ファーム側は10ms単位でしか保存できない
+
+export const DFLICK_FLICK_THRESHOLD_DEFAULT = 30;
+export const DFLICK_FLICK_THRESHOLD_MIN     = 5;
+export const DFLICK_FLICK_THRESHOLD_MAX     = 60;
+
+// トラックボールは指で弾いた後も慣性で転がり続けるため、実際のフリックの
+// 継続時間が短すぎる既定値だと「感度・時間窓をどれだけ緩めても発動しない」
+// 事態になりうる（2026-09-10発覚）。ここを緩めれば、多少長く動き続けても
+// 「フリック」として認識されやすくなる。
+export const DFLICK_MAX_DURATION_MS_DEFAULT = 420;
+export const DFLICK_MAX_DURATION_MS_MIN     = 150;
+export const DFLICK_MAX_DURATION_MS_MAX     = 700;
+export const DFLICK_MAX_DURATION_MS_STEP    = 10;  // ファーム側は10ms単位でしか保存できない
+
+// コンボ（複数キーを同時押しすると別のキーを発動する。RP2040版限定）
+export const COMBO_SLOT_COUNT = 8;
+export const COMBO_MAX_KEYS   = 4;  // 1コンボあたりの同時押しキー数の上限
+
+export interface ComboSlot {
+  keys: number[];    // 同時押しするキー（長さCOMBO_MAX_KEYS。0=未使用。先頭から詰めて設定する）
+  keycode: number;   // 発動するキー（0=このスロットは無効）
+}
+
+export function emptyComboSlot(): ComboSlot {
+  return { keys: Array(COMBO_MAX_KEYS).fill(0), keycode: 0 };
+}
+
 // 接続中のファームウェアのバージョン（GET_VERSION未対応の旧ファームは null）
 export interface FirmwareVersion {
   major: number;
@@ -431,16 +587,19 @@ export function formatVersion(v: FirmwareVersion): string {
 }
 
 export const KB_FLAG_AUTO_SHIFT      = 1 << 0;
+export const KB_FLAG_COMBO           = 1 << 1;
 export const KB_FLAG_PERMISSIVE_HOLD = 1 << 2;
 export const KB_FLAG_RETRO_TAPPING   = 1 << 3;
 export const KB_FLAG_SCROLL_INV_V    = 1 << 4;
 export const KB_FLAG_SCROLL_INV_H    = 1 << 5;
 export const KB_FLAG_AML_DISABLE     = 1 << 6;  // セットでAML無効（0=有効）
+export const KB_FLAG_OS_AUTO_SWAP    = 1 << 7;  // セットでMac/iOS接続時にCmd/Ctrl自動入れ替え
 
 export const KB_SETTINGS_DEFAULT: KbSettings = {
   tappingTerm:    200,
   autoShift:      false,
-  permissiveHold: false,
+  combo:          false,
+  permissiveHold: true,  // 2026-09-11、本人希望により既定ON
   retroTapping:   false,
   scrollInvertV:  false,
   scrollInvertH:  false,
@@ -449,6 +608,7 @@ export const KB_SETTINGS_DEFAULT: KbSettings = {
   autoMouseTimeout:  650,
   autoMouseThreshold: 10,
   scrollLayer:    3,
+  osAutoSwap:     false,
 };
 
 // 32バイトのパケットを作成するヘルパー

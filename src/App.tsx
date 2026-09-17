@@ -2,18 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useKeyball } from './hooks/useKeyball';
 import { LAYOUTS } from './layouts';
 import { KeyboardLayout } from './components/KeyboardLayout/KeyboardLayout';
-import { KeyConfigModal } from './components/KeyConfigModal/KeyConfigModal';
-import { TrackballSettings } from './components/TrackballSettings/TrackballSettings';
-import { LEDSettings } from './components/LEDSettings/LEDSettings';
+import { KeyConfigPanel } from './components/KeyConfigModal/KeyConfigModal';
+import { LedPanel } from './components/LEDSettings/LedPanel';
 import { FirmwareFlasher } from './components/FirmwareFlasher/FirmwareFlasher';
 import { SettingsTab } from './components/SettingsTab/SettingsTab';
+import { TrackballSettingsTab } from './components/TrackballSettingsTab/TrackballSettingsTab';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
-import { MacroEditor } from './components/MacroEditor/MacroEditor';
+import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
-import { CollapsibleCard } from './components/Collapsible/CollapsibleCard';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
-import { KeyPalette } from './components/KeyPalette/KeyPalette';
-import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold } from './lib/protocol';
+import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from './lib/protocol';
 import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
 import type { KeyLayout } from './lib/keycodes';
@@ -21,11 +19,65 @@ import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { PRESETS } from './lib/presets';
 import './index.css';
 
-type Tab = 'keymap' | 'macro' | 'settings' | 'firmware' | 'feedback';
+type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'feedback';
 // キー変更1回分（Undo/Redo用）
 interface EditOp { layer: number; row: number; col: number; prev: number; next: number }
 type BallSide = 'left' | 'right';
 type Theme = 'dark' | 'light';
+type AccentTheme = 'mint' | 'amber' | 'violet';
+
+// レイヤータブの色分けドット（モックアップ準拠。5レイヤー目以降は無彩色にフォールバック）
+const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];
+const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
+  { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },
+  { key: 'amber',  dark: '#e8b44a', light: '#b4770a' },
+  { key: 'violet', dark: '#a78bfa', light: '#6d48d6' },
+];
+
+// LED設定(色相・彩度・明度)から実際に光る色を計算する。数式はLEDSettingsの色相バーと揃えている。
+function ledConfigToColor(cfg: { effectId: number; hue: number; sat: number; val: number } | null): string | null {
+  if (!cfg) return null;
+  if (cfg.effectId === 0) return null;  // 消灯中は専用色なし（呼び出し側でデフォルト色にフォールバック）
+  const h = Math.round((cfg.hue / 255) * 360);
+  const s = Math.round((cfg.sat / 255) * 100);
+  const l = Math.max(6, Math.min(62, Math.round((cfg.val / 200) * 62)));
+  return `hsl(${h} ${s}% ${l}%)`;
+}
+
+// レイヤータブの色付きドットに表示する色。レイヤー0は通常時のLED色（実際に常に光っている色）、
+// レイヤー1以降はレイヤー連動LEDで専用の光り方を設定している場合のみその色を反映する。
+// LEDを設定していないレイヤーは無彩色（グレー）にして「未設定」であることが分かるようにする。
+// LED非対応ファームでは判断材料がないため固定パレット（モックアップ準拠）にフォールバックする。
+function getLayerDotColor(layer: number, state: {
+  led: { effectId: number; hue: number; sat: number; val: number } | null;
+  layerLedEnable: boolean | null;
+  layerLeds: ({ enabled: boolean; effectId: number; hue: number; sat: number; val: number } | null)[];
+}): string {
+  if (!state.led) return LAYER_DOT_COLORS[layer] ?? 'var(--text-dim)';
+  if (layer === 0) return ledConfigToColor(state.led) ?? 'var(--text-dim)';
+  const enabled = state.layerLedEnable && state.layerLeds[layer]?.enabled;
+  if (!enabled) return 'var(--text-dim)';
+  return ledConfigToColor(state.layerLeds[layer]) ?? 'var(--text-dim)';
+}
+
+// 指定レイヤーに紐づいているレイヤー連動機能の一覧（自動マウス/スクロール/ジェスチャー/精密モード/LED連動）。
+// 各種LAYER_NONE(0xFE)は実レイヤー番号(0〜7)とは一致しないため、単純な等価比較だけで「未割り当て」を除外できる。
+function getLayerFeatures(layer: number, state: {
+  kbSettings: { autoMouseEnable: boolean; autoMouseLayer: number; scrollLayer: number };
+  gesture: { layer: number } | null;
+  gestureModes: { layer: number }[] | null;
+  precision: { layer: number } | null;
+  layerLedEnable: boolean | null;
+  layerLeds: ({ enabled: boolean } | null)[];
+}): string[] {
+  const tags: string[] = [];
+  if (state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === layer) tags.push('自動マウス');
+  if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
+  if (state.gesture?.layer === layer || state.gestureModes?.some(m => m.layer === layer)) tags.push('ジェスチャー');
+  if (state.precision?.layer === layer) tags.push('精密モード');
+  if (state.layerLedEnable && state.layerLeds[layer]?.enabled) tags.push('LED連動');
+  return tags;
+}
 
 interface Toast {
   message: string;
@@ -33,12 +85,15 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
     (localStorage.getItem('theme') as Theme) ?? 'dark'
+  );
+  const [accentTheme, setAccentTheme] = useState<AccentTheme>(() =>
+    (localStorage.getItem('accentTheme') as AccentTheme) ?? 'mint'
   );
   const [ballSide, setBallSide] = useState<BallSide>(() =>
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
@@ -62,11 +117,33 @@ export default function App() {
   const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'done'>('flash');
   const [showGuide, setShowGuide] = useState(false);
   const everAssignedRef = useRef(false);
+  // 右側キー設定パネルの高さを、左側（キー配列＋LEDカード）の実測高さに合わせるための参照。
+  // これにより、キー一覧が長くなってもLEDパネルの下にはみ出さず、パネル内で縦スクロールする。
+  const keymapLeftRef = useRef<HTMLDivElement>(null);
+  const [keymapLeftHeight, setKeymapLeftHeight] = useState<number | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', accentTheme);
+    localStorage.setItem('accentTheme', accentTheme);
+  }, [accentTheme]);
+
+  useEffect(() => {
+    const el = keymapLeftRef.current;
+    if (!el) { setKeymapLeftHeight(null); return; }
+    const update = () => setKeymapLeftHeight(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // ResizeObserver自体がレイアウト変化（キーボード種別・全レイヤー表示切替など）による
+    // 高さ変化を継続的に検知するため、依存はrefの付け外しに関わるタブ・接続状態だけでよい
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, state.connectionState]);
 
   // 接続状態の変化でガイド表示を制御（レンダー中の比較更新）
   const [prevConnState, setPrevConnState] = useState(state.connectionState);
@@ -281,6 +358,31 @@ export default function App() {
     catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
+  const handleShakeChange = async (s: ShakeConfig) => {
+    try { await setShake(s); }
+    catch (e) { showToast(`シェイク設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleDFlickChange = async (d: DFlickConfig) => {
+    try { await setDFlick(d); }
+    catch (e) { showToast(`ダブルフリック設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleComboSlotChange = async (idx: number, slot: ComboSlot) => {
+    try { await setComboSlot(idx, slot); }
+    catch (e) { showToast(`コンボ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleDpiCurveChange = async (c: DpiCurveConfig) => {
+    try { await setDpiCurve(c); }
+    catch (e) { showToast(`DPIカーブ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleTdSlotChange = async (idx: number, slot: TdSlot) => {
+    try { await setTdSlot(idx, slot); }
+    catch (e) { showToast(`タップダンス設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
@@ -306,6 +408,8 @@ export default function App() {
       gestureThreshold: state.gestureThreshold,
       gestureWaveSpeed: state.gestureWaveSpeed,
       gestureWaveEnable: state.gestureWaveEnable,
+      shake: state.shake,
+      dflick: state.dflick,
       precision: state.precision,
       scrollInertia: state.scrollInertia,
       layerLedEnable: state.layerLedEnable,
@@ -385,6 +489,12 @@ export default function App() {
         if (typeof data.gestureWaveEnable === 'boolean') {
           try { await setGestureWaveEnable(data.gestureWaveEnable); } catch { /* 非対応FW */ }
         }
+        if (data.shake) {
+          try { await setShake(data.shake); } catch { /* 非対応FW */ }
+        }
+        if (data.dflick) {
+          try { await setDFlick(data.dflick); } catch { /* 非対応FW */ }
+        }
         if (data.precision) {
           try { await setPrecisionConfig(data.precision); } catch { /* 非対応FW */ }
         }
@@ -458,13 +568,14 @@ export default function App() {
   // v1.1.0〜メディアキーは通常版・LED版共通で有効。ジェスチャーは非LED版のみ、RGBはLED版のみ。
   const fwAvail = {
     media:      true,
-    gesture:    !isConnected || state.gesture !== null,      // ジェスチャーキー（非LED版のみ）
+    gesture:    !isConnected || state.gesture !== null || state.gestureModes !== null,      // ジェスチャーキー（非LED版のみ。RP2040版は複数モード化により旧gesture値がnullのまま残るためgestureModesも見る）
     rgb:        !isConnected || state.led !== null,          // RGB系キー（LED版のみ）
-    macro:      !isConnected || state.gesture !== null,      // マクロキー（v1.1.0〜非LED版のみ）
-    precision:  !isConnected || state.precision !== null, // 超低速モードキー（RP2040版など対応FWのみ）
+    macro:      !isConnected || state.gesture !== null || state.gestureModes !== null,      // マクロキー（v1.1.0〜非LED版のみ。判定理由は上のgestureと同じ）
+    precision:  !isConnected || state.precision !== null, // 精密モードキー（RP2040版など対応FWのみ）
     gestureModes: !isConnected || state.gestureModes !== null, // 複数ジェスチャーモード（RP2040版限定）
     layerCount: state.info?.layers ?? 4,                     // 実際のレイヤー数（未接続時は4扱い）
   };
+
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。
   const accelAvailable = !isConnected || state.gesture !== null
@@ -479,18 +590,32 @@ export default function App() {
       )}
 
       <header className="app-header">
-        <img
-            className="app-logo"
-            src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
-            alt="Keyball Link"
-          />
+        <div className="app-brand">
+          <img
+              className="app-logo"
+              src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
+              alt="Keyball Link"
+            />
+          <span className="app-brand__sub">WEB CONFIGURATOR<span className="app-brand__cursor" /></span>
+        </div>
         <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title="テーマ切替">
           {theme === 'dark' ? '☀ ライト' : '☾ ダーク'}
         </button>
+        <div className="accent-picker">
+          {ACCENT_SWATCHES.map(a => (
+            <button
+              key={a.key}
+              className={`accent-picker__dot ${accentTheme === a.key ? 'accent-picker__dot--active' : ''}`}
+              style={{ background: theme === 'dark' ? a.dark : a.light }}
+              title={`アクセントカラー: ${a.key}`}
+              onClick={() => setAccentTheme(a.key)}
+            />
+          ))}
+        </div>
         <div className="connection-bar">
           {isConnected ? (
             <>
-              <span className="status status--connected">● {state.deviceName}</span>
+              <span className="status status--connected"><span className="status__dot" />{state.deviceName}</span>
               <button className="btn btn--ghost" onClick={disconnect}>切断</button>
               <div className="import-menu-wrap">
                 <button className="btn btn--ghost" onClick={() => setShowResetMenu(v => !v)} disabled={loadingPreset}>
@@ -571,7 +696,7 @@ export default function App() {
 
       {showGuide && (() => {
         // 対象がキーマップタブ内にあるステップで別タブにいるときは、タブへ戻る誘導を出す
-        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save', 'trackball'].includes(guideStep);
+        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
         const displayStep = needsKeymapTab && activeTab !== 'keymap' ? 'backToKeymap' as const : guideStep;
         return (
           <WelcomeGuide
@@ -592,7 +717,8 @@ export default function App() {
           <>
             <div className="tabs">
               <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>キーマップ</button>
-              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ</button>
+              <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>トラックボール設定</button>
+              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ拡張</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
               <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
@@ -624,39 +750,6 @@ export default function App() {
 
             {activeTab === 'keymap' && isConnected && layout && (
               <div className="keymap-view">
-                <div className="layer-selector" data-guide="layer-tabs">
-                  {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
-                    const src = pendingOrder ? pendingOrder[i] : i;
-                    return (
-                      <button
-                        key={i}
-                        className={`btn btn--layer ${!showAllLayers && state.currentLayer === i ? 'btn--layer-active' : ''} ${dragLayer === i ? 'btn--layer-dragging' : ''}`}
-                        draggable
-                        onDragStart={() => setDragLayer(i)}
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={() => { if (dragLayer !== null) reorderTabs(dragLayer, i); setDragLayer(null); }}
-                        onDragEnd={() => setDragLayer(null)}
-                        onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
-                        title={pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます'}
-                      >
-                        Layer {i}{pendingOrder && src !== i ? ` ←${src}` : ''}
-                      </button>
-                    );
-                  })}
-                  <button
-                    className={`btn btn--layer ${showAllLayers ? 'btn--layer-active' : ''}`}
-                    onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
-                    title="すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）"
-                  >
-                    全レイヤー
-                  </button>
-                  <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-dim)' }}>
-                    ボール位置:
-                    <button className={`btn btn--small btn--layer ${ballSide === 'left' ? 'btn--layer-active' : ''}`} onClick={() => handleBallSide('left')}>左</button>
-                    <button className={`btn btn--small btn--layer ${ballSide === 'right' ? 'btn--layer-active' : ''}`} onClick={() => handleBallSide('right')}>右</button>
-                  </span>
-                </div>
-
                 {pendingOrder && (
                   <div className="reorder-bar">
                     <span>🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。</span>
@@ -669,97 +762,152 @@ export default function App() {
                   </div>
                 )}
 
-                {showAllLayers ? (
-                  <div className="all-layers-view">
-                    {Array.from({ length: state.info?.layers ?? 4 }, (_, li) => {
-                      const codes = layout.map(k => displayKeymap[li]?.[k.row]?.[k.col] ?? 0);
-                      return (
-                        <div key={li} className="all-layers-item">
-                          <div className="all-layers-label">Layer {li}</div>
-                          <div className="layout-scroll">
-                            <KeyboardLayout
-                              layout={layout}
-                              keycodes={codes}
-                              selectedIndex={null}
-                              ballSide={ballSide}
-                              keyLayout={keyLayout}
-                              onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
-                              onKeyDrop={() => {}}
-                              showDescBar={false}
-                              splitGapPx={keymapSplitGap}
-                            />
-                          </div>
+                <div className="keymap-grid">
+                  <div className="keymap-left-panel" ref={keymapLeftRef}>
+                  <div className="keymap-keyboard-card">
+                    <div className="layer-toolbar" data-guide="layer-tabs">
+                      <div className="layer-tabs">
+                        {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
+                          const src = pendingOrder ? pendingOrder[i] : i;
+                          const features = getLayerFeatures(i, state);
+                          const dragTitle = pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます';
+                          return (
+                            <button
+                              key={i}
+                              className={`layer-tab ${!showAllLayers && state.currentLayer === i ? 'layer-tab--active' : ''} ${dragLayer === i ? 'layer-tab--dragging' : ''}`}
+                              draggable
+                              onDragStart={() => setDragLayer(i)}
+                              onDragOver={e => e.preventDefault()}
+                              onDrop={() => { if (dragLayer !== null) reorderTabs(dragLayer, i); setDragLayer(null); }}
+                              onDragEnd={() => setDragLayer(null)}
+                              onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
+                              title={features.length ? `${dragTitle} / 連動機能: ${features.join('・')}` : dragTitle}
+                            >
+                              <span className="layer-tab__dot" style={{ background: getLayerDotColor(i, state) }} />
+                              L{i}{pendingOrder && src !== i ? ` ←${src}` : ''}
+                              {features.length > 0 && <span className="layer-tab__badge" />}
+                            </button>
+                          );
+                        })}
+                        <button
+                          className={`layer-tab ${showAllLayers ? 'layer-tab--active' : ''}`}
+                          onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
+                          title="すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）"
+                        >
+                          全レイヤー
+                        </button>
+                      </div>
+                      {!showAllLayers && (() => {
+                        const currentFeatures = getLayerFeatures(state.currentLayer, state);
+                        return (
+                          <span className="layer-toolbar__features">
+                            {currentFeatures.length ? `連動: ${currentFeatures.join('・')}` : '連動機能なし'}
+                          </span>
+                        );
+                      })()}
+                      <div className="ball-toggle">
+                        <span className="ball-toggle__label">ボール</span>
+                        <div className="ball-toggle__group">
+                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} onClick={() => handleBallSide('left')}>左</button>
+                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} onClick={() => handleBallSide('right')}>右</button>
                         </div>
-                      );
-                    })}
-                    <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
-                      キーをクリックすると、そのレイヤーに移動して編集できます
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="layout-scroll" data-guide="keyboard">
-                      <KeyboardLayout
-                        layout={layout}
-                        keycodes={layerKeycodes}
-                        selectedIndex={selectedKeyIndex}
-                        ballSide={ballSide}
-                        keyLayout={keyLayout}
-                        onKeyClick={handleKeyClick}
-                        onKeyDrop={handleKeyDrop}
-                        splitGapPx={keymapSplitGap}
-                      />
+                      </div>
                     </div>
 
-                  </>
-                )}
-
-                {state.trackball && (
-                  <div data-guide="trackball-card">
-                  <CollapsibleCard title="トラックボール設定">
-                    <TrackballSettings
-                      config={state.trackball}
-                      onChange={handleTrackballChange}
-                      onSave={handleSave}
-                      scrollInvertV={state.kbSettings.scrollInvertV}
-                      scrollInvertH={state.kbSettings.scrollInvertH}
-                      onScrollInvertChange={(v, h) => handleKbSettingsChange({ ...state.kbSettings, scrollInvertV: v, scrollInvertH: h })}
-                      accelAvailable={accelAvailable}
-                    />
-                  </CollapsibleCard>
-                  </div>
-                )}
-                {/* LED設定。LED対応版（state.led あり）は操作可、通常版は表示はするがグレーアウト。 */}
-                {isConnected && (
-                  <CollapsibleCard title="LED設定">
-                    {state.led ? (
-                      <LEDSettings config={state.led} onChange={handleLedChange} onSave={handleSave} />
+                    {showAllLayers ? (
+                      <div className="all-layers-view">
+                        {Array.from({ length: state.info?.layers ?? 4 }, (_, li) => {
+                          const codes = layout.map(k => displayKeymap[li]?.[k.row]?.[k.col] ?? 0);
+                          return (
+                            <div key={li} className="all-layers-item">
+                              <div className="all-layers-label">Layer {li}</div>
+                              <div className="layout-scroll">
+                                <KeyboardLayout
+                                  layout={layout}
+                                  keycodes={codes}
+                                  selectedIndex={null}
+                                  ballSide={ballSide}
+                                  keyLayout={keyLayout}
+                                  onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
+                                  onKeyDrop={() => {}}
+                                  showDescBar={false}
+                                  splitGapPx={keymapSplitGap}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
+                          キーをクリックすると、そのレイヤーに移動して編集できます
+                        </p>
+                      </div>
                     ) : (
-                      <p className="settings-desc" style={{ color: 'var(--red)' }}>
-                        ⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。
-                      </p>
+                      <div className="layout-scroll" data-guide="keyboard">
+                        <KeyboardLayout
+                          layout={layout}
+                          keycodes={layerKeycodes}
+                          selectedIndex={selectedKeyIndex}
+                          ballSide={ballSide}
+                          keyLayout={keyLayout}
+                          onKeyClick={handleKeyClick}
+                          onKeyDrop={handleKeyDrop}
+                          splitGapPx={keymapSplitGap}
+                        />
+                      </div>
                     )}
-                  </CollapsibleCard>
-                )}
+                  </div>
 
-                <KeyPalette keyLayout={keyLayout} avail={fwAvail} />
+                  {/* LED設定。キーボードカードとは別の1枚のパネルとして、キー配列カードの下・
+                      キー設定パネルの隣に配置。LED対応版（state.led あり）は操作可、通常版はグレーアウト表示。 */}
+                  {isConnected && (
+                    <div className="keymap-led-panel">
+                      <LedPanel
+                        led={state.led}
+                        onLedChange={handleLedChange}
+                        layerLedEnable={state.layerLedEnable}
+                        layerLeds={state.layerLeds}
+                        onLayerLedEnableChange={setLayerLedEnable}
+                        onLayerLedChange={setLayerLed}
+                        switchableLayers={Array.from({ length: Math.max((state.info?.layers ?? 4) - 1, 0) }, (_, i) => i + 1)}
+                      />
+                    </div>
+                  )}
+                  </div>
+
+                  <div className="keymap-right-panel" style={keymapLeftHeight ? { height: keymapLeftHeight, maxHeight: keymapLeftHeight } : undefined}>
+                    {pendingOrder ? (
+                      <div className="key-config-panel__empty">並べ替え中はキー編集できません</div>
+                    ) : (
+                      <KeyConfigPanel
+                        key={`${state.currentLayer}-${selectedKeyIndex ?? 'none'}`}
+                        currentCode={currentCode}
+                        keyLayout={keyLayout}
+                        avail={fwAvail}
+                        layerCount={state.info?.layers}
+                        selected={selectedKeyIndex !== null}
+                        selLabel={selectedKeyIndex !== null && layout[selectedKeyIndex] ? `Layer ${state.currentLayer} / R${layout[selectedKeyIndex].row}C${layout[selectedKeyIndex].col}` : undefined}
+                        onSelect={handleModalSelect}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
             {activeTab === 'macro' && (
-              fwAvail.macro ? (
-                <MacroEditor
-                  slots={state.macroSlots}
-                  keyLayout={keyLayout}
-                  isConnected={isConnected}
-                  onSave={handleMacroSave}
-                />
-              ) : (
-                <p className="settings-desc" style={{ color: 'var(--red)' }}>
-                  ⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。<br />
-                  通常版のファームを書き込むとマクロが使えます。「ファームウェア」タブから書き込めます。
-                </p>
-              )
+              <MacroTab
+                macroAvailable={fwAvail.macro}
+                macroSlots={state.macroSlots}
+                onMacroSave={handleMacroSave}
+                isConnected={isConnected}
+                keyLayout={keyLayout}
+                tdSlots={state.tdSlots}
+                onTdSlotChange={handleTdSlotChange}
+                comboSlots={state.comboSlots}
+                comboEnabled={state.kbSettings.combo}
+                onComboEnabledChange={v => handleKbSettingsChange({ ...state.kbSettings, combo: v })}
+                onComboSlotChange={handleComboSlotChange}
+              />
             )}
 
             {activeTab === 'firmware' && (
@@ -768,14 +916,18 @@ export default function App() {
 
             {activeTab === 'feedback' && <FeedbackTab />}
 
-            {activeTab === 'settings' && (
-              <SettingsTab
-                settings={state.kbSettings}
+            {activeTab === 'trackball' && (
+              <TrackballSettingsTab
                 isConnected={isConnected}
-                model={state.model}
-                productId={state.productId}
-                layerCount={state.info?.layers}
+                layerCount={state.info?.layers ?? 4}
+                trackball={state.trackball}
+                onTrackballChange={handleTrackballChange}
+                onSave={handleSave}
+                settings={state.kbSettings}
                 onChange={handleKbSettingsChange}
+                accelAvailable={accelAvailable}
+                dpiCurve={state.dpiCurve}
+                onDpiCurveChange={handleDpiCurveChange}
                 gesture={state.gesture}
                 onGestureChange={handleGestureChange}
                 gestureModes={state.gestureModes}
@@ -786,25 +938,35 @@ export default function App() {
                 onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
                 gestureWaveEnable={state.gestureWaveEnable}
                 onGestureWaveEnableChange={handleGestureWaveEnableChange}
+                shake={state.shake}
+                onShakeChange={handleShakeChange}
+                dflick={state.dflick}
+                onDFlickChange={handleDFlickChange}
                 precision={state.precision}
                 onPrecisionChange={setPrecisionConfig}
                 scrollInertia={state.scrollInertia}
                 onScrollInertiaChange={setScrollInertiaConfig}
-                layerLedEnable={state.layerLedEnable}
-                layerLeds={state.layerLeds}
-                onLayerLedEnableChange={setLayerLedEnable}
-                onLayerLedChange={setLayerLed}
+                keyLayout={keyLayout}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsTab
+                settings={state.kbSettings}
+                isConnected={isConnected}
+                onChange={handleKbSettingsChange}
+                detectedOs={state.detectedOs}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {
                   setKeyLayout(layout);
                   localStorage.setItem('keyLayout', layout);
                 }}
+                model={state.model}
+                productId={state.productId}
                 onTestLed={isConnected ? testLed : undefined}
               >
                 {isConnected && layout && (
-                  <CollapsibleCard title={<>テストマトリクス <span className="settings-unit">キーが正しく反応するか確認</span></>}>
-                    <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />
-                  </CollapsibleCard>
+                  <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />
                 )}
               </SettingsTab>
             )}
@@ -833,17 +995,6 @@ export default function App() {
         )}
       </footer>
 
-      {selectedKeyIndex !== null && layout && !pendingOrder && (
-        <KeyConfigModal
-          keyIndex={selectedKeyIndex}
-          currentCode={currentCode}
-          keyLayout={keyLayout}
-          avail={fwAvail}
-          layerCount={state.info?.layers}
-          onSelect={handleModalSelect}
-          onClose={() => setSelectedKeyIndex(null)}
-        />
-      )}
     </div>
   );
 }

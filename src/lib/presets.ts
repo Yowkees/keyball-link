@@ -45,9 +45,10 @@ const KC_MUTE=0x00A8;
 const MB1=0x00D1, MB2=0x00D2, MB3=0x00D3;
 const WH_U=0x00D9, WH_D=0x00DA;
 
-const UG_TOG=0x7820;
-const RGB_M_P=0x782B, RGB_M_B=0x782C, RGB_M_R=0x782D;
-const RGB_M_SW=0x782E, RGB_M_K=0x7830;
+const UG_TOG=0x7820, UG_NEXT=0x7821, UG_PREV=0x7822;
+// 2026-09-11、RGB_M_*（旧RGB_MODE_*直接指定キー）を削除した。現行QMKにはこれらを
+// 処理するコードが無く（keycodes.tsのコメント参照）、キーマップに置いても無反応の
+// 死んだキーだったため。UG_NEXT/UG_PREVで代替する。
 
 const MO3=0x5223;
 const TG1=0x5261, TG2=0x5262, TG3=0x5263;
@@ -171,12 +172,12 @@ const layer3: LayerMap = {
   // 右半分
   0: {
     0: KB9,
-    1: RGB_M_SW,
-    2: RGB_M_R,
-    3: RGB_M_B,
-    4: RGB_M_P,
+    1: UG_PREV,
+    2: UG_NEXT,
+    3: NO,
+    4: NO,
   },
-  1: { 0: MB3,   1: MB2,      2: KC_UP,    3: MB1,      4: RGB_M_K },
+  1: { 0: MB3,   1: MB2,      2: KC_UP,    3: MB1,      4: NO },
   2: { 0: KB8,   1: KC_RIGHT, 2: KC_DOWN,  3: KC_LEFT,  4: KB5     },
   3: {
     0: MO3,

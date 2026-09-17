@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../lib/protocol';
-import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, emptyMacroSlot, encodeMacroBuffer } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
+import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
 
@@ -24,8 +24,13 @@ export interface KeyballState {
   gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応
   gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応
   gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応
+  shake: ShakeConfig | null;  // シェイク機能。null = 非対応ファーム
+  dflick: DFlickConfig | null;  // ダブルフリック。null = 非対応ファーム
+  comboSlots: ComboSlot[] | null;  // コンボ。null = 非対応ファーム
+  detectedOs: number | null;  // OS自動判別の検出結果（0-4）。null = 非対応ファーム
+  dpiCurve: DpiCurveConfig | null;  // DPIカーブ。null = 非対応ファーム
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
-  precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
+  precision: PrecisionConfig | null;  // 精密モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
   layerLeds: (LayerLedConfig | null)[];  // インデックス=レイヤー番号（0は未使用）
@@ -42,53 +47,55 @@ const MODEL_MAP: Record<number, ModelKey> = {
   139: 'keyballplus',
 };
 
+// 未接続時の初期状態。手動切断・物理切断（ケーブル抜き差し等）・再起動後の切断で
+// すべて同じ画面に戻したいので、ここ一箇所だけで定義し、他の場所からは参照するだけにする。
+const initialKeyballState = (): KeyballState => ({
+  connectionState: 'disconnected',
+  errorMessage: '',
+  deviceName: '',
+  productId: null,
+  info: null,
+  model: null,
+  keymap: [],
+  trackball: null,
+  led: null,
+  tdSlots: [],
+  kbSettings: KB_SETTINGS_DEFAULT,
+  gesture: null,
+  gestureModes: null,
+  gestureThreshold: null,
+  gestureWaveSpeed: null,
+  gestureWaveEnable: null,
+  shake: null,
+  dflick: null,
+  comboSlots: null,
+  detectedOs: null,
+  dpiCurve: null,
+  firmwareVersion: null,
+  precision: null,
+  scrollInertia: null,
+  layerLedEnable: null,
+  layerLeds: [],
+  macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
+  currentLayer: 0,
+  isLoading: false,
+  isWebHIDSupported: isWebHIDSupported(),
+});
+
 export function useKeyball() {
   const hid = useRef(new KeyballHID());
 
-  const [state, setState] = useState<KeyballState>({
-    connectionState: 'disconnected',
-    errorMessage: '',
-    deviceName: '',
-    productId: null,
-    info: null,
-    model: null,
-    keymap: [],
-    trackball: null,
-    led: null,
-    tdSlots: [],
-    kbSettings: KB_SETTINGS_DEFAULT,
-    gesture: null,
-    gestureModes: null,
-    gestureThreshold: null,
-    gestureWaveSpeed: null,
-    gestureWaveEnable: null,
-    firmwareVersion: null,
-    precision: null,
-    scrollInertia: null,
-    layerLedEnable: null,
-    layerLeds: [],
-    macroSlots: Array.from({ length: MACRO_SLOT_COUNT }, emptyMacroSlot),
-    currentLayer: 0,
-    isLoading: false,
-    isWebHIDSupported: isWebHIDSupported(),
-  });
+  const [state, setState] = useState<KeyballState>(initialKeyballState);
+
+  // 未接続状態に戻す共通処理。isWebHIDSupportedだけは接続状態に関係ない環境情報なので引き継ぐ。
+  const resetToDisconnected = useCallback(() => {
+    setState(prev => ({ ...initialKeyballState(), isWebHIDSupported: prev.isWebHIDSupported }));
+  }, []);
 
   // 物理切断（ケーブル抜き差し等）を検知して接続前の状態に戻す
   useEffect(() => {
-    hid.current.onDisconnect = () => {
-      setState(prev => ({
-        ...prev,
-        connectionState: 'disconnected',
-        deviceName: '',
-        productId: null,
-        info: null,
-        model: null,
-        keymap: [],
-        trackball: null,
-        led: null,
-      }));
-    };
-  }, []);
+    hid.current.onDisconnect = resetToDisconnected;
+  }, [resetToDisconnected]);
 
   const setPartial = (patch: Partial<KeyballState>) =>
     setState(prev => ({ ...prev, ...patch }));
@@ -123,10 +130,20 @@ export function useKeyball() {
         gestureWaveEnable = await hid.current.getGestureWaveEnable();
         gestureModes = modes;
       } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
+      let shake: ShakeConfig | null = null;
+      try { shake = await hid.current.getShakeConfig(); } catch { /* シェイク非対応FW */ }
+      let dflick: DFlickConfig | null = null;
+      try { dflick = await hid.current.getDFlickConfig(); } catch { /* ダブルフリック非対応FW */ }
+      let comboSlots: ComboSlot[] | null = null;
+      try { comboSlots = await hid.current.getAllComboSlots(); } catch { /* コンボ非対応FW */ }
+      let detectedOs: number | null = null;
+      try { detectedOs = await hid.current.getDetectedOs(); } catch { /* OS自動判別非対応FW */ }
+      let dpiCurve: DpiCurveConfig | null = null;
+      try { dpiCurve = await hid.current.getDpiCurve(); } catch { /* DPIカーブ非対応FW */ }
       let firmwareVersion: FirmwareVersion | null = null;
       try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
       let precision: PrecisionConfig | null = null;
-      try { precision = await hid.current.getPrecisionConfig(); } catch { /* 超低速モード非対応FW */ }
+      try { precision = await hid.current.getPrecisionConfig(); } catch { /* 精密モード非対応FW */ }
       let scrollInertia: ScrollInertiaConfig | null = null;
       try { scrollInertia = await hid.current.getScrollInertiaConfig(); } catch { /* 慣性スクロール非対応FW */ }
       let layerLedEnable: boolean | null = null;
@@ -154,6 +171,11 @@ export function useKeyball() {
         gestureThreshold,
         gestureWaveSpeed,
         gestureWaveEnable,
+        shake,
+        dflick,
+        comboSlots,
+        detectedOs,
+        dpiCurve,
         firmwareVersion,
         precision,
         scrollInertia,
@@ -172,16 +194,8 @@ export function useKeyball() {
 
   const disconnect = useCallback(async () => {
     await hid.current.disconnect();
-    setPartial({
-      connectionState: 'disconnected',
-      deviceName: '',
-      productId: null,
-      info: null,
-      model: null,
-      keymap: [],
-      trackball: null,
-    });
-  }, []);
+    resetToDisconnected();
+  }, [resetToDisconnected]);
 
   const setKeycode = useCallback(async (layer: number, row: number, col: number, keycode: number) => {
     await hid.current.setKeycode(layer, row, col, keycode);
@@ -261,9 +275,33 @@ export function useKeyball() {
     setPartial({ gestureWaveEnable: v });
   }, []);
 
+  const setShake = useCallback(async (s: ShakeConfig) => {
+    await hid.current.setShakeConfig(s);
+    setPartial({ shake: s });
+  }, []);
+
+  const setDFlick = useCallback(async (d: DFlickConfig) => {
+    await hid.current.setDFlickConfig(d);
+    setPartial({ dflick: d });
+  }, []);
+
+  const setComboSlot = useCallback(async (idx: number, slot: ComboSlot) => {
+    await hid.current.setComboSlot(idx, slot);
+    setState(prev => {
+      const comboSlots = prev.comboSlots ? [...prev.comboSlots] : Array.from({ length: COMBO_SLOT_COUNT }, emptyComboSlot);
+      comboSlots[idx] = slot;
+      return { ...prev, comboSlots };
+    });
+  }, []);
+
   const setPrecisionConfig = useCallback(async (p: PrecisionConfig) => {
     await hid.current.setPrecisionConfig(p);
     setPartial({ precision: p });
+  }, []);
+
+  const setDpiCurve = useCallback(async (c: DpiCurveConfig) => {
+    await hid.current.setDpiCurve(c);
+    setPartial({ dpiCurve: c });
   }, []);
 
   const setScrollInertiaConfig = useCallback(async (c: ScrollInertiaConfig) => {
@@ -300,8 +338,8 @@ export function useKeyball() {
   const reboot = useCallback(async () => {
     await hid.current.reboot();
     await hid.current.disconnect();
-    setPartial({ connectionState: 'disconnected', deviceName: '', info: null, model: null, keymap: [], trackball: null });
-  }, []);
+    resetToDisconnected();
+  }, [resetToDisconnected]);
 
   const setCurrentLayer = useCallback((layer: number) => {
     setPartial({ currentLayer: layer });
@@ -367,5 +405,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setPrecisionConfig, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

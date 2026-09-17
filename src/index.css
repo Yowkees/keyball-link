@@ -1,62 +1,192 @@
-/* ===== CSS変数（ダークテーマ・デフォルト） ===== */
+/* ===== CSS変数（ダークテーマ・ミント配色がデフォルト） ===== */
+/* Keyball Link UIデザイン「Neo v2」に準拠。data-theme(dark/light) × data-accent(mint/amber/violet) の
+   組み合わせで下の各ブロックが上書きされる。派生色(--accent-h等)はvar()参照なので他は書き換え不要。
+   ダーク3種のbg2/bg3は、ユーザーからの「パネル背景とキー枠をもう少し明るく」という
+   フィードバックを受けてモックアップの値より意図的に明るく調整済み（bg本体とアクセント色はモックアップ通り）。
+   border/border2は一度明るくしたが「元に戻して」との要望で以前の値に戻している。 */
 :root {
-  --bg:         #0e0f14;
-  --bg2:        #161821;
-  --bg3:        #1f2230;
-  --text:       #e6e9f4;
-  --text-dim:   #8189a3;
-  --accent:     #7d8cfa;
-  --accent-h:   #96a3ff;
-  --accent2:    #a78bfa;
-  --green:      #4ade80;
-  --red:        #fb7185;
-  --border:     #2a2e40;
-  --key-bg:     #252938;
-  --key-hover:  #343a52;
-  --key-sel:    #7d8cfa;
-  --key-sel-fg: #0e0f14;
+  --bg:         #0e1418;
+  --bg2:        #182229;
+  --bg3:        #1c2830;
+  --text:       #d8e0e4;
+  --text-dim:   #94a7af;
+  --accent:     #48d6a8;
+  --accent-soft: #15332a;
+  --accent-line: #23473a;
+  --accent-dim: #74bca3;
+  --glow:       rgba(72,214,168,.16);
+  --green:      #48d6a8;
+  --red:        #e8737a;
+  --warn:       #e8b44a;
+  --warn-soft:  #2a2110;
+  --warn-line:  #5c4520;
+  --border:     #33454f;
+  --border2:    #415663;
+  --on-accent:  #0e1418;
 
-  font-family: system-ui, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  /* 派生色（テーマ・アクセントから自動計算するため個別の上書き不要） */
+  --accent-h:   color-mix(in srgb, var(--accent) 75%, white);
+  --accent2:    color-mix(in srgb, var(--accent) 88%, black);
+  --key-bg:     var(--bg3);
+  --key-hover:  color-mix(in srgb, var(--bg3) 88%, var(--text));
+  --key-sel:    var(--accent);
+  --key-sel-fg: var(--on-accent);
+
+  --font-body: 'Noto Sans JP', system-ui, 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --font-heading: 'Space Grotesk', 'Noto Sans JP', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+
+  font-family: var(--font-body);
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
   margin: 0;
 }
 
-/* ===== ライトテーマ ===== */
+@keyframes kb-pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes kb-spin  { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes kb-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+
+/* ===== ライトテーマ（ミント） ===== */
 :root[data-theme="light"] {
-  --bg:         #fefdfa;
+  --bg:         #edf1ef;
   --bg2:        #ffffff;
-  --bg3:        #faf6ed;
-  --text:       #3c362c;
-  --text-dim:   #a2977f;
-  --accent:     #f28a30;
-  --accent-h:   #e37b1f;
-  --accent2:    #f4b73f;
-  --green:      #3fb46a;
-  --red:        #e35050;
-  --border:     #eee3cf;
-  --key-bg:     #fbf7ee;
-  --key-hover:  #f6ecd9;
-  --key-sel:    #f28a30;
-  --key-sel-fg: #ffffff;
+  --bg3:        #f5f8f6;
+  --text:       #17211e;
+  --text-dim:   #586866;
+  --accent:     #0e8f6c;
+  --accent-soft: #dcf2ea;
+  --accent-line: #9ad3c0;
+  --accent-dim: #4e9b84;
+  --glow:       rgba(14,143,108,.14);
+  --green:      #0e8f6c;
+  --red:        #c94a4f;
+  --warn:       #8a5a06;
+  --warn-soft:  #fbf1dc;
+  --warn-line:  #dfbe7c;
+  --border:     #dce4e1;
+  --border2:    #c6d2ce;
+  --on-accent:  #ffffff;
 }
+
+/* ===== アクセントカラー：amber（ダーク） ===== */
+:root[data-accent="amber"] {
+  --bg:         #15110c;
+  --bg2:        #241d15;
+  --bg3:        #2a2219;
+  --text:       #e8e0d2;
+  --text-dim:   #b0a08a;
+  --accent:     #e8b44a;
+  --accent-soft: #33270f;
+  --accent-line: #5c4520;
+  --accent-dim: #c2a066;
+  --glow:       rgba(232,180,74,.16);
+  --warn:       #e8b44a;
+  --warn-soft:  #2e2410;
+  --warn-line:  #61481f;
+  --border:     #453829;
+  --border2:    #5a4a37;
+  --on-accent:  #15110c;
+}
+
+/* ===== アクセントカラー：violet（ダーク） ===== */
+:root[data-accent="violet"] {
+  --bg:         #110f19;
+  --bg2:        #221f33;
+  --bg3:        #282442;
+  --text:       #dcd8ea;
+  --text-dim:   #9e97b4;
+  --accent:     #a78bfa;
+  --accent-soft: #241e3d;
+  --accent-line: #3e3566;
+  --accent-dim: #a196d0;
+  --glow:       rgba(167,139,250,.18);
+  --warn:       #e8b44a;
+  --warn-soft:  #2a2312;
+  --warn-line:  #5a4722;
+  --border:     #413a5c;
+  --border2:    #524a73;
+  --on-accent:  #110f19;
+}
+
+/* ===== アクセントカラー：amber（ライト） ===== */
+:root[data-theme="light"][data-accent="amber"] {
+  --bg:         #f4f0e8;
+  --bg2:        #fffdf8;
+  --bg3:        #faf6ee;
+  --text:       #241d14;
+  --text-dim:   #6e6151;
+  --accent:     #b4770a;
+  --accent-soft: #faebcf;
+  --accent-line: #dfbe7c;
+  --accent-dim: #a98536;
+  --glow:       rgba(180,119,10,.14);
+  --warn:       #8a5a06;
+  --warn-soft:  #f9eed6;
+  --warn-line:  #dcbb79;
+  --border:     #e6dcc9;
+  --border2:    #d4c8b1;
+  --on-accent:  #fffdf8;
+}
+
+/* ===== アクセントカラー：violet（ライト） ===== */
+:root[data-theme="light"][data-accent="violet"] {
+  --bg:         #f0eef7;
+  --bg2:        #ffffff;
+  --bg3:        #f7f5fc;
+  --text:       #1b1727;
+  --text-dim:   #666080;
+  --accent:     #6d48d6;
+  --accent-soft: #e8e2fb;
+  --accent-line: #bba8f0;
+  --accent-dim: #7d68c0;
+  --glow:       rgba(109,72,214,.14);
+  --warn:       #84540a;
+  --warn-soft:  #f7eeda;
+  --warn-line:  #dbb97c;
+  --border:     #e1dcee;
+  --border2:    #ccc5e0;
+  --on-accent:  #ffffff;
+}
+
+/* ===== アクセントカラー選択（ヘッダー） ===== */
+.accent-picker {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+}
+.accent-picker__dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.accent-picker__dot--active { border-color: var(--text); }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body { background: var(--bg); }
 
 #root {
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 /* ===== アプリ全体 ===== */
+/* ブラウザ全体（ページ）としてはスクロールさせず、常に1画面に収める。
+   はみ出す内容は .app-main の内部だけがスクロールする。 */
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
 }
 
 /* ===== トースト通知 ===== */
@@ -86,6 +216,7 @@ body { background: var(--bg); }
 
 /* ===== ヘッダー ===== */
 .app-header {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -93,6 +224,13 @@ body { background: var(--bg); }
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
+  background-image: radial-gradient(120% 180% at 88% -30%, var(--glow), transparent 60%);
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-logo {
@@ -100,6 +238,24 @@ body { background: var(--bg); }
   width: auto;
   display: block;
   flex-shrink: 0;
+}
+
+.app-brand__sub {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: .2em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.app-brand__cursor {
+  width: 6px;
+  height: 11px;
+  background: var(--accent);
+  animation: kb-pulse 1.3s steps(1,end) infinite;
 }
 
 .theme-toggle {
@@ -159,7 +315,26 @@ body { background: var(--bg); }
   padding: 4px 10px;
   border-radius: 999px;
 }
-.status--connected { color: var(--green); }
+.status--connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+}
+.status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 9px var(--accent);
+  animation: kb-pulse 2.2s ease-in-out infinite;
+}
 .status--error     { color: var(--red); }
 
 /* ===== ボタン ===== */
@@ -175,11 +350,24 @@ body { background: var(--bg); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn--primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: var(--key-sel-fg);
-  border-color: transparent;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  border-radius: 10px;
 }
-.btn--primary:hover:not(:disabled) { filter: brightness(1.12); }
+.btn--primary::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; width: 30%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  animation: kb-sweep 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.btn--primary:hover:not(:disabled) { box-shadow: 0 0 18px var(--glow); }
 
 .btn--ghost {
   background: transparent;
@@ -189,21 +377,37 @@ body { background: var(--bg); }
 
 .btn--small { padding: 4px 10px; font-size: 12px; }
 
+.connection-bar .btn:not(.btn--primary) {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  border-radius: 10px;
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+.connection-bar .btn:not(.btn--primary):hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ===== メイン ===== */
+/* ページ全体はスクロールさせず、ここだけが縦方向にスクロールする唯一の領域 */
 .app-main {
   flex: 1;
+  min-height: 0;
   padding: 24px;
-  overflow-x: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-footer {
+  flex: none;
   padding: 10px 24px;
   font-size: 11px;
   color: var(--text-dim);
   border-top: 1px solid var(--border);
   text-align: center;
 }
-.app-footer__warn { color: var(--accent); }
+.app-footer__warn { color: var(--warn); }
 
 /* ===== 接続前プレースホルダー ===== */
 .placeholder {
@@ -220,36 +424,142 @@ body { background: var(--bg); }
 /* ===== タブ ===== */
 .tabs {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
 }
 
 .tab {
-  padding: 8px 20px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  padding: 9px 17px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
   cursor: pointer;
+  font-family: var(--font-heading);
+  font-weight: 500;
   font-size: 14px;
   color: var(--text-dim);
-  margin-bottom: -1px;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.tab:hover { color: var(--text); }
+.tab:hover { color: var(--text); border-color: var(--accent); }
 .tab--active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
+.tab:disabled { opacity: .45; cursor: not-allowed; }
+.tab:disabled:hover { color: var(--text-dim); border-color: var(--border); }
 
-/* ===== レイヤーセレクター ===== */
+/* ===== レイヤーセレクター（旧・他画面の縦長ボタン用に残置） ===== */
 .layer-selector {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 20px;
+}
+
+/* ===== レイヤータブ（キーマップタブ上部・コンパクトなピル型） ===== */
+.layer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.layer-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.layer-tab {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+}
+.layer-tab:hover { border-color: var(--accent); }
+.layer-tab--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.layer-tab--dragging { opacity: 0.45; }
+.layer-tab__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+/* このレイヤーに何らかの連動機能（自動マウス/スクロール/ジェスチャー/精密モード/LED連動）が
+   割り当てられていることを示す小さなバッジ。詳細はtitle属性のツールチップと下の連動機能表示で確認できる */
+.layer-tab__badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--bg3);
+}
+.layer-toolbar__features {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ball-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ball-toggle__label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.ball-toggle__group {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+}
+.ball-toggle__btn {
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+}
+.ball-toggle__btn:hover { border-color: var(--accent); }
+.ball-toggle__btn--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .btn--layer {
   background: var(--bg2);
@@ -267,7 +577,7 @@ body { background: var(--bg); }
 /* ===== キーボードレイアウト ===== */
 .layout-scroll {
   overflow-x: auto;
-  padding: 28px 0;
+  padding: 44px 0;
   display: flex;
   justify-content: center;
 }
@@ -302,7 +612,6 @@ body { background: var(--bg); }
   color: var(--text-dim);
   padding: 4px 2px 0;
 }
-
 .keyboard-layout {
   display: block;
   flex-shrink: 0;
@@ -579,11 +888,218 @@ body { background: var(--bg); }
   min-width: 80px;
 }
 
+/* ===== LED設定パネル（キーマップタブ下部） ===== */
+.led-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* 「キー設定」パネルの見出し（.key-config-panel__title）と文字サイズを揃える */
+.led-panel__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+/* エフェクト選択と、その左隣（レイヤー選択タブなど）を並べる行 */
+.led-panel__toprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 内容に応じた自然な幅にとどめ、行いっぱいに間延びさせない */
+.led-panel__effect-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 160px;
+  margin-left: auto;
+}
+
+/* 「通常」／各レイヤーを切り替えて、同じLED設定UIで編集対象を変える */
+.led-panel__targets {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.led-panel__target {
+  position: relative;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+}
+.led-panel__target:hover { border-color: var(--accent); }
+.led-panel__target--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+/* このレイヤーに専用の光り方が設定済み（enabled）であることを示す小さな印 */
+.led-panel__target--on::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.led-panel__bar {
+  position: relative;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid var(--border2);
+  overflow: hidden;
+}
+.led-panel__bar-fill {
+  position: absolute;
+  inset: 0;
+}
+.led-panel__marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255,255,255,.7);
+}
+.led-panel__sliders {
+  display: grid;
+  /* 4個を1行に詰め込むとスライダー自体が短くなるため、2列固定にして
+     1本あたりの長さを確保する（ラベル・値の幅を切り詰めた分もスライダーに回す） */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 28px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.led-panel__slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.led-panel__slider-label {
+  flex: 0 0 32px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.led-panel__slider-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 34px;
+  flex: 0 0 auto;
+  text-align: right;
+  font-feature-settings: 'tnum';
+  color: var(--accent);
+}
+.led-effect-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 /* ===== キーマップビュー ===== */
 .keymap-view {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* ===== キーマップタブ: キーボード配列｜キー設定パネル の2カラム ===== */
+/* align-itemsはstretchにしない。stretchだと右側（キー設定パネル）の背の高いコンテンツに
+   合わせて左側の列まで一緒に引き伸ばされてしまい、JS側で左側の実測高さを右側に反映する
+   処理（App.tsxのkeymapLeftHeight）が自己参照的に無効化されてしまうため。 */
+.keymap-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .keymap-grid { grid-template-columns: 1fr; }
+}
+
+/* レイアウト用の外枠（自身は装飾なし）。中に「キー配列カード」と「LEDカード」を縦に並べる */
+.keymap-left-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keymap-keyboard-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keymap-right-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* キー配列カードとは別の1枚のカードとして表示（.keymap-keyboard-card等と同格） */
+.keymap-led-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+/* ===== キー設定パネル（右側常時表示・モーダル版と共通の中身） ===== */
+.key-config-panel { display: flex; flex-direction: column; height: 100%; }
+.key-config-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.key-config-panel__title { font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: var(--text); }
+.key-config-panel__current { font-size: 11.5px; color: var(--text-dim); }
+.key-config-panel__code { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim); }
+.key-config-panel__pos { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+/* 縦スクロールはキー一覧(.modal-panel__grid)だけに閉じ込め、ヘッダー・タブ・修飾キー行・
+   カテゴリ/検索行は常に表示したままにする。本文自体はスクロールさせず、中の
+   キー一覧グリッドだけをflex:1+overflow-yで伸縮させる。
+   共通の.modal-body（flex:1;overflow-y:auto）はファイル後方で定義されており、詳細度が
+   同じ単一クラスだと読み込み順で.modal-bodyが勝ってしまうため、詳細度を上げて上書きする */
+.modal-body.key-config-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.key-config-panel__empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
 }
 
 /* ===== ファームウェア書き込み ===== */
@@ -841,6 +1357,12 @@ body { background: var(--bg); }
 .builder-preview strong {
   color: var(--text);
 }
+.builder-preview__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
 
 /* ===== 旧 mt-builder (後方互換) ===== */
 .keypicker-panel__type-tabs {
@@ -986,6 +1508,25 @@ body { background: var(--bg); }
 }
 .layout-toggle-btn--active .layout-toggle-example { color: var(--accent); opacity: 0.8; }
 
+/* ===== 使い方ガイド ===== */
+.usage-guide__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+.usage-guide__item dt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.usage-guide__item dd {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
 /* ===== 設定カード ===== */
 .settings-card {
   background: var(--bg2);
@@ -994,6 +1535,7 @@ body { background: var(--bg); }
   padding: 16px 20px;
 }
 .settings-card h2 {
+  font-family: var(--font-heading);
   font-size: 16px;
   font-weight: 700;
   color: var(--text);
@@ -1100,6 +1642,7 @@ body { background: var(--bg); }
 .collapsible-card__header:hover { background: var(--bg3); }
 
 .collapsible-card__title {
+  font-family: var(--font-heading);
   font-size: 16px;
   font-weight: 700;
   color: var(--text);
@@ -1233,13 +1776,72 @@ body { background: var(--bg); }
 
 /* ===== 詳細設定タブ ===== */
 .settings-tab {
-  padding: 20px;
-  max-width: 640px;
-  margin: 0 auto;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
+.settings-sidebar-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-sidebar__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  cursor: pointer;
+}
+.settings-sidebar__item:hover { border-color: var(--accent); }
+.settings-sidebar__item--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.settings-sidebar__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.settings-sidebar__item--active .settings-sidebar__title { color: var(--accent); }
+.settings-sidebar__note { font-size: 10px; color: var(--text-dim); }
+
+.settings-detail {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+}
+.settings-detail__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-detail__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.settings-detail__note { font-size: 11px; color: var(--text-dim); }
+.settings-detail__body { padding: 14px 16px; max-width: 640px; }
 
 .settings-notice {
   background: var(--bg3);
@@ -1337,6 +1939,83 @@ body { background: var(--bg); }
   border-color: var(--accent);
 }
 .toggle-btn:disabled { cursor: not-allowed; }
+
+/* ===== DPIカーブ（トーンカーブ風エディタ） ===== */
+.dpi-curve {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dpi-curve__graph {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.dpi-curve__svg {
+  width: 100%;
+  height: 220px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: none;
+}
+
+.dpi-curve__grid {
+  stroke: var(--border);
+  stroke-width: 0.4;
+}
+
+.dpi-curve__diagonal {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2;
+}
+
+.dpi-curve__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.4;
+}
+
+.dpi-curve__point {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 0.6;
+  cursor: grab;
+}
+.dpi-curve__point--active { fill: var(--accent-h); cursor: grabbing; }
+
+.dpi-curve__axis-y {
+  writing-mode: vertical-rl;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+
+.dpi-curve__axis-x {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+
+.dpi-curve__values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+.dpi-curve__value--active { color: var(--accent); }
 
 /* ===== LED診断パネル ===== */
 .led-test-panel {
@@ -1530,80 +2209,35 @@ body { background: var(--bg); }
   color: var(--text-dim);
 }
 
-/* ===== キーパレット（ドラッグ&ドロップ用） ===== */
-.key-palette {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.key-palette__header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-}
-.key-palette__header:hover { background: var(--bg3); }
-
-.key-palette__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-}
-.key-palette__title .settings-unit {
-  font-size: 11px;
-  font-weight: 400;
-  margin-left: 8px;
-}
-
-.key-palette__body {
-  padding: 0 16px 16px;
-}
-
-.key-palette__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 4px;
-  max-height: 260px;
-  overflow-y: auto;
-  padding: 2px;
-}
-.key-palette__grid .picker-key {
-  cursor: grab;
-}
-.key-palette__grid .picker-key:active {
-  cursor: grabbing;
-}
-
 /* ===== 修飾キー付加バー（通常パネル） ===== */
 .mod-bar {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  flex-wrap: wrap;
   padding: 8px 10px;
   margin-bottom: 10px;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
-.mod-bar__label {
-  font-size: 12px;
-  color: var(--text-dim);
+.mod-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 修飾キー4種＋「右側」を必ず横一列に収める（パネル幅に応じて等分） */
+.mod-bar__row .btn--layer {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 4px;
+  font-size: 11px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mod-bar__hint {
   font-size: 11px;
   color: var(--accent);
-  margin-left: 4px;
 }
 .mod-bar__hint strong { color: var(--text); }
 
@@ -1693,7 +2327,9 @@ body { background: var(--bg); }
 .modal-type-tabs {
   display: flex;
   gap: 4px;
-  padding: 10px 14px 0;
+  /* 下端の余白が0だとタブ（丸ピル形状）のボーダーと下の罫線がほぼ密着して見えるため、
+     上と同じ幅の余白を入れて罫線の位置に自然な間隔を持たせる */
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
 }
 .modal-type-tabs .tab {
@@ -1766,6 +2402,67 @@ body { background: var(--bg); }
   max-height: 380px;
   overflow-y: auto;
   padding: 2px;
+}
+/* 右側常時表示パネル内では、キー一覧グリッドだけが縦スクロールする対象になる。
+   固定のmax-heightをやめ、残りの縦幅いっぱいに広がってその中でスクロールさせる */
+.key-config-panel__body .modal-panel__grid {
+  max-height: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ===== キー一覧（コンパクト版・右側常時表示パネル用） ===== */
+/* カテゴリはドロップダウン、検索バーはその右隣、キーは5列固定表示（モックアップ準拠） */
+.key-picker-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.key-picker-toolbar__select {
+  flex: 0 0 40%;
+  min-width: 0;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+}
+.key-picker-toolbar__select:focus { outline: none; border-color: var(--accent); }
+.key-picker-toolbar__search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+}
+.key-picker-toolbar__chevron {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--accent);
+}
+.key-picker-toolbar__search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+}
+.modal-panel__grid--compact {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: minmax(46px, auto);
+  max-height: none;
 }
 
 .picker-empty {

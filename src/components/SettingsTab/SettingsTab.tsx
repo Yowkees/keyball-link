@@ -1,230 +1,34 @@
 import { useState } from 'react';
-import type { KbSettings, GestureConfig, GestureModeConfig, GestureThreshold, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig } from '../../lib/protocol';
-import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from '../../lib/protocol';
+import type { KbSettings } from '../../lib/protocol';
+import { OS_VARIANT_NAMES } from '../../lib/protocol';
 import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import type { KeyLayout } from '../../lib/keycodes';
-import { getKeyDisplayLabel } from '../../lib/keycodes';
-import { CollapsibleCard } from '../Collapsible/CollapsibleCard';
-import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
-import { LEDSettings } from '../LEDSettings/LEDSettings';
+import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { UsageGuide } from '../UsageGuide/UsageGuide';
+import { KeyDisplaySection, MacOSSetupSection, isMacOSPlatform } from '../KeyLayoutCards/KeyLayoutCards';
 import type { ModelKey } from '../../layouts';
-
-const LAYER_LED_DEFAULT: LayerLedConfig = { enabled: false, effectId: 1, hue: 0, sat: 255, val: 150, speed: 128 };
-
-// ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
-function SliderControl({ value, min, max, step, disabled, unit, onCommit, format }: {
-  value: number; min: number; max: number; step: number;
-  disabled: boolean; unit: string; onCommit: (v: number) => void;
-  format?: (v: number) => string;  // 表示用の値の整形（例: ×10保持の値を1桁小数で表示）
-}) {
-  const [local, setLocal] = useState(value);
-  // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
-  const [prevValue, setPrevValue] = useState(value);
-  if (prevValue !== value) {
-    setPrevValue(value);
-    setLocal(value);
-  }
-
-  const commit = () => { if (local !== value) onCommit(local); };
-
-  return (
-    <div className="tapping-term-row">
-      <input
-        type="range" min={min} max={max} step={step} value={local} disabled={disabled}
-        onChange={e => setLocal(Number(e.target.value))}
-        onPointerUp={commit}
-        onKeyUp={commit}
-        className="tapping-term-slider"
-      />
-      <span className="tapping-term-value">{format ? format(local) : `${local} ${unit}`}</span>
-    </div>
-  );
-}
 
 interface SettingsTabProps {
   settings: KbSettings;
   isConnected: boolean;
-  model: ModelKey | null;
-  productId: number | null;  // 接続中デバイスの実際のUSB Product ID
-  layerCount?: number;   // 接続中ファームの実際のレイヤー数（未指定時は4）
   onChange: (s: KbSettings) => Promise<void>;
-  gesture: GestureConfig | null;
-  onGestureChange: (g: GestureConfig) => Promise<void>;
-  gestureModes: GestureModeConfig[] | null;  // 複数ジェスチャーモード（RP2040版限定）。null = 非対応ファーム
-  onGestureModeChange: (mode: number, g: GestureModeConfig) => Promise<void>;
-  gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応ファーム
-  onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
-  gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応ファーム
-  onGestureWaveSpeedChange: (speed: number) => Promise<void>;
-  gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応ファーム
-  onGestureWaveEnableChange: (v: boolean) => Promise<void>;
-  precision: PrecisionConfig | null;  // 超低速モード設定。null = 非対応ファーム
-  onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
-  scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
-  onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
-  layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
-  layerLeds: (LayerLedConfig | null)[];  // インデックス=レイヤー番号
-  onLayerLedEnableChange: (v: boolean) => Promise<void>;
-  onLayerLedChange: (layer: number, cfg: LayerLedConfig) => Promise<void>;
+  detectedOs: number | null;  // OS自動判別の検出結果（0-4）。null = 非対応ファーム
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
+  model: ModelKey | null;
+  productId: number | null;
   onTestLed?: (index: number) => Promise<void>;  // LED物理位置実測用の診断コマンド。未対応ファームではundefined
   ledCount?: number;  // 実測対象のLED総数（未指定時は46）
-  children?: React.ReactNode;
+  children?: React.ReactNode;  // テストマトリクス（MatrixTestPanel）をApp.tsx側から差し込む
 }
 
-interface ToggleRowProps {
-  label: string;
-  desc: string;
-  checked: boolean;
-  disabled: boolean;
-  onChange: (v: boolean) => void;
-}
+type SectionKey = 'keyopt' | 'osdetect' | 'keydisplay' | 'macos' | 'ledtest' | 'matrix' | 'guide';
 
-function ToggleRow({ label, desc, checked, disabled, onChange }: ToggleRowProps) {
-  return (
-    <div className={`setting-row ${disabled ? 'setting-row--disabled' : ''}`}>
-      <div className="setting-row__text">
-        <span className="setting-row__label">{label}</span>
-        <span className="setting-row__desc">{desc}</span>
-      </div>
-      <button
-        className={`toggle-btn ${checked ? 'toggle-btn--on' : ''}`}
-        onClick={() => onChange(!checked)}
-        disabled={disabled}
-        aria-pressed={checked}
-      >
-        {checked ? 'ON' : 'OFF'}
-      </button>
-    </div>
-  );
-}
-
-// モデルごとのProductID（VendorIDは共通: 22871）
-const MODEL_PIDS: Record<ModelKey, number> = {
-  keyball39: 512,
-  keyball44: 1024,
-  keyball61: 256,
-  keyballplus: 1280,
-};
-const KEYBALL_VID = 22871;
-
-// Python1行コマンドでplistを安全に書き換える（型が必ず整数になる）
-function buildMacOSCommand(pid: number, kbType: 40 | 42): string {
-  const typeVal = kbType;
-  const keys = [`${pid}-${KEYBALL_VID}-0`, `${pid}-${KEYBALL_VID}-15`];
-  const assignments = keys.map(k => `d['keyboardtype']['${k}']=${typeVal}`).join(';');
-  return (
-    `sudo python3 -c "import plistlib,pathlib;` +
-    `p=pathlib.Path('/Library/Preferences/com.apple.keyboardtype.plist');` +
-    `d=plistlib.loads(p.read_bytes());d.setdefault('keyboardtype',{});` +
-    `${assignments};` +
-    `p.write_bytes(plistlib.dumps(d,fmt=plistlib.FMT_BINARY))" && ` +
-    `sudo killall cfprefsd && ` +
-    `echo "完了。キーボードを一度抜き差ししてください。"`
-  );
-}
-
-function MacOSKeyboardSetup({ defaultLayout, model, productId }: { defaultLayout: KeyLayout; model: ModelKey | null; productId: number | null }) {
-  const [layout, setLayout] = useState<KeyLayout>(defaultLayout);
-  const [copied, setCopied] = useState(false);
-
-  // 接続中デバイスの実際のPIDを優先する。同じ機種名でも版（AVR/RP2040等）でPIDが
-  // 異なることがあり、machineごとの固定表（MODEL_PIDS）だけでは接続中の実機と
-  // 一致しない場合があるため。取得できないとき(未接続時のプレビュー等)のみ表を使う。
-  const pid = productId ?? (model ? MODEL_PIDS[model] : null);
-  const command = pid ? buildMacOSCommand(pid, layout === 'JIS' ? 42 : 40) : null;
-
-  const handleCopy = async () => {
-    if (!command) return;
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  return (
-    <div>
-      <p className="settings-desc">
-        macOSはKeyballの配列（JIS/US）を自動判定できない場合があります。<br />
-        以下のコマンドを一度実行することで、@キーなどの記号が正しく入力できるようになります。
-      </p>
-
-      <div className="macos-layout-toggle">
-        <span className="macos-layout-label">使用する配列：</span>
-        <button
-          className={`layout-toggle-btn macos-toggle-btn ${layout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
-          onClick={() => setLayout('JIS')}
-        >
-          JIS配列
-          <span className="layout-toggle-example">@ は独立キー</span>
-        </button>
-        <button
-          className={`layout-toggle-btn macos-toggle-btn ${layout === 'US' ? 'layout-toggle-btn--active' : ''}`}
-          onClick={() => setLayout('US')}
-        >
-          US配列
-          <span className="layout-toggle-example">@ は Shift+2</span>
-        </button>
-      </div>
-
-      {!model ? (
-        <p className="settings-desc" style={{ marginTop: 8 }}>
-          キーボードを接続すると、そのモデル専用のコマンドが表示されます。
-        </p>
-      ) : (
-        <>
-          <p className="settings-desc" style={{ marginTop: 4, marginBottom: 4 }}>
-            対象モデル: <strong>{model}</strong>
-          </p>
-
-          <div className="macos-steps">
-            <div className="macos-step">
-              <span className="macos-step__num">①</span>
-              <span>ターミナルを開く（Finder → アプリケーション → ユーティリティ → ターミナル）</span>
-            </div>
-            <div className="macos-step">
-              <span className="macos-step__num">②</span>
-              <span>以下のコマンドをコピーして貼り付け、Enterを押す</span>
-            </div>
-          </div>
-
-          <div className="macos-command-block">
-            <code className="macos-command-text">{command}</code>
-            <button
-              className={`macos-copy-btn ${copied ? 'macos-copy-btn--done' : ''}`}
-              onClick={handleCopy}
-            >
-              {copied ? '✅ コピー済み' : '📋 コピー'}
-            </button>
-          </div>
-
-          <div className="macos-step" style={{ marginTop: 8 }}>
-            <span className="macos-step__num">③</span>
-            <span>コマンド実行後、キーボードを一度抜き差しする</span>
-          </div>
-
-          <p className="macos-setup-note">
-            ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。<br />
-            ※ このMacで初めて接続する機種・ファームウェアの場合、抜き差しだけでは反映されないことがあります。その場合はMacを再起動してから確認してください。
-          </p>
-        </>
-      )}
-    </div>
-  );
-}
-
-export function SettingsTab({ settings, isConnected, model, productId, layerCount = 4, onChange, gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange, gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange, precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, keyLayout, onKeyLayoutChange, onTestLed, ledCount = 46, children }: SettingsTabProps) {
-  // 切り替え先レイヤー選択肢（レイヤー0は通常キーマップなので対象外、1以降を列挙）
-  const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
-  // 超低速モードのレイヤー選択肢はレイヤー0も対象（「常に超低速」という使い方もできるため）
-  const precisionLayers = Array.from({ length: Math.max(layerCount, 0) }, (_, i) => i);
+export function SettingsTab({
+  settings, isConnected, onChange, detectedOs,
+  keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
+}: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
-  const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
-  const [editTap, setEditTap] = useState(false);
-  const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)
-  const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
-  const [layerWarn, setLayerWarn] = useState<{ target: 'aml' | 'scroll' | 'gesture' | 'gestureMode'; msg: string; mode?: number } | null>(null);
-  const [ledEditLayer, setLedEditLayer] = useState(1);  // レイヤー連動LEDで現在編集中のレイヤー
   const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
 
   const apply = async (patch: Partial<KbSettings>) => {
@@ -237,83 +41,16 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
   };
 
   const disabled = !isConnected || saving;
-  // LED版に接続中（＝ジェスチャー非対応）。タッピング詳細設定はLED版では効かないので、
-  // 非表示にはせず「表示はするが操作不可（グレーアウト）」にする。未接続時はグレーアウトしない。
-  const tappingUnavail = isConnected && gesture === null;
 
-  // 3つのトラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー）の重複を検出。
-  // target を val にしたとき、有効な他機能と同じレイヤーになっていたらその名前を返す。
-  // 超低速モードは「動きの意味」ではなく「感度」を変えるだけなので、これらとは併用可能。
-  // （例：スクロールレイヤーと同じレイヤーに設定すれば、精密な低速スクロールになる）
-  const conflictName = (target: 'aml' | 'scroll' | 'gesture' | 'gestureMode', val: number, excludeMode?: number): string | null => {
-    if (val === LAYER_NONE) return null;  // 「なし」は重複しない
-    const others: [string, number][] = [];
-    if (target !== 'aml' && settings.autoMouseEnable)
-      others.push(['自動マウスレイヤー', settings.autoMouseLayer]);
-    if (target !== 'scroll' && settings.scrollLayer !== LAYER_NONE)
-      others.push(['スクロールレイヤー', settings.scrollLayer]);
-    if (target !== 'gesture' && gesture && gesture.layer !== LAYER_NONE)
-      others.push(['ジェスチャーレイヤー', gesture.layer]);
-    if (gestureModes) {
-      gestureModes.forEach((m, i) => {
-        if (target === 'gestureMode' && i === excludeMode) return;
-        if (m.layer !== LAYER_NONE) others.push([`ジェスチャー${i + 1}`, m.layer]);
-      });
-    }
-    const hit = others.find(([, l]) => l === val);
-    return hit ? hit[0] : null;
-  };
-
-  // レイヤー選択の共通ハンドラ。重複なら警告して保存しない。
-  // excludeModeは対象が'gestureMode'のとき、今編集中のモード自身を重複判定から除くために使う。
-  const changeLayer = (target: 'aml' | 'scroll' | 'gesture' | 'gestureMode', val: number, save: () => void, excludeMode?: number) => {
-    const c = conflictName(target, val, excludeMode);
-    if (c) {
-      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。`, mode: excludeMode });
-    } else {
-      setLayerWarn(null);
-      save();
-    }
-  };
-
-  // 自動マウスレイヤーの「有効にする」トグル専用ハンドラ。
-  // レイヤー番号自体は変えずに機能だけをONにする操作なので、通常のchangeLayerは通らない。
-  // ONにする瞬間に、既に選ばれているレイヤーがスクロール/ジェスチャーと衝突していないか確認する
-  // （衝突したまま気づかずONにしてしまうと、トラックボールを動かすたびに意図せずジェスチャー等が
-  // 発動してしまう。実機での不具合報告を受けて追加）。
-  const changeAmlEnable = (v: boolean) => {
-    if (v) {
-      const c = conflictName('aml', settings.autoMouseLayer);
-      if (c) {
-        setLayerWarn({ target: 'aml', msg: `${c}と同じレイヤーのため有効にできません。先に「切り替わるレイヤー」を別のレイヤーに変更してください。` });
-        return;
-      }
-    }
-    setLayerWarn(null);
-    apply({ autoMouseEnable: v });
-  };
-  const isMacOS = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent);
-
-  return (
-    <div className="settings-tab">
-      {!isConnected && (
-        <div className="settings-notice">
-          キーボードに接続すると設定を変更できます。
-        </div>
-      )}
-
-      <CollapsibleCard title={<>Tapping Term <span className="settings-unit">長押し判定時間</span></>}>
-        {tappingUnavail && (
-          <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ この版（LED版）では使用できません（固定200msで動作します）。通常版で設定できます。</p>
-        )}
-        <div style={tappingUnavail ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
-          <p className="settings-desc">
-            タップとホールドを区別する時間です。短くするとホールドが素早く反応し、長くするとタップが誤判定されにくくなります。
-            Mod-Tap{FIRMWARE_FEATURES.tapDance ? '・タップダンス' : ''}{FIRMWARE_FEATURES.autoShift ? '・Auto Shift' : ''} の判定に影響します。
-          </p>
+  const sections: { key: SectionKey; title: string; note: string; render: () => React.ReactNode }[] = [
+    {
+      key: 'keyopt', title: 'キー動作オプション', note: '長押し判定・Auto Shift・Permissive Hold',
+      render: () => (
+        <div>
+          <p className="settings-desc">タップとホールドを区別する時間です。</p>
           <SliderControl
             value={settings.tappingTerm} min={50} max={500} step={10}
-            disabled={disabled || tappingUnavail} unit="ms"
+            disabled={disabled} unit="ms"
             onCommit={v => apply({ tappingTerm: v })}
           />
           <div className="tapping-term-hints">
@@ -321,494 +58,65 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
             <span>デフォルト: 200ms</span>
             <span>500ms（ゆっくり）</span>
           </div>
-        </div>
-      </CollapsibleCard>
 
-      <CollapsibleCard title="キー動作オプション">
-        {tappingUnavail && (
-          <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ この版（LED版）では使用できません。通常版で設定できます。</p>
-        )}
-        <div style={tappingUnavail ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
-          <div className="setting-rows">
+          <div className="setting-rows" style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             {FIRMWARE_FEATURES.autoShift && (
               <ToggleRow
                 label="Auto Shift"
-                desc="対応キーを長押しすると自動でShiftが効いた文字を入力します（例: aを長押し→A）。Tapping Term より長く押すと発動します。"
-                checked={settings.autoShift} disabled={disabled || tappingUnavail}
+                desc="長押しでShift文字を入力（例: aの長押し→A）。"
+                checked={settings.autoShift} disabled={disabled}
                 onChange={v => apply({ autoShift: v })}
               />
             )}
             <ToggleRow
               label="Permissive Hold"
-              desc="Mod-Tap のホールド判定を厳密にします。Tapping Term 内でも別キーを押した場合にホールドと判定します。"
-              checked={settings.permissiveHold} disabled={disabled || tappingUnavail}
+              desc="Mod-Tapのホールド判定を厳密にします。"
+              checked={settings.permissiveHold} disabled={disabled}
               onChange={v => apply({ permissiveHold: v })}
             />
           </div>
           {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
         </div>
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>自動マウスレイヤー <span className="settings-unit">トラックボール操作で自動レイヤー切替</span></>}>
-        <p className="settings-desc">
-          トラックボールを動かすと自動で指定レイヤーに切り替わり、操作をやめて一定時間たつと元に戻ります。
-          マウス操作用のキー（クリックなど）を別レイヤーに置いている場合に便利です。
-        </p>
-        <div className="setting-rows">
-          <ToggleRow
-            label="自動マウスレイヤーを使う"
-            desc="トラックボールを動かしたとき、自動的に下記のレイヤーへ切り替えます。"
-            checked={settings.autoMouseEnable}
-            disabled={disabled}
-            onChange={changeAmlEnable}
-          />
-          <div className={`setting-row ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
+      ),
+    },
+    ...(FIRMWARE_FEATURES.osDetection ? [{
+      key: 'osdetect' as const, title: 'OS自動判別', note: '接続先のOSを判定してキーを切り替え',
+      render: () => (
+        <>
+          <div className="setting-row">
             <div className="setting-row__text">
-              <span className="setting-row__label">切り替わるレイヤー</span>
-              <span className="setting-row__desc">トラックボール操作中に有効になるレイヤーです。</span>
+              <span className="setting-row__label">現在の判定結果</span>
             </div>
-            <select
-              className="trackball-bar__select"
-              value={settings.autoMouseLayer}
-              disabled={disabled || !settings.autoMouseEnable}
-              onChange={e => { const v = Number(e.target.value); changeLayer('aml', v, () => apply({ autoMouseLayer: v })); }}
-            >
-              {switchableLayers.map(l => (
-                <option key={l} value={l}>Layer {l}</option>
-              ))}
-            </select>
+            <span style={{ fontWeight: 600, fontSize: '1.05em' }}>
+              {detectedOs == null
+                ? (isConnected ? '—' : '未接続')
+                : (OS_VARIANT_NAMES[detectedOs] ?? '不明')}
+            </span>
           </div>
-          {layerWarn?.target === 'aml' && (
-            <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
-          )}
-        </div>
-        <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
-          <SliderControl
-            value={settings.autoMouseTimeout} min={100} max={2000} step={50}
-            disabled={disabled || !settings.autoMouseEnable} unit="ms"
-            onCommit={v => apply({ autoMouseTimeout: v })}
-          />
-        </div>
-        <div className="tapping-term-hints">
-          <span>100ms（すぐ戻る）</span>
-          <span>デフォルト: 650ms</span>
-          <span>2000ms（長く維持）</span>
-        </div>
-
-        <p className="settings-desc" style={{ marginTop: 16 }}>
-          <strong>切り替わり感度</strong>：トラックボールをどれくらい動かしたらレイヤーが切り替わるかです。小さいほど少しの動きで切り替わり（敏感）、大きいほど大きく動かさないと切り替わりません（鈍感）。
-        </p>
-        <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
-          <SliderControl
-            value={settings.autoMouseThreshold} min={1} max={40} step={1}
-            disabled={disabled || !settings.autoMouseEnable} unit=""
-            onCommit={v => apply({ autoMouseThreshold: v })}
-          />
-        </div>
-        <div className="tapping-term-hints">
-          <span>1（とても敏感）</span>
-          <span>デフォルト: 10</span>
-          <span>40（鈍感）</span>
-        </div>
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>スクロールレイヤー <span className="settings-unit">このレイヤーでトラックボール＝スクロール</span></>}>
-        <div className="setting-row">
-          <div className="setting-row__text">
-            <span className="setting-row__label">スクロールになるレイヤー</span>
-            <span className="setting-row__desc">選んだレイヤーにいる間、トラックボールがスクロールになります。「なし」でスクロール無効。</span>
+          <div className="setting-rows">
+            <ToggleRow
+              label="OSに合わせて ⌘(Cmd) と Ctrl を自動で入れ替える"
+              desc="macOS/iOSでは入れ替え、Windows/Linuxではそのまま。"
+              checked={settings.osAutoSwap} disabled={disabled}
+              onChange={v => apply({ osAutoSwap: v })}
+            />
           </div>
-          <select
-            className="trackball-bar__select"
-            value={settings.scrollLayer}
-            disabled={disabled}
-            onChange={e => { const v = Number(e.target.value); changeLayer('scroll', v, () => apply({ scrollLayer: v })); }}
-          >
-            <option value={LAYER_NONE}>なし</option>
-            {switchableLayers.map(l => (
-              <option key={l} value={l}>Layer {l}</option>
-            ))}
-          </select>
-        </div>
-        {layerWarn?.target === 'scroll' && (
-          <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
-        )}
-        <p className="settings-desc" style={{ marginTop: 8 }}>
-          ※ どのレイヤーでスクロールにするかを変えるだけです。各レイヤーのキーの中身は移動しないので、必要ならキーマップ側で並べ替えてください。
-        </p>
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>慣性スクロール <span className="settings-unit">弾いた後もしばらく滑る</span></>}>
-        {scrollInertia === null ? (
-          <p className="settings-desc">
-            このファーム（機種・バージョン）は<strong>慣性スクロール非対応</strong>です。対応版を書き込むと設定できます。
-          </p>
-        ) : (
-          <>
-            <ToggleRow
-              label="慣性スクロール"
-              desc="スクロール中にトラックボールを弾くと、指を離した後もしばらく減衰しながらスクロールが続きます。"
-              checked={scrollInertia.enable}
-              disabled={disabled}
-              onChange={v => onScrollInertiaChange({ ...scrollInertia, enable: v })}
-            />
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>強さ</p>
-            <SliderControl
-              value={scrollInertia.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
-              disabled={disabled || !scrollInertia.enable} unit=""
-              onCommit={v => onScrollInertiaChange({ ...scrollInertia, strength: v })}
-            />
-            <div className="tapping-term-hints">
-              <span>0（すぐ止まる）</span>
-              <span>デフォルト: {SCROLL_INERTIA_STRENGTH_DEFAULT}</span>
-              <span>{SCROLL_INERTIA_STRENGTH_MAX}（長く滑る）</span>
-            </div>
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>発動しやすさ</p>
-            <p className="settings-desc">
-              どれくらい速くボールを弾いたら発動するかのしきい値です。倍率が大きいほど、よほど速く弾かないと発動しなくなります（ゆっくりした意図的なスクロールでは発動させたくない場合は大きく）。
-            </p>
-            <SliderControl
-              value={scrollInertia.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
-              disabled={disabled || !scrollInertia.enable} unit=""
-              format={v => `${(v / 10).toFixed(1)}倍`}
-              onCommit={v => onScrollInertiaChange({ ...scrollInertia, flickMult: v })}
-            />
-            <div className="tapping-term-hints">
-              <span>{(SCROLL_INERTIA_FLICK_MULT_MIN / 10).toFixed(1)}倍（発動しやすい）</span>
-              <span>デフォルト: {(SCROLL_INERTIA_FLICK_MULT_DEFAULT / 10).toFixed(1)}倍</span>
-              <span>{(SCROLL_INERTIA_FLICK_MULT_MAX / 10).toFixed(1)}倍（よほど速くないと発動しない）</span>
-            </div>
-          </>
-        )}
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>ジェスチャー <span className="settings-unit">トラックボールを振って操作</span></>}>
-        {gestureModes && gestureThreshold ? (
-          <>
-            <p className="settings-desc">
-              パレットの「Keyball」にある<strong>「ジェスチャー1〜4」キー</strong>のいずれかをキーマップに置き、<strong>押しながらトラックボールを上下左右に振る</strong>と、そのモードに割り当てた操作が実行されます。モードごとに割当キーを分けられ、方向ごとに「連続入力」をONにすると、割当キーを回転速度に応じた間隔でタップし続けます（音量調整やフォントサイズ変更などのシームレスな連続操作に便利です）。
-            </p>
-            <div className="led-effect-selector" style={{ marginTop: 8 }}>
-              {[0, 1, 2, 3].map(m => (
-                <button
-                  key={m}
-                  className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}
-                  onClick={() => setGestureModeTab(m)}
-                >
-                  ジェスチャー{m + 1}
-                </button>
-              ))}
-            </div>
-
-            {(() => {
-              const mode = gestureModes[gestureModeTab];
-              const dirs = [
-                ['up', '上 ↑', 'continuousUp'],
-                ['down', '下 ↓', 'continuousDown'],
-                ['left', '左 ←', 'continuousLeft'],
-                ['right', '右 →', 'continuousRight'],
-              ] as const;
-              return (
-                <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                  <div className="gesture-grid">
-                    {dirs.map(([dir, label, contKey]) => (
-                      <div key={dir} className="gesture-row">
-                        <span className="gesture-dir">{label}</span>
-                        <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditModeDir({ mode: gestureModeTab, dir })}>
-                          {getKeyDisplayLabel(mode[dir], keyLayout) || '未設定'}
-                        </button>
-                        <label className="setting-row__desc" style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                          <input
-                            type="checkbox"
-                            disabled={disabled}
-                            checked={mode[contKey]}
-                            onChange={e => onGestureModeChange(gestureModeTab, { ...mode, [contKey]: e.target.checked })}
-                          />
-                          連続入力
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="settings-desc" style={{ marginTop: 8 }}>
-                    「連続入力」をONにした方向は、ボールを回している間ずっと割当キーがタップされ続けます（速く回すほど間隔が短くなります）。OFFの方向は振るたびに1回だけ送出します。
-                  </p>
-
-                  <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                    <div className="setting-row">
-                      <div className="setting-row__text">
-                        <span className="setting-row__label">連動レイヤー</span>
-                        <span className="setting-row__desc">選んだレイヤーにいる間、キーを押さなくてもこのモードが自動的に有効になります。「なし」で無効（ジェスチャー{gestureModeTab + 1}キーでの手動切替のみ）。</span>
-                      </div>
-                      <select
-                        className="trackball-bar__select"
-                        value={mode.layer}
-                        disabled={disabled}
-                        onChange={e => {
-                          const v = Number(e.target.value);
-                          changeLayer('gestureMode', v, () => onGestureModeChange(gestureModeTab, { ...mode, layer: v }), gestureModeTab);
-                        }}
-                      >
-                        <option value={LAYER_NONE}>なし</option>
-                        {switchableLayers.map(l => (
-                          <option key={l} value={l}>Layer {l}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {layerWarn?.target === 'gestureMode' && layerWarn.mode === gestureModeTab && (
-                      <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
-                    )}
-                    <p className="settings-desc" style={{ marginTop: 8 }}>
-                      ※ 自動マウス／スクロール／他のジェスチャーモードと同じレイヤーは選べません。押している間だけ優先させたい場合は「ジェスチャー{gestureModeTab + 1}」キーをキーマップに置いてください（離すとこの設定に戻ります）。
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <p className="settings-desc">
-                <strong>感度</strong>（4モード共通）：トラックボールをどれくらい動かしたら反応するかです。小さいほど少しの動きで反応し（敏感）、大きいほどしっかり振らないと反応しません（鈍感）。
-              </p>
-              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
-              <SliderControl
-                value={gestureThreshold.h} min={10} max={200} step={5}
-                disabled={disabled} unit=""
-                onCommit={v => onGestureThresholdChange({ ...gestureThreshold, h: v })}
-              />
-              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
-              <SliderControl
-                value={gestureThreshold.v} min={10} max={200} step={5}
-                disabled={disabled} unit=""
-                onCommit={v => onGestureThresholdChange({ ...gestureThreshold, v: v })}
-              />
-              <div className="tapping-term-hints">
-                <span>10（敏感）</span>
-                <span>デフォルト: 50</span>
-                <span>200（鈍感）</span>
-              </div>
-            </div>
-
-            {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
-              <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                <ToggleRow
-                  label="ジェスチャーウェーブ"
-                  desc="ジェスチャーでキーが送出された瞬間、LEDが流れるように光ります（通常LED・レイヤー連動LEDのどちらを設定していても、その表示を一時的に上書きして発動します）。連続入力中は前のウェーブが終わってから次が発動します。"
-                  checked={gestureWaveEnable}
-                  disabled={disabled}
-                  onChange={onGestureWaveEnableChange}
-                />
-                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
-                <SliderControl
-                  value={gestureWaveSpeed} min={1} max={255} step={1}
-                  disabled={disabled || !gestureWaveEnable} unit=""
-                  onCommit={v => onGestureWaveSpeedChange(v)}
-                />
-                <div className="tapping-term-hints">
-                  <span>1（ゆっくり）</span>
-                  <span>デフォルト: 200</span>
-                  <span>255（速い）</span>
-                </div>
-              </div>
-            )}
-          </>
-        ) : gesture === null ? (
-          <p className="settings-desc">
-            このファーム（機種・バージョン）は<strong>ジェスチャー非対応</strong>です。対応版を書き込むと設定できます。
-          </p>
-        ) : (
-          <>
-            <p className="settings-desc">
-              パレットの「Keyball」にある<strong>「ジェスチャー」キー</strong>をキーマップに置き、<strong>押しながらトラックボールを上下左右に振る</strong>と、各方向に割り当てた操作が実行されます（押している間は何度でも反応）。
-            </p>
-            <div className="gesture-grid">
-              {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
-                <div key={dir} className="gesture-row">
-                  <span className="gesture-dir">{label}</span>
-                  <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
-                    {getKeyDisplayLabel(gesture[dir], keyLayout) || '未設定'}
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className="settings-desc" style={{ marginTop: 8 }}>
-              初期設定: 左=戻る / 右=進む / 上=前のタブ / 下=次のタブ（macブラウザ標準）
-            </p>
-
-            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div className="gesture-row">
-                <span className="gesture-dir">タップ</span>
-                <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditTap(true)}>
-                  {gesture.tap ? getKeyDisplayLabel(gesture.tap, keyLayout) : 'なし（長押し専用）'}
-                </button>
-              </div>
-              <p className="settings-desc" style={{ marginTop: 8 }}>
-                ジェスチャーキーを<strong>サッと押して離す</strong>とこのキーを入力します（タップ／長押し兼用）。<br />
-                「なし」にすると<strong>長押し専用</strong>（従来どおり）です。Space・Enter など単独で押すキーのみ設定できます。
-              </p>
-            </div>
-
-            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div className="setting-row">
-                <div className="setting-row__text">
-                  <span className="setting-row__label">ジェスチャーレイヤー</span>
-                  <span className="setting-row__desc">選んだレイヤーにいる間、トラックボールを振るとジェスチャー発動（キーを押さなくてOK）。「なし」で無効。</span>
-                </div>
-                <select
-                  className="trackball-bar__select"
-                  value={gesture.layer}
-                  disabled={disabled}
-                  onChange={e => { const v = Number(e.target.value); changeLayer('gesture', v, () => onGestureChange({ ...gesture, layer: v })); }}
-                >
-                  <option value={LAYER_NONE}>なし</option>
-                  {switchableLayers.map(l => (
-                    <option key={l} value={l}>Layer {l}</option>
-                  ))}
-                </select>
-              </div>
-              {layerWarn?.target === 'gesture' && (
-                <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
-              )}
-              <p className="settings-desc" style={{ marginTop: 8 }}>
-                ※ スクロール／自動マウスと同じレイヤーは選べません。
-              </p>
-            </div>
-
-            <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <p className="settings-desc">
-                <strong>感度</strong>：トラックボールをどれくらい動かしたら発動するかです。小さいほど少しの動きで反応し（敏感）、大きいほどしっかり振らないと反応しません（鈍感）。上下と左右は別々に調整できます（左右の方が反応しやすい・上下が反応しにくいと感じたら、上下だけ数値を下げてみてください）。
-              </p>
-              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
-              <SliderControl
-                value={gesture.thresholdH} min={10} max={200} step={5}
-                disabled={disabled} unit=""
-                onCommit={v => onGestureChange({ ...gesture, thresholdH: v })}
-              />
-              <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
-              <SliderControl
-                value={gesture.thresholdV} min={10} max={200} step={5}
-                disabled={disabled} unit=""
-                onCommit={v => onGestureChange({ ...gesture, thresholdV: v })}
-              />
-              <div className="tapping-term-hints">
-                <span>10（敏感）</span>
-                <span>デフォルト: 50</span>
-                <span>200（鈍感）</span>
-              </div>
-            </div>
-          </>
-        )}
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>超低速モード <span className="settings-unit">トラックボールを精密操作</span></>}>
-        {precision === null ? (
-          <p className="settings-desc">
-            このファーム（機種・バージョン）は<strong>超低速モード非対応</strong>です。対応版を書き込むと設定できます。
-          </p>
-        ) : (
-          <>
-            <p className="settings-desc">
-              パレットの「Keyball」にある<strong>「精密モード」キー</strong>をキーマップに置き、<strong>押している間だけ</strong>トラックボールの感度を下げます。細かい位置合わせをしたいときに便利です。離すと元の速さに戻ります。
-            </p>
-            <p className="settings-desc" style={{ marginTop: 12 }}>
-              <strong>減速の強さ</strong>：数値が大きいほど遅く（精密に）なります。実際の速度はおおよそ「通常のCPI ÷ この数値」です。
-            </p>
-            <SliderControl
-              value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
-              disabled={disabled} unit="分の1"
-              onCommit={div => onPrecisionChange({ ...precision, div })}
-            />
-            <div className="tapping-term-hints">
-              <span>{PRECISION_DIV_MIN}（少し遅い）</span>
-              <span>デフォルト: {PRECISION_DIV_DEFAULT}</span>
-              <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
-            </div>
-
-            <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div className="setting-row">
-                <div className="setting-row__text">
-                  <span className="setting-row__label">超低速モードになるレイヤー</span>
-                  <span className="setting-row__desc">選んだレイヤーにいる間は、キーを押さなくても自動的に超低速モードになります。「なし」で無効（キーを押している間だけ）。</span>
-                </div>
-                <select
-                  className="trackball-bar__select"
-                  value={precision.layer}
-                  disabled={disabled}
-                  onChange={e => onPrecisionChange({ ...precision, layer: Number(e.target.value) })}
-                >
-                  <option value={LAYER_NONE}>なし</option>
-                  {precisionLayers.map(l => (
-                    <option key={l} value={l}>Layer {l}</option>
-                  ))}
-                </select>
-              </div>
-              <p className="settings-desc" style={{ marginTop: 8 }}>
-                ※ スクロールレイヤーやジェスチャーレイヤーと同じレイヤーにしても構いません（例：低速で正確にスクロールしたい場合）。「精密モード」キーと併用した場合は、どちらか一方でも条件を満たしていれば超低速モードになります。
-              </p>
-            </div>
-          </>
-        )}
-      </CollapsibleCard>
-
-      <CollapsibleCard title={<>レイヤー連動LED <span className="settings-unit">レイヤーごとに光り方を変える</span></>}>
-        {layerLedEnable === null ? (
-          <p className="settings-desc">
-            このファーム（機種・バージョン）は<strong>レイヤー連動LED非対応</strong>です。対応版を書き込むと設定できます。
-          </p>
-        ) : (
-          <>
-            <ToggleRow
-              label="レイヤー連動LEDを使う"
-              desc="有効にすると、専用の光り方を設定したレイヤーにいる間ずっとその光り方になります（抜けると通常のLED設定に戻ります）。"
-              checked={layerLedEnable}
-              disabled={disabled}
-              onChange={onLayerLedEnableChange}
-            />
-
-            {layerLedEnable && (
-              <div style={{ marginTop: 12 }}>
-                <p className="settings-desc" style={{ marginBottom: 8 }}>編集するレイヤーを選んでください。</p>
-                <div className="led-effect-selector">
-                  {switchableLayers.map(l => (
-                    <button
-                      key={l}
-                      className={`btn btn--small btn--layer ${ledEditLayer === l ? 'btn--layer-active' : ''}`}
-                      onClick={() => setLedEditLayer(l)}
-                    >
-                      Layer {l}
-                    </button>
-                  ))}
-                </div>
-
-                {(() => {
-                  const cfg = layerLeds[ledEditLayer] ?? LAYER_LED_DEFAULT;
-                  return (
-                    <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                      <ToggleRow
-                        label={`Layer ${ledEditLayer} で専用の光り方を使う`}
-                        desc="オフのままだと、このレイヤーでは通常のLED設定のままになります。"
-                        checked={cfg.enabled}
-                        disabled={disabled}
-                        onChange={v => onLayerLedChange(ledEditLayer, { ...cfg, enabled: v })}
-                      />
-                      {cfg.enabled && (
-                        <div style={{ marginTop: 8, opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
-                          <LEDSettings
-                            config={cfg}
-                            onChange={c => onLayerLedChange(ledEditLayer, { ...cfg, ...c })}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </>
-        )}
-      </CollapsibleCard>
-
-      {onTestLed && (
-        <CollapsibleCard title={<>LED位置実測（開発用） <span className="settings-unit">波紋演出のための配線順序調査</span></>}>
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+        </>
+      ),
+    }] : []),
+    {
+      key: 'keydisplay', title: 'キー表示の配列設定', note: '表示のみ・入力文字は変わりません',
+      render: () => <KeyDisplaySection keyLayout={keyLayout} onKeyLayoutChange={onKeyLayoutChange} />,
+    },
+    ...(isMacOSPlatform() ? [{
+      key: 'macos' as const, title: 'macOS キーボードタイプ設定', note: '初回のみ必要',
+      render: () => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} />,
+    }] : []),
+    ...(onTestLed ? [{
+      key: 'ledtest' as const, title: 'LED位置実測（開発用）', note: '波紋演出のための配線順序調査',
+      render: () => (
+        <>
           <p className="settings-desc">
             LEDを1個ずつ点灯させ、実際にどこが光るかを目で確認するための機能です。<br />
             「次へ」「戻る」でインデックスを進め、光った位置をメモしてください。「終了」を押すと通常表示に戻ります。
@@ -852,89 +160,54 @@ export function SettingsTab({ settings, isConnected, model, productId, layerCoun
               </button>
             )}
           </div>
-        </CollapsibleCard>
-      )}
+        </>
+      ),
+    }] : []),
+    ...(children ? [{
+      key: 'matrix' as const, title: 'テストマトリクス', note: 'キーが正しく反応するか確認',
+      render: () => children,
+    }] : []),
+    {
+      key: 'guide', title: '使い方ガイド', note: '',
+      render: () => <UsageGuide />,
+    },
+  ];
 
-      <CollapsibleCard title={<>キー表示の配列設定 <span className="settings-unit">表示のみ・入力文字は変わりません</span></>}>
-        <p className="settings-desc">
-          キーマップ画面のキーに表示される文字を切り替えます。<br />
-          実際にキーボードから入力される文字は変わりません。入力文字を変えるには下の「macOS キーボードタイプ設定」をご利用ください。
-        </p>
-        <div className="layout-toggle-row">
-          <button
-            className={`layout-toggle-btn ${keyLayout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
-            onClick={() => onKeyLayoutChange('JIS')}
-          >
-            JIS配列<span className="layout-toggle-example">Shift+2 = "</span>
-          </button>
-          <button
-            className={`layout-toggle-btn ${keyLayout === 'US' ? 'layout-toggle-btn--active' : ''}`}
-            onClick={() => onKeyLayoutChange('US')}
-          >
-            US配列<span className="layout-toggle-example">Shift+2 = @</span>
-          </button>
+  const [section, setSection] = useState<SectionKey>('keyopt');
+  const active = sections.find(s => s.key === section) ?? sections[0];
+
+  return (
+    <div className="settings-tab">
+      {!isConnected && (
+        <div className="settings-notice">
+          キーボードに接続すると設定を変更できます。
         </div>
-        <p className="layout-toggle-note">
-          現在: <strong>{keyLayout === 'JIS' ? 'JIS配列（日本語キーボード）' : 'US配列（英語キーボード）'}</strong>
-          {'　'}→ キーマップ画面の表示に反映されます
-        </p>
-      </CollapsibleCard>
-
-      {isMacOS && (
-        <CollapsibleCard title={<>macOS キーボードタイプ設定 <span className="settings-unit">初回のみ必要</span></>}>
-          <MacOSKeyboardSetup defaultLayout={keyLayout} model={model} productId={productId} />
-        </CollapsibleCard>
       )}
 
-      {children}
+      <div className="settings-sidebar-layout">
+        <div className="settings-sidebar">
+          {sections.map(s => (
+            <button
+              key={s.key}
+              className={`settings-sidebar__item ${active.key === s.key ? 'settings-sidebar__item--active' : ''}`}
+              onClick={() => setSection(s.key)}
+            >
+              <span className="settings-sidebar__title">{s.title}</span>
+              {s.note && <span className="settings-sidebar__note">{s.note}</span>}
+            </button>
+          ))}
+        </div>
 
-      {editDir && gesture && (
-        <KeyConfigModal
-          keyIndex={-1}
-          currentCode={gesture[editDir]}
-          keyLayout={keyLayout}
-          defaultPanel="カスタム"
-          hideHold
-          onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
-          onClose={() => setEditDir(null)}
-        />
-      )}
-
-      {editModeDir && gestureModes && (
-        <KeyConfigModal
-          keyIndex={-1}
-          currentCode={gestureModes[editModeDir.mode][editModeDir.dir]}
-          keyLayout={keyLayout}
-          defaultPanel="カスタム"
-          hideHold
-          onSelect={async (kc) => {
-            await onGestureModeChange(editModeDir.mode, { ...gestureModes[editModeDir.mode], [editModeDir.dir]: kc });
-            setEditModeDir(null);
-          }}
-          onClose={() => setEditModeDir(null)}
-        />
-      )}
-
-      {editTap && gesture && (
-        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setEditTap(false); }}>
-          <div className="modal-dialog">
-            <div className="modal-header">
-              <span className="modal-title">ジェスチャーキーをタップした時のキー</span>
-              <button className="modal-close" onClick={() => setEditTap(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <p className="settings-desc" style={{ marginBottom: 8 }}>
-                Space・Enter・英字など、単独で押すキーのみ選べます。「なし」を選ぶと長押し専用になります。
-              </p>
-              <TapKeyPicker
-                value={gesture.tap}
-                keyLayout={keyLayout}
-                onChange={async (kc) => { await onGestureChange({ ...gesture, tap: kc }); setEditTap(false); }}
-              />
-            </div>
+        <div className="settings-detail">
+          <div className="settings-detail__head">
+            <span className="settings-detail__title">{active.title}</span>
+            {active.note && <span className="settings-detail__note">{active.note}</span>}
+          </div>
+          <div className="settings-detail__body">
+            {active.render()}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

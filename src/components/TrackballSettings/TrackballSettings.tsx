@@ -10,6 +10,7 @@ interface TrackballSettingsProps {
   scrollInvertH: boolean;
   onScrollInvertChange: (v: boolean, h: boolean) => void;
   accelAvailable?: boolean;  // LED版の44/61では加速度が無効 → グレーアウト
+  dpiCurveActive?: boolean;  // DPIカーブが有効だと加速度設定は使われない → グレーアウト
 }
 
 const MAX_CPI_INDEX = 17;
@@ -26,6 +27,7 @@ function TrackballSlider({
   scale,
   onCommit,
   dimmed = false,
+  dimmedReason,
 }: {
   label: string;
   value: number;
@@ -35,6 +37,7 @@ function TrackballSlider({
   scale: string;
   onCommit: (v: number) => void;
   dimmed?: boolean;
+  dimmedReason?: string;
 }) {
   const [local, setLocal] = useState(value);
   // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
@@ -46,7 +49,7 @@ function TrackballSlider({
 
   return (
     <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
-      title={dimmed ? 'このファーム版（LED版）では加速度は使用できません' : undefined}>
+      title={dimmed ? (dimmedReason ?? 'このファーム版（LED版）では加速度は使用できません') : undefined}>
       <span className="trackball-bar__label">{label}: <strong>{dimmed ? '—' : renderLabel(local)}</strong></span>
       <input
         type="range"
@@ -64,7 +67,7 @@ function TrackballSlider({
   );
 }
 
-export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true }: TrackballSettingsProps) {
+export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurveActive = false }: TrackballSettingsProps) {
   return (
     <div className="trackball-bar">
       <span className="trackball-bar__title">トラックボール</span>
@@ -97,7 +100,8 @@ export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scr
         renderLabel={v => v === 0 ? 'オフ' : String(v)}
         scale="オフ〜強"
         onCommit={v => onChange({ ...config, accel: v })}
-        dimmed={!accelAvailable}
+        dimmed={!accelAvailable || dpiCurveActive}
+        dimmedReason={dpiCurveActive ? 'DPIカーブが有効なため、この設定は使われません（詳細設定タブで調整してください）' : undefined}
       />
 
       <div className="trackball-bar__item">

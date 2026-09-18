@@ -1,21 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { AVR109, isWebSerialSupported } from '../../lib/avr109';
+import { isFileSystemAccessSupported, flashUf2 } from '../../lib/uf2flash';
 import { parseIntelHex } from '../../lib/ihex';
 import { fetchFlashCounts, flashCountKey, reportFlash } from '../../lib/flashCount';
+import { chipForProductId } from '../../lib/deviceIds';
+import type { Chip } from '../../lib/deviceIds';
 import type { ModelKey } from '../../layouts';
 
-const BUILTIN_FIRMWARE: Record<ModelKey, string> = {
+// 2026-09-18、Keyball+はRP2040版のみをリリース対象とし、AVR版はビルド・配布を
+// 停止した（本人判断）。keyball-plus-firmware側のソース・ビルド済みファイルは
+// 削除せず保持しているが、この一覧・UIからは意図的に外している。
+const BUILTIN_FIRMWARE_AVR: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.hex',
   keyball44: '/firmware/keyball_keyball44_web_configurator.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator.hex',
-  keyballplus: '/firmware/keyball_keyballplus_web_configurator.hex',
 };
-// LED版（全機種）。LED有効・メディアキー有効・マクロ/ジェスチャー等を削減した構成
-const BUILTIN_FIRMWARE_LED: Partial<Record<ModelKey, string>> = {
+// LED版（AVR各機種）。LED有効・メディアキー有効・マクロ/ジェスチャー等を削減した構成
+const BUILTIN_FIRMWARE_AVR_LED: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator_led.hex',
   keyball44: '/firmware/keyball_keyball44_web_configurator_led.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator_led.hex',
-  keyballplus: '/firmware/keyball_keyballplus_web_configurator_led.hex',
+};
+// RP2040版。移植済みの機種のみ（LED版の分岐は無い＝1機種1ビルド）
+const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
+  keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
+  keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
 };
 const MODEL_LABELS: Record<ModelKey, string> = {
   keyball39: 'Keyball39',
@@ -29,13 +38,15 @@ type Phase = 'idle' | 'port' | 'flashing' | 'done' | 'error';
 
 interface FirmwareFlasherProps {
   detectedModel: ModelKey | null;
+  productId: number | null;
   isHIDConnected: boolean;
   onReboot: () => Promise<void>;
 }
 
-export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: FirmwareFlasherProps) {
+export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onReboot }: FirmwareFlasherProps) {
   const [source, setSource] = useState<FirmwareSource>('builtin');
   const [selectedModel, setSelectedModel] = useState<ModelKey>(detectedModel ?? 'keyball39');
+  const [chip, setChip] = useState<Chip>('avr');
   const [ledVersion, setLedVersion] = useState(false);
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -45,7 +56,28 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
   const firmwareRef = useRef<Uint8Array | null>(null);
   const [flashCounts, setFlashCounts] = useState<Record<string, number>>({});
 
-  const supported = isWebSerialSupported();
+  // 接続中デバイスのproductIdからチップ種別を自動判定する（同じ機種名でも
+  // AVR/RP2040でPIDが異なる。KEYBALL_MODEL値だけでは区別できない機種があるため）。
+  useEffect(() => {
+    if (productId != null) {
+      const detected = chipForProductId(productId);
+      if (detected) setChip(detected);
+    }
+  }, [productId]);
+
+  // 選んだ機種にそのchip種別のビルド済みファームウェアが無い状態のままだと
+  // 書き込み先が無くなってしまうため、無い方から有る方へ自動的に切り替える
+  // （例: Keyball+はRP2040版のみのため、AVRを選んでいたらRP2040へ）。
+  useEffect(() => {
+    if (source !== 'builtin') return;
+    if (chip === 'rp2040' && !BUILTIN_FIRMWARE_RP2040[selectedModel] && BUILTIN_FIRMWARE_AVR[selectedModel]) {
+      setChip('avr');
+    } else if (chip === 'avr' && !BUILTIN_FIRMWARE_AVR[selectedModel] && BUILTIN_FIRMWARE_RP2040[selectedModel]) {
+      setChip('rp2040');
+    }
+  }, [chip, selectedModel, source]);
+
+  const supported = chip === 'rp2040' ? isFileSystemAccessSupported() : isWebSerialSupported();
 
   useEffect(() => {
     fetchFlashCounts().then(setFlashCounts).catch(() => {
@@ -55,14 +87,23 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
 
   const loadFirmware = async (): Promise<Uint8Array> => {
     if (source === 'builtin') {
-      const ledPath = BUILTIN_FIRMWARE_LED[selectedModel];
-      const path = ledVersion && ledPath ? ledPath : BUILTIN_FIRMWARE[selectedModel];
+      if (chip === 'rp2040') {
+        const path = BUILTIN_FIRMWARE_RP2040[selectedModel];
+        if (!path) throw new Error('この機種のRP2040版ファームウェアはまだありません');
+        const res = await fetch(path);
+        if (!res.ok) throw new Error(`ファームウェア取得失敗: ${res.status}`);
+        return new Uint8Array(await res.arrayBuffer());
+      }
+      const ledPath = BUILTIN_FIRMWARE_AVR_LED[selectedModel];
+      const path = ledVersion && ledPath ? ledPath : BUILTIN_FIRMWARE_AVR[selectedModel];
+      if (!path) throw new Error('この機種のAVR版ファームウェアは配布していません');
       const res = await fetch(path);
       if (!res.ok) throw new Error(`ファームウェア取得失敗: ${res.status}`);
       return parseIntelHex(await res.text());
     }
     if (!customFile) throw new Error('ファイルが選択されていません');
-    return parseIntelHex(await customFile.text());
+    // RP2040の.uf2はビルド済みバイナリなのでそのまま読む。AVRの.hexはIntel HEX形式
+    return chip === 'rp2040' ? new Uint8Array(await customFile.arrayBuffer()) : parseIntelHex(await customFile.text());
   };
 
   const handleFlash = async () => {
@@ -76,11 +117,18 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       if (isHIDConnected) {
         setMessage('ブートローダーモードに切り替え中…');
         await onReboot();
-        // ブートローダーが起動するまで1.5秒待つ
-        await new Promise(r => setTimeout(r, 1500));
+        // ブートローダーが起動するまで待つ。RP2040はUSBメモリとして再認識され
+        // OS側のマウント処理が入る分、AVRのシリアルポート再認識より時間がかかるため
+        // 長めに待つ（それでも間に合わない場合は本人が手動でリセットボタンを
+        // 素早く2回押す/BOOTSELボタンを押しながら挿し直すことでも対処可能）。
+        await new Promise(r => setTimeout(r, chip === 'rp2040' ? 3500 : 1500));
       }
 
-      await openPortAndFlash();
+      if (chip === 'rp2040') {
+        await pickDirectoryAndFlash();
+      } else {
+        await openPortAndFlash();
+      }
     } catch (e) {
       setPhase('error');
       setMessage(e instanceof Error ? e.message : String(e));
@@ -117,7 +165,7 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       setPhase('done');
       setMessage('書き込み完了！　キーボードが再起動します。');
       if (source === 'builtin') {
-        const key = flashCountKey(selectedModel, ledVersion && !!BUILTIN_FIRMWARE_LED[selectedModel]);
+        const key = flashCountKey(selectedModel, ledVersion && !!BUILTIN_FIRMWARE_AVR_LED[selectedModel]);
         reportFlash(key)
           .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 })))
           .catch(() => {
@@ -129,6 +177,46 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       setMessage(e instanceof Error ? e.message : String(e));
     } finally {
       await flasher.close();
+    }
+  };
+
+  const pickDirectoryAndFlash = async () => {
+    if (!isFileSystemAccessSupported()) {
+      setPhase('error');
+      setMessage('このブラウザはFile System Access API非対応のため書き込みできません。Chrome または Edge をご利用ください。');
+      return;
+    }
+    setPhase('port');
+    setMessage('「RPI-RP2」という名前のドライブを選択してください');
+
+    let dirHandle: FileSystemDirectoryHandle;
+    try {
+      dirHandle = await window.showDirectoryPicker!({ id: 'keyball-rp2040-uf2' });
+    } catch {
+      setPhase('idle');
+      setMessage('フォルダ選択がキャンセルされました。');
+      return;
+    }
+
+    setPhase('flashing');
+    try {
+      await flashUf2(dirHandle, firmwareRef.current!, (pct, msg) => {
+        setProgress(pct);
+        setMessage(msg);
+      });
+      setPhase('done');
+      setMessage('書き込み完了！　キーボードが再起動します。');
+      if (source === 'builtin') {
+        const key = flashCountKey(selectedModel, false, 'rp2040');
+        reportFlash(key)
+          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 })))
+          .catch(() => {
+            // 統計送信の失敗は書き込み成功の表示には影響させない
+          });
+      }
+    } catch (e) {
+      setPhase('error');
+      setMessage(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -150,7 +238,9 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
 
       {!supported && (
         <div className="flash-alert flash-alert--warn">
-          WebSerial API 非対応のブラウザです。Chrome または Edge をお使いください。
+          {chip === 'rp2040'
+            ? 'File System Access API 非対応のブラウザです。Chrome または Edge をお使いください。'
+            : 'WebSerial API 非対応のブラウザです。Chrome または Edge をお使いください。'}
         </div>
       )}
 
@@ -196,15 +286,29 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
             </button>
             <button className={`fw-source-tab ${source === 'file' ? 'fw-source-tab--active' : ''}`}
               onClick={() => setSource('file')} disabled={isWorking}>
-              .hex ファイルを選択
+              {chip === 'rp2040' ? '.uf2 ファイルを選択' : '.hex ファイルを選択'}
+            </button>
+          </div>
+
+          <div className="fw-source-tabs" style={{ marginTop: 10 }}>
+            <button className={`fw-source-tab ${chip === 'avr' ? 'fw-source-tab--active' : ''}`}
+              onClick={() => setChip('avr')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel])}
+              title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
+              AVR版（Pro Micro等）
+            </button>
+            <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
+              onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
+              title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
+              RP2040版（RP2040 ProMicro）
             </button>
           </div>
 
           {source === 'builtin' && (
-            <div className="model-selector">
-              {(Object.keys(BUILTIN_FIRMWARE) as ModelKey[]).map(model => {
-                const total = (flashCounts[flashCountKey(model, false)] ?? 0) +
-                  (BUILTIN_FIRMWARE_LED[model] ? (flashCounts[flashCountKey(model, true)] ?? 0) : 0);
+            <div className="model-selector" style={{ marginTop: 12 }}>
+              {(Object.keys(MODEL_LABELS) as ModelKey[]).map(model => {
+                const total = (BUILTIN_FIRMWARE_AVR[model] ? (flashCounts[flashCountKey(model, false)] ?? 0) : 0) +
+                  (BUILTIN_FIRMWARE_AVR_LED[model] ? (flashCounts[flashCountKey(model, true)] ?? 0) : 0) +
+                  (BUILTIN_FIRMWARE_RP2040[model] ? (flashCounts[flashCountKey(model, false, 'rp2040')] ?? 0) : 0);
                 return (
                   <button key={model}
                     className={`btn btn--layer ${selectedModel === model ? 'btn--layer-active' : ''}`}
@@ -224,7 +328,7 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
             </div>
           )}
 
-          {source === 'builtin' && BUILTIN_FIRMWARE_LED[selectedModel] && (
+          {source === 'builtin' && chip === 'avr' && BUILTIN_FIRMWARE_AVR_LED[selectedModel] && (
             <div className="version-selector" style={{ marginTop: 12 }}>
               <p className="flash-step-label" style={{ marginBottom: 6 }}>
                 バージョン（この機種は容量の都合で2種類あります）
@@ -263,7 +367,7 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
 
           {source === 'file' && (
             <>
-              <input ref={fileInputRef} type="file" accept=".hex" className="file-input"
+              <input ref={fileInputRef} type="file" accept={chip === 'rp2040' ? '.uf2' : '.hex'} className="file-input"
                 onChange={e => { setCustomFile(e.target.files?.[0] ?? null); setPhase('idle'); }}
                 disabled={isWorking} />
               {customFile && <p className="flash-file-name">✓ {customFile.name}</p>}
@@ -276,14 +380,27 @@ export function FirmwareFlasher({ detectedModel, isHIDConnected, onReboot }: Fir
       <div className="flash-step">
         <span className="flash-step-num">2</span>
         <div className="flash-step-body">
-          {isHIDConnected ? (
-            <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わります。</p>
+          {chip === 'avr' ? (
+            isHIDConnected ? (
+              <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わります。</p>
+            ) : (
+              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
+                💡 「書き込む」を押すとポート選択ダイアログが開きます。<br />
+                {'　　'}<strong>ダイアログが開いた状態で</strong>リセットボタンを素早く2回押してください。<br />
+                {'　　'}「ProMicro 5V」がリストに現れたら選択すると書き込み開始です。
+              </div>
+            )
           ) : (
-            <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
-              💡 「書き込む」を押すとポート選択ダイアログが開きます。<br />
-              {'　　'}<strong>ダイアログが開いた状態で</strong>リセットボタンを素早く2回押してください。<br />
-              {'　　'}「ProMicro 5V」がリストに現れたら選択すると書き込み開始です。
-            </div>
+            isHIDConnected ? (
+              <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わり、フォルダ選択ダイアログが開きます。</p>
+            ) : (
+              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
+                💡 「書き込む」を押すとフォルダ選択ダイアログが開きます。<br />
+                {'　　'}<strong>すでにKeyball Linkのファームウェアが入っている場合</strong>：リセットボタンを素早く2回押すとブートローダーモードになります。<br />
+                {'　　'}<strong>初めて書き込む・工場出荷状態の場合</strong>：BOOTSELボタンを押しながらUSBケーブルを挿し直してください。<br />
+                {'　　'}「RPI-RP2」という名前のドライブがリストに現れたら選択すると書き込み開始です。
+              </div>
+            )
           )}
 
           <button className="btn btn--primary" onClick={handleFlash} disabled={!canFlash}>

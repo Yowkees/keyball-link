@@ -11,12 +11,15 @@ interface Env {
   FLASH_COUNTS: KVNamespace;
 }
 
-// FirmwareFlasher.tsx の BUILTIN_FIRMWARE / BUILTIN_FIRMWARE_LED と一致させること
+// FirmwareFlasher.tsx の BUILTIN_FIRMWARE_AVR / BUILTIN_FIRMWARE_AVR_LED /
+// BUILTIN_FIRMWARE_RP2040 と一致させること（flashCountKey()参照）
 const VALID_KEYS = [
   'keyball39', 'keyball39_led',
   'keyball44', 'keyball44_led',
   'keyball61', 'keyball61_led',
   'keyballplus', 'keyballplus_led',
+  'keyball39_rp2040',
+  'keyballplus_rp2040',
 ];
 
 export async function onRequestGet(context: { env: Env }): Promise<Response> {

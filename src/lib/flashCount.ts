@@ -1,9 +1,11 @@
 import type { ModelKey } from '../layouts';
 
-// FirmwareFlasher.tsx の BUILTIN_FIRMWARE / BUILTIN_FIRMWARE_LED と対応するキー。
-// 例: 'keyball39'（通常版）/ 'keyball39_led'（LED版）
-export function flashCountKey(model: ModelKey, ledVersion: boolean): string {
-  return ledVersion ? `${model}_led` : model;
+// FirmwareFlasher.tsx の BUILTIN_FIRMWARE_AVR / BUILTIN_FIRMWARE_AVR_LED /
+// BUILTIN_FIRMWARE_RP2040 と対応するキー。
+// 例: 'keyball39'（AVR通常版）/ 'keyball39_led'（AVR LED版）/ 'keyball39_rp2040'（RP2040版）
+// chipは省略時'avr'（既存呼び出しは変更不要で従来と同じキーを返す）。
+export function flashCountKey(model: ModelKey, ledVersion: boolean, chip: 'avr' | 'rp2040' = 'avr'): string {
+  return `${model}${chip === 'rp2040' ? '_rp2040' : ''}${ledVersion ? '_led' : ''}`;
 }
 
 // 全ファームウェアの書き込み回数（全ユーザー合計）を取得する

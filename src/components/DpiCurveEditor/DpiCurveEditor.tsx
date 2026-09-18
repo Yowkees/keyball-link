@@ -4,7 +4,14 @@ import { DPI_CURVE_X, DPI_CURVE_Y_MAX, defaultDpiCurvePoints, computeDpiCurveLut
 interface DpiCurveEditorProps {
   points: number[];  // 長さDPI_CURVE_X.length。各点の出力値(0-255)
   disabled: boolean;
-  onCommit: (points: number[]) => void;  // ドラッグを離した/リセットした時だけ呼ばれる
+  onCommit?: (points: number[]) => void;  // ドラッグを離した/リセットした時だけ呼ばれる
+  // false時: 点のドラッグ・「直線にリセット」ボタンを無効化した読み取り専用表示にする
+  // （加速度スライダーから算出したカーブをプレビューする用途）。disabledとは別軸の概念
+  // （disabled＝グレーアウトして触れない、interactive=false＝はっきり見えるが編集できない）。
+  interactive?: boolean;
+  // グラフのY軸上限（省略時はDPI_CURVE_Y_MAX=255）。加速度プレビュー表示では
+  // 実際の値が127までしか到達しないため127を渡し、上半分の余白をなくす。
+  yMax?: number;
 }
 
 // SVGのviewBoxを0-100の正方形にして、pointerの座標をそのまま%換算で扱えるようにする
@@ -14,17 +21,17 @@ const VB = 100;
 function xToPercent(x: number): number {
   return (x / DPI_CURVE_X[DPI_CURVE_X.length - 1]) * VB;
 }
-function yToPercent(y: number): number {
-  return VB - (y / DPI_CURVE_Y_MAX) * VB;
+function yToPercent(y: number, yMax: number): number {
+  return VB - (y / yMax) * VB;
 }
-function percentToY(py: number): number {
-  const v = Math.round(((VB - py) / VB) * DPI_CURVE_Y_MAX);
-  return Math.max(0, Math.min(DPI_CURVE_Y_MAX, v));
+function percentToY(py: number, yMax: number): number {
+  const v = Math.round(((VB - py) / VB) * yMax);
+  return Math.max(0, Math.min(yMax, v));
 }
 
 // Photoshopのトーンカーブと同じ考え方のエディタ。
 // X軸（動きの速さ、入力）は5点固定・Y軸（実際に送る速さ、出力）だけドラッグで変えられる。
-export function DpiCurveEditor({ points, disabled, onCommit }: DpiCurveEditorProps) {
+export function DpiCurveEditor({ points, disabled, onCommit, interactive = true, yMax = DPI_CURVE_Y_MAX }: DpiCurveEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [local, setLocal] = useState<number[]>(points);
   const [prevPoints, setPrevPoints] = useState(points);
@@ -40,41 +47,41 @@ export function DpiCurveEditor({ points, disabled, onCommit }: DpiCurveEditorPro
     const rect = svg.getBoundingClientRect();
     const py = ((e.clientY - rect.top) / rect.height) * VB;
     const next = [...local];
-    next[idx] = percentToY(py);
+    next[idx] = percentToY(py, yMax);
     setLocal(next);
     return next;
   };
 
   const handlePointerDown = (idx: number) => (e: React.PointerEvent) => {
-    if (disabled) return;
+    if (disabled || !interactive) return;
     (e.target as Element).setPointerCapture(e.pointerId);
     setDragIndex(idx);
     valueFromEvent(e, idx);
   };
   const handlePointerMove = (idx: number) => (e: React.PointerEvent) => {
-    if (disabled || dragIndex !== idx) return;
+    if (disabled || !interactive || dragIndex !== idx) return;
     valueFromEvent(e, idx);
   };
   const handlePointerUp = (idx: number) => (e: React.PointerEvent) => {
-    if (disabled || dragIndex !== idx) return;
+    if (disabled || !interactive || dragIndex !== idx) return;
     const next = valueFromEvent(e, idx);
     setDragIndex(null);
-    if (next) onCommit(next);
+    if (next) onCommit?.(next);
   };
 
   const handleReset = () => {
     const next = defaultDpiCurvePoints();
     setLocal(next);
-    onCommit(next);
+    onCommit?.(next);
   };
 
   // ファームウェアが実際に使う曲線（単調3次エルミート補間）と同じ計算で、
   // 見た目の線もカクカクの直線つなぎではなく滑らかな曲線にする。
   const linePath = useMemo(() => {
     const lut = computeDpiCurveLut(local);
-    return lut.map((y, x) => `${xToPercent(x)},${yToPercent(y)}`).join(' ');
-  }, [local]);
-  const diagonalPath = DPI_CURVE_X.map(x => `${xToPercent(x)},${yToPercent(x)}`).join(' ');
+    return lut.map((y, x) => `${xToPercent(x)},${yToPercent(y, yMax)}`).join(' ');
+  }, [local, yMax]);
+  const diagonalPath = DPI_CURVE_X.map(x => `${xToPercent(x)},${yToPercent(x, yMax)}`).join(' ');
 
   return (
     <div className="dpi-curve" style={disabled ? { opacity: 0.4, pointerEvents: 'none' } : undefined}>
@@ -97,9 +104,9 @@ export function DpiCurveEditor({ points, disabled, onCommit }: DpiCurveEditorPro
             <circle
               key={i}
               cx={xToPercent(x)}
-              cy={yToPercent(local[i])}
+              cy={yToPercent(local[i], yMax)}
               r={dragIndex === i ? 3.2 : 2.4}
-              className={`dpi-curve__point ${dragIndex === i ? 'dpi-curve__point--active' : ''}`}
+              className={`dpi-curve__point ${dragIndex === i ? 'dpi-curve__point--active' : ''} ${!interactive ? 'dpi-curve__point--preview' : ''}`}
               onPointerDown={handlePointerDown(i)}
               onPointerMove={handlePointerMove(i)}
               onPointerUp={handlePointerUp(i)}
@@ -122,9 +129,11 @@ export function DpiCurveEditor({ points, disabled, onCommit }: DpiCurveEditorPro
           <span key={x} className={dragIndex === i ? 'dpi-curve__value--active' : undefined}>{local[i]}</span>
         ))}
       </div>
-      <button className="btn btn--ghost btn--small" onClick={handleReset} disabled={disabled} style={{ marginTop: 8 }}>
-        直線にリセット
-      </button>
+      {interactive && (
+        <button className="btn btn--ghost btn--small" onClick={handleReset} disabled={disabled} style={{ marginTop: 8 }}>
+          直線にリセット
+        </button>
+      )}
     </div>
   );
 }

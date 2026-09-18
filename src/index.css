@@ -170,10 +170,19 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body { background: var(--bg); }
+body { background: var(--bg); overflow-x: hidden; }
 
+/* 【2026-09-17】16:9のレターボックス化はやめ、ウィンドウ全体に広がるようにした
+   （本人の判断で撤回）。ウィンドウが広くなった分は左右の余白にせず、
+   キーマップパネル（.keyboard-layout、拡大表示に対応済み）とキー設定パネルの
+   キー一覧（.modal-panel__grid--compact、列数が可変になるよう修正済み）の
+   表示を増やすことで活かす。 */
 #root {
   height: 100svh;
+  /* 100vwは縦スクロールバーの分だけ実際の表示幅より広くなることがあり、
+     結果としてウィンドウ幅をわずかに超えてはみ出す原因になっていた。
+     100%（＝bodyの実際の幅）に変更して確実にウィンドウ内に収める。 */
+  width: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -399,14 +408,6 @@ body { background: var(--bg); }
   overflow-x: hidden;
 }
 
-.app-footer {
-  flex: none;
-  padding: 10px 24px;
-  font-size: 11px;
-  color: var(--text-dim);
-  border-top: 1px solid var(--border);
-  text-align: center;
-}
 .app-footer__warn { color: var(--warn); }
 
 /* ===== 接続前プレースホルダー ===== */
@@ -449,6 +450,10 @@ body { background: var(--bg); }
 }
 .tab:disabled { opacity: .45; cursor: not-allowed; }
 .tab:disabled:hover { color: var(--text-dim); border-color: var(--border); }
+/* .tab:disabledと見た目は同じだが、実際のdisabled属性は付けない（クリックイベントを
+   拾ってガイドのトースト表示に使いたいため）。 */
+.tab--disabled { opacity: .45; cursor: not-allowed; }
+.tab--disabled:hover { color: var(--text-dim); border-color: var(--border); }
 
 /* ===== レイヤーセレクター（旧・他画面の縦長ボタン用に残置） ===== */
 .layer-selector {
@@ -566,6 +571,7 @@ body { background: var(--bg); }
   color: var(--text-dim);
   border-color: var(--border);
   min-width: 80px;
+  white-space: nowrap;
 }
 .btn--layer:hover { color: var(--text); background: var(--bg3); }
 .btn--layer-active {
@@ -772,15 +778,15 @@ body { background: var(--bg); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 6px 4px;
+  gap: 3px;
+  padding: 8px 5px;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
   transition: background 0.1s, border-color 0.1s;
-  min-height: 52px;
+  min-height: 54px;
   overflow: hidden;
 }
 .picker-key:hover {
@@ -882,6 +888,19 @@ body { background: var(--bg); }
   white-space: nowrap;
 }
 
+/* 加速度スライダーとDPIカーブを1つのブロックとして表示するための領域。
+   .trackball-barはflex-wrapする横並びバーなので、ここは独立した行として
+   全幅を占めるようflex-basis:100%にする。 */
+.trackball-bar__dpicurve {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 .slider {
   flex: 1;
   accent-color: var(--accent);
@@ -955,6 +974,23 @@ body { background: var(--bg); }
   border-radius: 50%;
   background: var(--accent);
 }
+/* タブ形式は幅が広い時用（.led-panel__targetsはflex-shrink:0のため折り返さず
+   横にはみ出してしまう）。狭い時（1カラム表示と同じ980px基準）はドロップダウンに
+   切り替える（本人要望）。 */
+.led-panel__target-select {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+}
+@media (max-width: 980px) {
+  .led-panel__targets { display: none; }
+  .led-panel__target-select { display: block; }
+}
 .led-panel__bar {
   position: relative;
   height: 22px;
@@ -1021,7 +1057,11 @@ body { background: var(--bg); }
    処理（App.tsxのkeymapLeftHeight）が自己参照的に無効化されてしまうため。 */
 .keymap-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  /* 右側（キー設定パネル）も400px床から余白に応じて広がるようにする（3:1で配分。
+     以前は4:1だったが、左側のキー配列拡大の上限を引き上げたのに合わせて右側にも
+     もう少し余白を回すようにした）。広がった分は.modal-panel__grid--compactの
+     列数が増える形で活きる。 */
+  grid-template-columns: minmax(0, 3fr) minmax(400px, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -1069,6 +1109,36 @@ body { background: var(--bg); }
   background: var(--bg2);
 }
 
+/* 1カラムに畳んだ時、表示順を「キー配列→キー設定パネル→LED設定」にする
+   （本人要望）。.keymap-left-panelはキー配列とLED設定をまとめる箱だが、
+   display:contentsで自分自身の箱をなくし、中の子要素を.keymap-grid直下の
+   アイテムとして扱わせることで、そちらのorderで間にkeymap-right-panelを
+   割り込ませられるようにする。
+   【注意】この節は上の.keymap-left-panel等の基本スタイル定義より後ろに
+   置くこと。同じセレクタ・同じ詳細度の場合、メディアクエリの条件が
+   成立していてもCSSソース順で後にある宣言が勝つため、先に置くと
+   display:flexなど基本スタイル側に上書きされて無効化されてしまう
+   （実際にそれで一度効かなくなった）。 */
+@media (max-width: 980px) {
+  .keymap-left-panel { display: contents; }
+  .keymap-keyboard-card { order: 1; }
+  .keymap-right-panel { order: 2; }
+  .keymap-led-panel { order: 3; }
+  /* keymapLeftHeightによる高さ強制（JS側は1カラム化を考慮していない固定値）は
+     1カラム表示では不要かつ邪魔なので、この幅では常に自然な高さに戻す */
+  .keymap-right-panel { height: auto !important; max-height: none !important; }
+}
+
+/* LED設定・キー設定の両方の下に詰めて表示するバージョン表示（元はページ全体の
+   フッターだった）。keymap-view側のgap(16px)を打ち消して間隔を詰める */
+.keymap-version {
+  margin-top: -10px;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
 /* ===== キー設定パネル（右側常時表示・モーダル版と共通の中身） ===== */
 .key-config-panel { display: flex; flex-direction: column; height: 100%; }
 .key-config-panel__header {
@@ -1091,7 +1161,7 @@ body { background: var(--bg); }
 .modal-body.key-config-panel__body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -1314,10 +1384,6 @@ body { background: var(--bg); }
   flex-direction: column;
   gap: 14px;
 }
-.builder-panel__desc {
-  font-size: 12px;
-  color: var(--text-dim);
-}
 .builder-panel__set { align-self: flex-start; }
 
 .builder-section {
@@ -1331,19 +1397,37 @@ body { background: var(--bg); }
   color: var(--text-dim);
 }
 
+/* 右側常時表示パネル内のホールドタブ: 「通常」タブと同じく、見出しやホールド設定は
+   常に表示したまま、タップキー一覧だけが残りの縦幅いっぱいに広がってその中で
+   スクロールするようにする（パネル全体がスクロールする形だと窮屈に見えるため） */
+.key-config-panel__body .builder-panel {
+  flex: 1;
+  min-height: 0;
+}
+.key-config-panel__body .builder-section--grow {
+  flex: 1;
+  min-height: 0;
+}
+.key-config-panel__body .builder-section--grow .tap-picker {
+  flex: 1;
+  min-height: 0;
+}
+.key-config-panel__body .builder-section--grow .tap-picker__grid {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  align-content: start;
+}
+
 .builder-mod-buttons {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
-.builder-mod-hint {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-left: 4px;
-}
 .builder-layer-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -1987,6 +2071,7 @@ body { background: var(--bg); }
   cursor: grab;
 }
 .dpi-curve__point--active { fill: var(--accent-h); cursor: grabbing; }
+.dpi-curve__point--preview { fill: var(--text-dim); cursor: default; }
 
 .dpi-curve__axis-y {
   writing-mode: vertical-rl;
@@ -2249,12 +2334,14 @@ body { background: var(--bg); }
 /* ホールド時の動作カテゴリタブ */
 .hold-kind-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 8px;
 }
 .hold-kind-tabs .tab {
   padding: 4px 14px;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 /* 16進数入力 */
@@ -2335,6 +2422,40 @@ body { background: var(--bg); }
 .modal-type-tabs .tab {
   padding: 6px 16px;
   font-size: 13px;
+}
+/* キー未選択のままホールド/カスタムタブをクリックした時の案内（タブのすぐ下に表示） */
+/* キー未選択のままホールド/カスタムタブを押した時の案内。画面下部の共通トーストだと
+   目に入りにくい・遠いとの指摘（本人・2026-09-18）があったため、キー設定パネルの
+   右隣に浮かせて表示する。position:fixedなのでoverflow-x:hiddenな親要素にクリップ
+   されない。パネルはページの一番右の列でその外側の余白（.app-mainのpadding）しか
+   無いことが多いため、横位置はページ右端基準の固定値にし（パネルのすぐ右〜右上に
+   軽く重なる形になるが、右端基準にしないと画面外に出て見えなくなってしまう）、
+   縦位置だけJS側で測ったパネルの実座標（上端）に合わせている。 */
+.key-config-panel__side-hint {
+  position: fixed;
+  right: 24px;
+  max-width: 240px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(122,162,247,0.92);
+  color: #fff;
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  pointer-events: none;
+  animation: side-hint-in 0.15s ease;
+}
+
+/* toast-in（画面下部トースト用）をそのまま使い回していたところ、あちらは
+   left:50%と対になるtranslateX(-50%)を前提にしたアニメーションだったため、
+   right基準で配置しているこちらに適用すると、アニメーション終了と同時に
+   transformが元に戻り「表示直後に右へ飛ぶ」ような見た目になっていた
+   （本人指摘・2026-09-18）。横方向には動かさない専用のアニメーションに分離する。 */
+@keyframes side-hint-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-body {
@@ -2460,9 +2581,16 @@ body { background: var(--bg); }
   color: var(--text);
 }
 .modal-panel__grid--compact {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: minmax(46px, auto);
+  /* 固定6列ではなく、パネル幅に応じて列数が自動的に増減するようにする
+     （ウィンドウが広い時にキー設定パネルも広がるので、その分キーがより
+     多く並んで見えるようにするため） */
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  grid-auto-rows: minmax(54px, auto);
+  gap: 6px;
   max-height: none;
+  /* 行数が少ない（例: 3キーしかない「特殊」カテゴリ）場合でも、余った縦スペースを
+     行自体が埋めて伸びてしまわないようにする（align-contentの初期値がstretchのため） */
+  align-content: start;
 }
 
 .picker-empty {

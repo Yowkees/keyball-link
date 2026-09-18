@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import type { TrackballConfig } from '../../lib/protocol';
-import { cpiIndexToValue, SCROLL_MODE } from '../../lib/protocol';
+import { useState, useEffect, useRef } from 'react';
+import type { TrackballConfig, DpiCurveConfig } from '../../lib/protocol';
+import { cpiIndexToValue, SCROLL_MODE, computeAccelCurvePoints } from '../../lib/protocol';
+import { DpiCurveEditor } from '../DpiCurveEditor/DpiCurveEditor';
 
 interface TrackballSettingsProps {
   config: TrackballConfig;
   onChange: (cfg: TrackballConfig) => void;
-  onSave: () => void;
   scrollInvertV: boolean;
   scrollInvertH: boolean;
   onScrollInvertChange: (v: boolean, h: boolean) => void;
   accelAvailable?: boolean;  // LED版の44/61では加速度が無効 → グレーアウト
-  dpiCurveActive?: boolean;  // DPIカーブが有効だと加速度設定は使われない → グレーアウト
+  dpiCurve: DpiCurveConfig | null;  // 非対応ファーム(AVR版等)ではnull
+  onDpiCurveChange: (c: DpiCurveConfig) => Promise<void>;
 }
 
 const MAX_CPI_INDEX = 17;
@@ -67,7 +68,20 @@ function TrackballSlider({
   );
 }
 
-export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurveActive = false }: TrackballSettingsProps) {
+export function TrackballSettings({ config, onChange, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurve, onDpiCurveChange }: TrackballSettingsProps) {
+  // カーブの自由編集機能はUIから廃止し、常に加速度スライダーの内容をそのまま
+  // 使う設計にした。以前のセッションでDPIカーブを有効化したまま残っている
+  // 実機がある場合、そのままだとスライダーを動かしても実際の動作には反映
+  // されない（ファームは有効な間カーブを優先するため）ので、ここで自動的に
+  // 無効化しておく。
+  const resetOnce = useRef(false);
+  useEffect(() => {
+    if (dpiCurve?.enable && !resetOnce.current) {
+      resetOnce.current = true;
+      onDpiCurveChange({ ...dpiCurve, enable: false });
+    }
+  }, [dpiCurve, onDpiCurveChange]);
+
   return (
     <div className="trackball-bar">
       <span className="trackball-bar__title">トラックボール</span>
@@ -100,9 +114,22 @@ export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scr
         renderLabel={v => v === 0 ? 'オフ' : String(v)}
         scale="オフ〜強"
         onCommit={v => onChange({ ...config, accel: v })}
-        dimmed={!accelAvailable || dpiCurveActive}
-        dimmedReason={dpiCurveActive ? 'DPIカーブが有効なため、この設定は使われません（詳細設定タブで調整してください）' : undefined}
+        dimmed={!accelAvailable}
       />
+
+      {dpiCurve && (
+        <div className="trackball-bar__dpicurve">
+          <p className="settings-desc">
+            上の「加速度」が実際にどんな速度カーブになるかをグラフで確認できます（見るだけで編集はできません）。
+          </p>
+          <DpiCurveEditor
+            points={computeAccelCurvePoints(config.accel)}
+            disabled={!accelAvailable}
+            interactive={false}
+            yMax={127}
+          />
+        </div>
+      )}
 
       <div className="trackball-bar__item">
         <span className="trackball-bar__label">スクロール方向</span>
@@ -134,8 +161,6 @@ export function TrackballSettings({ config, onChange, onSave, scrollInvertV, scr
           横 {scrollInvertH ? 'ON' : 'OFF'}
         </button>
       </div>
-
-      <button className="btn btn--ghost btn--small" onClick={onSave}>保存</button>
     </div>
   );
 }

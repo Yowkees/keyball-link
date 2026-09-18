@@ -78,6 +78,19 @@ export function defaultDpiCurvePoints(): number[] {
   return [...DPI_CURVE_X];
 }
 
+// 「加速度」設定(0=オフ,1-10)から、DPIカーブと同じ9点形式の実効的な速度カーブを
+// 算出する（ボール動作の加速度スライダーとDPIカーブのグラフを連動表示するため）。
+// ファームウェア側の実際の計算式(keymap.cのkeyball_on_apply_motion_to_mouse_move、
+// scale=64/accel、out=dx*speed/scale)と一致させること。出力は実際のマウスレポート
+// (int8_t)の範囲に合わせて127までにクランプする（DPIカーブのY軸最大255のうち
+// 127までしか到達しないのは正しい挙動）。
+export function computeAccelCurvePoints(accel: number): number[] {
+  return DPI_CURVE_X.map(x => {
+    if (accel === 0 || x === 0) return x;
+    return Math.max(0, Math.min(127, Math.round((x * x * accel) / 64)));
+  });
+}
+
 // ファームウェア(kb_settings.cのkb_dpi_curve_rebuild_lut)と全く同じ計算をJS側でも
 // 行い、エディタの見た目と実機の動きを一致させる。単調3次エルミート曲線
 // （Fritsch-Carlsonの簡略版。sqrtを使わず、各区間の接線比を[0,3]にクランプする
@@ -150,8 +163,8 @@ export interface PrecisionConfig {
 // 上限を254にしているのはファーム側の未初期化EEPROM値(0xFF=255)と衝突させないため
 // （kb_settings.h参照）。
 export const SCROLL_INERTIA_STRENGTH_MIN     = 0;
-export const SCROLL_INERTIA_STRENGTH_MAX     = 254;
-export const SCROLL_INERTIA_STRENGTH_DEFAULT = 128;
+export const SCROLL_INERTIA_STRENGTH_MAX     = 15;  // 2026-09-17: 254→15（最大設定が強すぎるとの指摘で縮小）
+export const SCROLL_INERTIA_STRENGTH_DEFAULT = 8;
 
 // 発動しきい値の倍率×10（例:30なら3.0倍）。ゆっくり動かした時は発動させず、
 // 速く弾いた時だけ発動させるためのしきい値。大きいほど「よほど速く弾かないと
@@ -162,7 +175,7 @@ export const SCROLL_INERTIA_FLICK_MULT_DEFAULT = 25;  // 2.5倍
 
 export interface ScrollInertiaConfig {
   enable:    boolean;
-  strength:  number;  // 0-254。大きいほど長く・遠くまで滑る
+  strength:  number;  // 0-15。大きいほど長く・遠くまで滑る
   flickMult: number;  // 5-100（×10した整数、例:30=3.0倍）。発動に必要な速さのしきい値
 }
 
@@ -315,10 +328,11 @@ export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
 
 // 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
 // グラデーション(8)は静止した配色で時間変化が無く、リアクティブ(14)はフェード時間が
-// 固定（ファーム側でFADE_MS定数）で速度設定を参照していない。タイピングヒートマップ(15)
-// も自作HEATMAP実装で減衰間隔が固定（ファーム側でHEATMAP_DECAY_INTERVAL_MS定数）の
-// ため速度設定を参照していない。
-export const LED_NO_SPEED_EFFECT_IDS = [8, 14, 15] as const;
+// 固定（ファーム側でFADE_MS定数）で速度設定を参照していない。
+// タイピングヒートマップ(15)は2026-09-18に「赤くなる早さを調整したい」との要望を受け、
+// 速度スライダーを「1打鍵あたりの熱量増加（＝何回打つと赤くなるか）」に転用したため、
+// ここでは対象外にしている（減衰間隔自体は引き続きファーム側の固定値）。
+export const LED_NO_SPEED_EFFECT_IDS = [8, 14] as const;
 
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
 export interface LayerLedConfig {

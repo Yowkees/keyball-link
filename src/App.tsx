@@ -11,7 +11,7 @@ import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
-import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig } from './lib/protocol';
+import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from './lib/protocol';
 import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
 import type { KeyLayout } from './lib/keycodes';
@@ -90,7 +90,7 @@ export default function App() {
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
-    (localStorage.getItem('theme') as Theme) ?? 'dark'
+    (localStorage.getItem('theme') as Theme) ?? 'light'
   );
   const [accentTheme, setAccentTheme] = useState<AccentTheme>(() =>
     (localStorage.getItem('accentTheme') as AccentTheme) ?? 'mint'
@@ -218,6 +218,7 @@ export default function App() {
       setUndoStack([]);   // 並べ替え後はキー単位の取り消し履歴が合わなくなるためクリア
       setRedoStack([]);
       setCurrentLayer(0);
+      setHasUnsaved(true);
       showToast('レイヤーの並べ替えを保存しました', 'success');
     } catch (e) {
       showToast(`保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
@@ -318,74 +319,95 @@ export default function App() {
 
   const handleTrackballChange = async (cfg: typeof state.trackball) => {
     if (!cfg) return;
-    try { await setTrackball(cfg); }
+    try { await setTrackball(cfg); setHasUnsaved(true); }
     catch (e) { showToast(`トラックボール設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleLedChange = async (cfg: typeof state.led) => {
     if (!cfg) return;
-    try { await setLed(cfg); }
+    try { await setLed(cfg); setHasUnsaved(true); }
     catch (e) { showToast(`LED設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleKbSettingsChange = async (s: KbSettings) => {
-    try { await setKbSettings(s); }
+    try { await setKbSettings(s); setHasUnsaved(true); }
     catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleGestureChange = async (g: GestureConfig) => {
-    try { await setGesture(g); }
+    try { await setGesture(g); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャー設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleGestureModeChange = async (mode: number, g: GestureModeConfig) => {
-    try { await setGestureMode(mode, g); }
+    try { await setGestureMode(mode, g); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーモード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleGestureThresholdChange = async (t: GestureThreshold) => {
-    try { await setGestureThreshold(t); }
+    try { await setGestureThreshold(t); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleGestureWaveSpeedChange = async (speed: number) => {
-    try { await setGestureWaveSpeed(speed); }
+    try { await setGestureWaveSpeed(speed); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーウェーブ速度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleGestureWaveEnableChange = async (v: boolean) => {
-    try { await setGestureWaveEnable(v); }
+    try { await setGestureWaveEnable(v); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleShakeChange = async (s: ShakeConfig) => {
-    try { await setShake(s); }
+    try { await setShake(s); setHasUnsaved(true); }
     catch (e) { showToast(`シェイク設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleDFlickChange = async (d: DFlickConfig) => {
-    try { await setDFlick(d); }
+    try { await setDFlick(d); setHasUnsaved(true); }
     catch (e) { showToast(`ダブルフリック設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleComboSlotChange = async (idx: number, slot: ComboSlot) => {
-    try { await setComboSlot(idx, slot); }
+    try { await setComboSlot(idx, slot); setHasUnsaved(true); }
     catch (e) { showToast(`コンボ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleDpiCurveChange = async (c: DpiCurveConfig) => {
-    try { await setDpiCurve(c); }
+    try { await setDpiCurve(c); setHasUnsaved(true); }
     catch (e) { showToast(`DPIカーブ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleTdSlotChange = async (idx: number, slot: TdSlot) => {
-    try { await setTdSlot(idx, slot); }
+    try { await setTdSlot(idx, slot); setHasUnsaved(true); }
     catch (e) { showToast(`タップダンス設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handlePrecisionChange = async (p: PrecisionConfig) => {
+    try { await setPrecisionConfig(p); setHasUnsaved(true); }
+    catch (e) { showToast(`精密モード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleScrollInertiaChange = async (c: ScrollInertiaConfig) => {
+    try { await setScrollInertiaConfig(c); setHasUnsaved(true); }
+    catch (e) { showToast(`慣性スクロール設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleLayerLedEnableChange = async (v: boolean) => {
+    try { await setLayerLedEnable(v); setHasUnsaved(true); }
+    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleLayerLedChange = async (layer: number, cfg: LayerLedConfig) => {
+    try { await setLayerLed(layer, cfg); setHasUnsaved(true); }
+    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
+      setHasUnsaved(true);
       showToast(`Macro ${idx} を保存しました`, 'success');
     } catch (e) {
       showToast(`マクロ保存失敗: ${e instanceof Error ? e.message : String(e)}`);
@@ -842,7 +864,16 @@ export default function App() {
                         </p>
                       </div>
                     ) : (
-                      <div className="layout-scroll" data-guide="keyboard">
+                      <div
+                        className="layout-scroll"
+                        data-guide="keyboard"
+                        onClick={e => {
+                          // キー本体（.keyの中）のクリックはKey側のonClickで選択処理をするので、
+                          // ここでは無視する。それ以外（キーとキーの間の余白など）をクリックした
+                          // 時だけ選択を解除する（本人要望・2026-09-18）。
+                          if (!(e.target as HTMLElement).closest('.key')) setSelectedKeyIndex(null);
+                        }}
+                      >
                         <KeyboardLayout
                           layout={layout}
                           keycodes={layerKeycodes}
@@ -866,8 +897,8 @@ export default function App() {
                         onLedChange={handleLedChange}
                         layerLedEnable={state.layerLedEnable}
                         layerLeds={state.layerLeds}
-                        onLayerLedEnableChange={setLayerLedEnable}
-                        onLayerLedChange={setLayerLed}
+                        onLayerLedEnableChange={handleLayerLedEnableChange}
+                        onLayerLedChange={handleLayerLedChange}
                         switchableLayers={Array.from({ length: Math.max((state.info?.layers ?? 4) - 1, 0) }, (_, i) => i + 1)}
                       />
                     </div>
@@ -891,6 +922,27 @@ export default function App() {
                     )}
                   </div>
                 </div>
+
+                <div className="keymap-version">
+                  <span>Keyball Link v{__APP_VERSION__}</span>
+                  {isConnected && (
+                    <span>
+                      {' '}・ ファームウェア:{' '}
+                      {state.firmwareVersion ? (
+                        <>
+                          {formatVersion(state.firmwareVersion)}
+                          {state.model && isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION[state.model]) && (
+                            <span className="app-footer__warn">
+                              （最新版 {formatVersion(LATEST_FW_VERSION[state.model])} があります。「ファームウェア」タブから更新できます）
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="app-footer__warn">バージョン情報なし（古い版の可能性があります。更新をおすすめします）</span>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -911,7 +963,7 @@ export default function App() {
             )}
 
             {activeTab === 'firmware' && (
-              <FirmwareFlasher detectedModel={state.model} isHIDConnected={isConnected} onReboot={reboot} />
+              <FirmwareFlasher detectedModel={state.model} productId={state.productId} isHIDConnected={isConnected} onReboot={reboot} />
             )}
 
             {activeTab === 'feedback' && <FeedbackTab />}
@@ -922,7 +974,6 @@ export default function App() {
                 layerCount={state.info?.layers ?? 4}
                 trackball={state.trackball}
                 onTrackballChange={handleTrackballChange}
-                onSave={handleSave}
                 settings={state.kbSettings}
                 onChange={handleKbSettingsChange}
                 accelAvailable={accelAvailable}
@@ -943,9 +994,9 @@ export default function App() {
                 dflick={state.dflick}
                 onDFlickChange={handleDFlickChange}
                 precision={state.precision}
-                onPrecisionChange={setPrecisionConfig}
+                onPrecisionChange={handlePrecisionChange}
                 scrollInertia={state.scrollInertia}
-                onScrollInertiaChange={setScrollInertiaConfig}
+                onScrollInertiaChange={handleScrollInertiaChange}
                 keyLayout={keyLayout}
               />
             )}
@@ -964,6 +1015,7 @@ export default function App() {
                 model={state.model}
                 productId={state.productId}
                 onTestLed={isConnected ? testLed : undefined}
+                ledCount={state.model === 'keyballplus' ? 55 : undefined}
               >
                 {isConnected && layout && (
                   <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />
@@ -973,27 +1025,6 @@ export default function App() {
           </>
         )}
       </main>
-
-      <footer className="app-footer">
-        <span>Keyball Link v{__APP_VERSION__}</span>
-        {isConnected && (
-          <span>
-            {' '}・ ファームウェア:{' '}
-            {state.firmwareVersion ? (
-              <>
-                {formatVersion(state.firmwareVersion)}
-                {state.model && isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION[state.model]) && (
-                  <span className="app-footer__warn">
-                    （最新版 {formatVersion(LATEST_FW_VERSION[state.model])} があります。「ファームウェア」タブから更新できます）
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="app-footer__warn">バージョン情報なし（古い版の可能性があります。更新をおすすめします）</span>
-            )}
-          </span>
-        )}
-      </footer>
 
     </div>
   );

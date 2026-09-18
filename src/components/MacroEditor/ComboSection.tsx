@@ -56,7 +56,7 @@ export function ComboSection({ comboSlots, comboEnabled, onComboEnabledChange, o
           keyIndex={-1}
           currentCode={editCombo.field === 'output' ? comboSlots[editCombo.idx].keycode : comboSlots[editCombo.idx].keys[editCombo.field]}
           keyLayout={keyLayout}
-          defaultPanel="カスタム"
+          defaultPanel="通常"
           hideHold
           onSelect={async (kc) => {
             const slot = comboSlots[editCombo.idx];

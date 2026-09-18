@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS, isKeycodeUnavailable, FW_ALL_AVAILABLE } from '../../lib/keycodes';
+import { useState, useEffect, useRef } from 'react';
+import {
+  KEYCODES, findKeycode, getKeyDisplayLabel, getKeyDescription, JIS_TAP_KEYS, isKeycodeUnavailable, FW_ALL_AVAILABLE,
+} from '../../lib/keycodes';
 import type { KeycodeEntry, KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import {
   makeModTapKeycode, makeLtKeycode, getLayerTapLayers,
@@ -277,7 +279,13 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, compact, on
   );
 }
 
-// ── ホールドパネル（Mod-Tap / Layer-Tap 統合） ────────────
+// ── ホールドパネル（Mod-Tap / Layer-Tap） ──
+// 2026-09-18: 「ジェスチャー」「精密モード」のホールド割当（タップダンス枠を裏で
+// 流用する実装）は、2つ目のキーに設定しようとすると同じTD枠を取り合って1つ目の
+// 設定を上書きしてしまう不具合があり、本人判断でこのパネルからは撤去した。
+// GST_HOLD/GST_HOLD2〜4・PRC_MOは元々「通常」タブの単純なタップキーとしても
+// 選択できる（keycodes.tsのKEYCODES参照）ため、ホールド動作としてではなく
+// タップキーとして割り当てる運用に一本化する。
 type HoldKind = 'mod' | 'layer';
 
 function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
@@ -288,38 +296,46 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
 }) {
   const isMT = currentCode >= 0x2000 && currentCode <= 0x3FFF;
   const isLT = currentCode >= 0x4000 && currentCode <= 0x43FF;
+  // タップキーのみ登録済み（通常キー、または修飾+キーのMODS）のところへホールド
+  // 動作を追加する場合、既存のタップ内容を引き継ぐ（0にリセットしない）。
+  const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
+  const existingTapKc = (isMods || isBasicKey(currentCode)) ? currentCode & 0xFF : 0x00;
 
   const [kind, setKind]     = useState<HoldKind>(isLT ? 'layer' : 'mod');
   const [mod, setMod]       = useState(isMT ? (currentCode >> 8) & 0x1F : 0x02);
   const [layer, setLayer]   = useState(isLT ? (currentCode >> 8) & 0x0F : 1);
-  const [baseKc, setBaseKc] = useState((isMT || isLT) ? currentCode & 0xFF : 0x00);
+  const [baseKc, setBaseKc] = useState((isMT || isLT) ? currentCode & 0xFF : existingTapKc);
   const layerTapLayers = getLayerTapLayers(layerCount);
 
   const toggleMod = (bit: number) => setMod(m => m ^ bit);
   const modRight  = (mod & MOD_RIGHT_BIT) !== 0;
   const modActive = (mod & 0x0F) !== 0;
 
-  const preview = kind === 'mod' ? makeModTapKeycode(mod, baseKc) : makeLtKeycode(layer, baseKc);
   const tapDisp = baseKc ? getKeyDisplayLabel(baseKc, keyLayout).replace('\n', '/') : '—';
   const modLabel = MODIFIER_BITS.filter(m => mod & m.bit).map(m => (modRight ? 'R' : '') + m.label).join('+');
-  const holdLabel = kind === 'mod'
-    ? (modActive ? modLabel : '（修飾キー未選択）')
-    : (layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
+  const holdLabel =
+    kind === 'mod' ? (modActive ? modLabel : '（修飾キー未選択）') :
+    (layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`);
 
   // ホールド時の動作・タップ時のキーの両方が有効な組み合わせになったら即座に反映する
   // （「通常」タブが1クリックで即反映されるのと同じ操作感に揃える。適用ボタンは持たない）。
+  // 初回マウント時（既存のタップキーを引き継いで表示しただけ）は反映しない
+  // ようにする。しないと、既存のタップキーへ既定の修飾キー(Shift)が使用者の
+  // 操作なしに即座に確定してしまう。
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const valid = baseKc !== 0 && (kind !== 'mod' || modActive);
-    if (valid) onSelect(preview);
+    if (!valid) return;
+    onSelect(kind === 'mod' ? makeModTapKeycode(mod, baseKc) : makeLtKeycode(layer, baseKc));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, mod, layer, baseKc]);
 
   return (
     <div className="builder-panel">
-      <p className="builder-panel__desc">
-        タップ → 通常キー、ホールド（長押し）→ 修飾キー または レイヤー切替 として動作します。
-      </p>
-
       {/* ホールド時の動作カテゴリ */}
       <div className="builder-section">
         <div className="builder-section__label">ホールド時の動作</div>
@@ -327,7 +343,7 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
           <button className={`tab ${kind === 'mod' ? 'tab--active' : ''}`} onClick={() => setKind('mod')}>修飾キー</button>
           <button className={`tab ${kind === 'layer' ? 'tab--active' : ''}`} onClick={() => setKind('layer')}>レイヤー切替</button>
         </div>
-        {kind === 'mod' ? (
+        {kind === 'mod' && (
           <div className="builder-mod-buttons">
             {MODIFIER_BITS.map(m => (
               <button key={m.bit} className={`btn btn--layer btn--small ${mod & m.bit ? 'btn--layer-active' : ''}`} onClick={() => toggleMod(m.bit)}>
@@ -341,9 +357,9 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
             >
               右側
             </button>
-            <span className="builder-mod-hint">複数選択でCtrl+Shiftなどの組み合わせにできます</span>
           </div>
-        ) : (
+        )}
+        {kind === 'layer' && (
           <div className="builder-layer-buttons">
             {layerTapLayers.map(l => (
               <button key={l.value} className={`btn btn--layer ${layer === l.value ? 'btn--layer-active' : ''}`} onClick={() => setLayer(l.value)}>{l.label}</button>
@@ -352,8 +368,9 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
         )}
       </div>
 
-      {/* タップ時のキー（カテゴリ別） */}
-      <div className="builder-section">
+      {/* タップ時のキー（カテゴリ別）。「通常」タブと同じく、ここだけが縦に伸びて
+          スクロールする（見出し・上のホールド設定は常に見えたままにする） */}
+      <div className="builder-section builder-section--grow">
         <div className="builder-section__label">タップ時のキー</div>
         <TapKeyPicker value={baseKc} keyLayout={keyLayout} onChange={setBaseKc} />
       </div>
@@ -385,11 +402,6 @@ function CustomPanel({ currentCode, keyLayout, onSelect }: {
 
   return (
     <div className="builder-panel">
-      <p className="builder-panel__desc">
-        QMKのキーコードを16進数で直接入力します（例: <code>0x0004</code> = A、<code>0x00E1</code> = 左Shift）。
-        上級者向け。一覧にないキーコードを指定したいときに使います。
-      </p>
-
       <div className="builder-section">
         <div className="builder-section__label">キーコード（16進数）</div>
         <input
@@ -450,8 +462,28 @@ export function KeyConfigPanel({
   const entry = findKeycode(currentCode);
   const dispLabel = getKeyDisplayLabel(currentCode, keyLayout);
 
+  // キー未選択のままホールド/カスタムタブを押した時の案内。画面下部の共通トーストだと
+  // 遠くて目に入りにくいとの指摘があったため、パネル自身の右隣にposition:fixedで
+  // 浮かせて表示する（本人・2026-09-18）。クリック時点のパネルの実座標を測って
+  // 都度位置を計算し、一定時間で自動的に消す。
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [disabledHint, setDisabledHint] = useState(false);
+  const [hintTop, setHintTop] = useState(0);
+  const disabledHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showDisabledHint = () => {
+    // パネルは常にページの一番右の列なので、右側の余白はページの外側パディング分しか
+    // 無いことが多い。leftをパネルの右端基準で計算すると画面外にはみ出して見えなく
+    // なるため、横位置はページ右端に固定（CSS側でright指定）し、縦位置だけパネルの
+    // 実座標（上端）に合わせる。
+    const rect = panelRef.current?.getBoundingClientRect();
+    if (rect) setHintTop(rect.top);
+    setDisabledHint(true);
+    if (disabledHintTimer.current) clearTimeout(disabledHintTimer.current);
+    disabledHintTimer.current = setTimeout(() => setDisabledHint(false), 2500);
+  };
+
   return (
-    <div className="key-config-panel" data-guide="key-picker">
+    <div className="key-config-panel" data-guide="key-picker" ref={panelRef}>
       <div className="key-config-panel__header">
         <span className="key-config-panel__title">キー設定</span>
         <span className="key-config-panel__current">現在: <strong>{selected ? dispLabel.replace('\n', ' / ') : '—'}</strong></span>
@@ -465,16 +497,18 @@ export function KeyConfigPanel({
           return (
             <button
               key={t}
-              className={`tab ${effectivePanel === t ? 'tab--active' : ''}`}
+              className={`tab ${effectivePanel === t ? 'tab--active' : ''} ${disabled ? 'tab--disabled' : ''}`}
               data-guide={t === 'ホールド' ? 'hold-tab' : undefined}
-              disabled={disabled}
-              onClick={() => setPanel(t)}
+              onClick={() => { if (disabled) { showDisabledHint(); return; } setPanel(t); }}
             >
               {t}
             </button>
           );
         })}
       </div>
+      {disabledHint && (
+        <p className="key-config-panel__side-hint" style={{ top: hintTop }}>先にキーマップ上のキーを選択してください</p>
+      )}
 
       <div className="modal-body key-config-panel__body">
         {effectivePanel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} compact onSelect={onSelect} />}

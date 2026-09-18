@@ -11,6 +11,13 @@ export interface KeycodeEntry {
 export const KC_NO    = 0x0000;
 export const KC_TRNS  = 0x0001;  // _______（透過）
 
+// Keyball独自キー（ホールドタブでの「ジェスチャー」「精密モード」用に名前付きexportする）
+export const GST_HOLD  = 0x7E10;  // 押している間ジェスチャーモード1
+export const PRC_MO    = 0x7E11;  // 押している間だけ精密モード
+export const GST_HOLD2 = 0x7E13;  // 押している間ジェスチャーモード2
+export const GST_HOLD3 = 0x7E14;  // 押している間ジェスチャーモード3
+export const GST_HOLD4 = 0x7E15;  // 押している間ジェスチャーモード4
+
 const K = (code: number, label: string, short: string, group: string): KeycodeEntry =>
   ({ code, label, short, group });
 const KL = (code: number, label: string, short: string, group: string, layout: 'JIS' | 'US'): KeycodeEntry =>

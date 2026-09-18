@@ -35,24 +35,41 @@ export function LedPanel({
     );
   }
 
+  // タブ形式（横並びボタン）は画面が広い時用。1カラムに畳むほど狭い時は
+  // 横にはみ出してしまうため、同じ選択肢をドロップダウンでも用意しておき、
+  // CSS側（幅980px以下）でどちらを表示するか切り替える（本人要望）。
   const targetTabs = layerLedEnable !== null && switchableLayers.length > 0 ? (
-    <div className="led-panel__targets">
-      <button
-        className={`led-panel__target ${target === 'normal' ? 'led-panel__target--active' : ''}`}
-        onClick={() => setTarget('normal')}
-      >
-        レイヤー0
-      </button>
-      {switchableLayers.map(l => (
+    <>
+      <div className="led-panel__targets">
         <button
-          key={l}
-          className={`led-panel__target ${target === l ? 'led-panel__target--active' : ''} ${layerLeds[l]?.enabled ? 'led-panel__target--on' : ''}`}
-          onClick={() => setTarget(l)}
+          className={`led-panel__target ${target === 'normal' ? 'led-panel__target--active' : ''}`}
+          onClick={() => setTarget('normal')}
         >
-          レイヤー{l}
+          レイヤー0
         </button>
-      ))}
-    </div>
+        {switchableLayers.map(l => (
+          <button
+            key={l}
+            className={`led-panel__target ${target === l ? 'led-panel__target--active' : ''} ${layerLeds[l]?.enabled ? 'led-panel__target--on' : ''}`}
+            onClick={() => setTarget(l)}
+          >
+            レイヤー{l}
+          </button>
+        ))}
+      </div>
+      <select
+        className="led-panel__target-select"
+        value={String(target)}
+        onChange={e => setTarget(e.target.value === 'normal' ? 'normal' : Number(e.target.value))}
+      >
+        <option value="normal">レイヤー0</option>
+        {switchableLayers.map(l => (
+          <option key={l} value={l}>
+            レイヤー{l}{layerLeds[l]?.enabled ? '（有効）' : ''}
+          </option>
+        ))}
+      </select>
+    </>
   ) : undefined;
 
   // レイヤー0（通常）とレイヤー1以降とで表示するパネルの高さが変わらないよう、

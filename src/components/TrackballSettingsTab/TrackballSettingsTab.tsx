@@ -11,7 +11,6 @@ import { GestureCard } from '../LayerFeatures/GestureCard';
 import { ShakeCard } from '../LayerFeatures/ShakeCard';
 import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
-import { DpiCurveCard } from '../LayerFeatures/DpiCurveCard';
 import type { KeyLayout } from '../../lib/keycodes';
 
 interface TrackballSettingsTabProps {
@@ -19,7 +18,6 @@ interface TrackballSettingsTabProps {
   layerCount: number;
   trackball: TrackballConfig | null;
   onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
-  onSave: () => Promise<void>;
   settings: KbSettings;
   onChange: (s: KbSettings) => Promise<void>;
   accelAvailable: boolean;
@@ -46,12 +44,12 @@ interface TrackballSettingsTabProps {
   keyLayout: KeyLayout;
 }
 
-type TbSection = 'ball' | 'automouse' | 'scroll' | 'gesture' | 'dpicurve' | 'precision' | 'shake' | 'dflick';
+type TbSection = 'ball' | 'automouse' | 'scroll' | 'gesture' | 'precision' | 'shake' | 'dflick';
 
 // トップレベル「トラックボール設定」タブ。詳細設定タブと同じ「左に項目一覧・右に詳細」の
 // サイドバー形式に統一し、1機能ずつ切り替えて表示する。
 export function TrackballSettingsTab({
-  isConnected, layerCount, trackball, onTrackballChange, onSave,
+  isConnected, layerCount, trackball, onTrackballChange,
   settings, onChange, accelAvailable, dpiCurve, onDpiCurveChange,
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
@@ -88,17 +86,17 @@ export function TrackballSettingsTab({
 
   const sections: { key: TbSection; title: string; note: string; render: () => React.ReactNode }[] = [
     ...(trackball ? [{
-      key: 'ball' as const, title: 'ボール動作', note: 'CPI・速度・方向',
+      key: 'ball' as const, title: 'ボール動作', note: 'CPI・感度カーブ・方向',
       render: () => (
         <TrackballSettings
           config={trackball}
           onChange={onTrackballChange}
-          onSave={onSave}
           scrollInvertV={settings.scrollInvertV}
           scrollInvertH={settings.scrollInvertH}
           onScrollInvertChange={(v, h) => apply({ scrollInvertV: v, scrollInvertH: h })}
           accelAvailable={accelAvailable}
-          dpiCurveActive={!!dpiCurve?.enable}
+          dpiCurve={dpiCurve}
+          onDpiCurveChange={onDpiCurveChange}
         />
       ),
     }] : []),
@@ -137,10 +135,6 @@ export function TrackballSettingsTab({
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}
         />
       ),
-    },
-    {
-      key: 'dpicurve', title: 'DPIカーブ', note: '動きの速さに応じた感度をトーンカーブ風に調整',
-      render: () => <DpiCurveCard dpiCurve={dpiCurve} onDpiCurveChange={onDpiCurveChange} disabled={disabled} />,
     },
     {
       key: 'precision', title: '精密モード', note: 'トラックボールを精密操作',

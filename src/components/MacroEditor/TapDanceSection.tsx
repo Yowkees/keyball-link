@@ -43,7 +43,7 @@ export function TapDanceSection({ tdSlots, onTdSlotChange, keyLayout, disabled }
           keyIndex={-1}
           currentCode={(tdSlots[editTd.idx] ?? EMPTY_TD)[editTd.field]}
           keyLayout={keyLayout}
-          defaultPanel="カスタム"
+          defaultPanel="通常"
           hideHold
           onSelect={async (kc) => {
             const cur = tdSlots[editTd.idx] ?? EMPTY_TD;

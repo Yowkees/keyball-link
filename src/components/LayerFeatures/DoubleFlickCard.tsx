@@ -86,7 +86,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
           keyIndex={-1}
           currentCode={dflick[editDir]}
           keyLayout={keyLayout}
-          defaultPanel="カスタム"
+          defaultPanel="通常"
           hideHold
           onSelect={async (kc) => { await onDFlickChange({ ...dflick, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}

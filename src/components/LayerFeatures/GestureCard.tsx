@@ -157,7 +157,7 @@ export function GestureCard({
             keyIndex={-1}
             currentCode={gestureModes[editModeDir.mode][editModeDir.dir]}
             keyLayout={keyLayout}
-            defaultPanel="カスタム"
+            defaultPanel="通常"
             hideHold
             onSelect={async (kc) => {
               await onGestureModeChange(editModeDir.mode, { ...gestureModes[editModeDir.mode], [editModeDir.dir]: kc });
@@ -253,7 +253,7 @@ export function GestureCard({
           keyIndex={-1}
           currentCode={gesture[editDir]}
           keyLayout={keyLayout}
-          defaultPanel="カスタム"
+          defaultPanel="通常"
           hideHold
           onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}

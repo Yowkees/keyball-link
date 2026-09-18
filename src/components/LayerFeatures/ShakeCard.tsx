@@ -82,7 +82,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
           keyIndex={-1}
           currentCode={shake.key}
           keyLayout={keyLayout}
-          defaultPanel="カスタム"
+          defaultPanel="通常"
           hideHold
           onSelect={async (kc) => { await onShakeChange({ ...shake, key: kc }); setEditKey(false); }}
           onClose={() => setEditKey(false)}

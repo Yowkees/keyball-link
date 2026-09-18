@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { ModelKey } from '../../layouts';
-
-// モデルごとのProductID（VendorIDは共通: 22871）
-const MODEL_PIDS: Record<ModelKey, number> = {
-  keyball39: 512,
-  keyball44: 1024,
-  keyball61: 256,
-  keyballplus: 1280,
-};
-const KEYBALL_VID = 22871;
+import { MODEL_PIDS, KEYBALL_VID } from '../../lib/deviceIds';
 
 export const isMacOSPlatform = () => /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent);
 

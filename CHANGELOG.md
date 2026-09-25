@@ -5,6 +5,11 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-25
+### Fixed
+- **キーをドラッグ&ドロップで登録すると、見た目上は成功しているのに実際の入力に反映されないことがある不具合を修正**。WebHID通信の応答待ちに排他制御が無く、前のコマンドの応答が届く前に次のコマンドを送ると応答を取り違えることがあった（`KeyballHID.sendCommand`をキュー方式に変更し直列化）。クリックでの登録より間隔の短いドラッグ&ドロップで特に起きやすかった
+- Keyball61用ファームウェアを更新（v1.4.1）。詳細設定やマクロを保存するとキーマップの一部が消えることがある不具合を修正（詳細は[keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md)参照）
+
 ## [1.7.0] - 2026-09-25
 ### Added
 - Keyball39・Keyball+のRP2040版ファームウェアに対応する開発基盤を追加（Web UI上は現時点では非公開）

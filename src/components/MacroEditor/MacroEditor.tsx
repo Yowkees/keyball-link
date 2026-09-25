@@ -21,6 +21,7 @@ interface MacroEditorProps {
   keyLayout: KeyLayout;
   isConnected: boolean;
   onSave: (idx: number, slot: MacroSlot) => Promise<void>;
+  bufferSize?: number;  // 接続中機種の実際のマクロバッファ容量（未指定時はMACRO_BUFFER_SIZE。Keyball61は容量が小さい）
 }
 
 type EditorState = 'idle' | 'recording' | 'editing';
@@ -92,7 +93,7 @@ function estimateBufferUsage(slots: MacroSlot[]): number {
   return total;
 }
 
-export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEditorProps) {
+export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize = MACRO_BUFFER_SIZE }: MacroEditorProps) {
   const [selected, setSelected] = useState(0);
   const [editorState, setEditorState] = useState<EditorState>('idle');
   const [draft, setDraft] = useState<MacroSlot | null>(null);
@@ -182,8 +183,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
   const bufferUsed = estimateBufferUsage(
     draft ? slots.map((s, i) => i === selected ? draft : s) : slots
   );
-  const bufferPct = Math.min(100, Math.round(bufferUsed / MACRO_BUFFER_SIZE * 100));
-  const overCapacity = bufferUsed > MACRO_BUFFER_SIZE;
+  const bufferPct = Math.min(100, Math.round(bufferUsed / bufferSize * 100));
+  const overCapacity = bufferUsed > bufferSize;
 
   return (
     <div className="macro-editor">
@@ -197,7 +198,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
         <div className="macro-buffer-track">
           <div className="macro-buffer-fill" style={{ width: `${bufferPct}%`, background: bufferPct > 90 ? 'var(--red)' : 'var(--accent)' }} />
         </div>
-        <span className="macro-buffer-pct">{bufferUsed} / {MACRO_BUFFER_SIZE} byte ({bufferPct}%)</span>
+        <span className="macro-buffer-pct">{bufferUsed} / {bufferSize} byte ({bufferPct}%)</span>
       </div>
 
       <div className="macro-layout">
@@ -299,7 +300,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave }: MacroEdit
               スロットを選択して「記録開始」を押し、入力したいキーを順番に押してください。<br />
               記録後に遅延の調整・キーの追加・削除ができます。<br />
               保存後、キーマップで「Macro 0〜9」に割り当てると実行できます。<br />
-              ※ バッファ（{MACRO_BUFFER_SIZE}バイト）を全スロットで共有しています。
+              ※ バッファ（{bufferSize}バイト）を全スロットで共有しています。
             </p>
           )}
         </div>

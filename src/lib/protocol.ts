@@ -1,5 +1,7 @@
 // ファームウェアの kb_hid.h と対応するプロトコル定義
 
+import type { ModelKey } from '../layouts';
+
 export const KEYBALL_VID = 0x5957;
 export const KEYBALL_USAGE_PAGE = 0xFF60;
 export const KEYBALL_USAGE_ID   = 0x61;
@@ -180,8 +182,18 @@ export interface ScrollInertiaConfig {
 }
 
 export const MACRO_SLOT_COUNT   = 10;
-export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（バイト）
+export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（バイト）。Keyball39/44・Keyball+の値
+// Keyball61はdynamic_keymap（キーマップ本体）のEEPROM使用量が他機種より大きく、
+// マクロ領域をAVRのEEPROM総容量(1024バイト)に収めるため240バイトに縮小している
+// （keyball-link-firmwareのlib/keyball/kb_macro.h参照。2026-09-25、キーマップの
+// 一部が破損する不具合の修正に伴う変更）。
+export const MACRO_BUFFER_SIZE_KEYBALL61 = 240;
 export const MACRO_CHUNK_SIZE   = 28;   // 1HIDパケットあたりのデータ量
+
+// 接続中の機種に応じたマクロバッファ容量（バイト）を返す
+export function macroBufferSizeForModel(model: ModelKey | null): number {
+  return model === 'keyball61' ? MACRO_BUFFER_SIZE_KEYBALL61 : MACRO_BUFFER_SIZE;
+}
 
 // バッファ内のアクションコード（VIA互換）
 export const MACRO_ACTION_TAP   = 0x01;
@@ -203,8 +215,8 @@ export function emptyMacroSlot(): MacroSlot {
   return { steps: [] };
 }
 
-/** MacroSlot配列 → EEPROMバッファ（Uint8Array） */
-export function encodeMacroBuffer(slots: MacroSlot[]): Uint8Array {
+/** MacroSlot配列 → EEPROMバッファ（Uint8Array）。bufferSizeは接続中機種の実際の容量（未指定時はMACRO_BUFFER_SIZE、macroBufferSizeForModel参照） */
+export function encodeMacroBuffer(slots: MacroSlot[], bufferSize: number = MACRO_BUFFER_SIZE): Uint8Array {
   const bytes: number[] = [];
   for (let i = 0; i < MACRO_SLOT_COUNT; i++) {
     const slot = slots[i] ?? emptyMacroSlot();
@@ -219,11 +231,11 @@ export function encodeMacroBuffer(slots: MacroSlot[]): Uint8Array {
     bytes.push(MACRO_ACTION_END);
   }
   // 超過分を黙って切り捨てるとEEPROM上のデータが壊れるためエラーにする
-  if (bytes.length > MACRO_BUFFER_SIZE) {
-    throw new Error(`マクロの合計サイズ（${bytes.length}バイト）がバッファ容量（${MACRO_BUFFER_SIZE}バイト）を超えています。ステップを減らしてください。`);
+  if (bytes.length > bufferSize) {
+    throw new Error(`マクロの合計サイズ（${bytes.length}バイト）がバッファ容量（${bufferSize}バイト）を超えています。ステップを減らしてください。`);
   }
   // バッファ末尾をゼロパディング
-  while (bytes.length < MACRO_BUFFER_SIZE) bytes.push(0);
+  while (bytes.length < bufferSize) bytes.push(0);
   return new Uint8Array(bytes);
 }
 

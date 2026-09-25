@@ -241,6 +241,17 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
   - `rp2040`を`origin`にpush→`main`を`git merge --ff-only rp2040`でfast-forward→`origin/main`にpush→`npm run deploy`で本番（`keyball-link.shiroganelab.com`）に反映済み。バージョンは`1.7.0`。
   - **今後の運用方針（本人指示）**: 「今後はmainブランチの変更は全てに反映するようにしてください」＝ 別セッション等で`main`に直接変更が入った場合、放置して大きく分岐させず、早めに開発ブランチ側へ取り込むこと。今回のように10コミット分溜めてから一括マージするのは避ける。
 
+### 2026-09-25（続き）: Keyball61キーマップ破損の不具合報告 → 調査・修正。WebHID通信のコマンド取り違えバグも発見・修正
+- 本人より「Keyball61で、キーマップを設定してしばらく使用していると設定したキーマップが一部消えてしまう」との不具合報告。
+- **原因調査（`keyball-link-firmware`）**: Keyball61はマトリクスが10行×8列と他機種（8行×6列）より大きく、dynamic_keymap(キーマップ本体)が使うEEPROM領域が640バイト（0x0025〜0x02A4番地）に達する。一方、タップダンス・kb_settings(詳細設定)・マクロが使う独自EEPROM領域は全機種共通で0x0200番地から固定配置されており、「dynamic_keymapは0x01C0までしか使わないので0x0200からは安全」という前提（コメントに明記あり）がKeyball61だけ成立していなかった。特にkb_settings（0x0240-0x024F）は詳細設定・トラックボール設定を保存するたびに書き込まれるため、最終レイヤーの一部キーが保存の都度上書きされて壊れていた。
+- **修正**: `KB_EEPROM_LAYOUT_KEYBALL61`フラグ（`keyball61/keymaps/web_configurator/rules.mk`の`OPT_DEFS`で定義。`kb_settings.c`/`td_config.c`は`config.h`をincludeしていないため、`GESTURE_ENABLE`と同じ「OPT_DEFSで渡す」方式にする必要があった）を追加し、Keyball61接続時は`td_config.c`・`kb_settings.h`・`kb_macro.h`/`.c`のEEPROM開始アドレスをdynamic_keymapの末尾より後ろ(0x02B0番地)に移動。AVRのEEPROM総容量1024バイトに収めるため、マクロバッファも400→240バイトに縮小（Keyball39/44/Keyball+には一切影響なし）。ファームウェアv1.4.1としてリリース。
+- **Web UI側もマクロバッファ容量を機種別対応**: `protocol.ts`に`macroBufferSizeForModel()`を追加し、`KeyballHID.macroBufferSize`（接続時に機種判定してセット）を`encodeMacroBuffer`/`readMacroBuffer`/`writeMacroBuffer`が参照するように変更。ファームとWeb UIの認識がずれて「保存できたように見えて実は一部が黙って切り捨てられる」という別の不具合を予防。`MacroEditor.tsx`のバッファ使用量表示もmodelに応じて正しい容量を表示するようにした。
+- **並行して報告された別の不具合「ドラッグ&ドロップでキー登録すると見た目上は成功するが実際には反映されない」も同じセッションで調査・修正**:
+  - 原因は`src/lib/hid.ts`の`sendCommand()`に排他制御が無かったこと。WebHIDの`inputreport`イベントには要求と応答を対応付けるIDが無く、複数の`sendCommand()`呼び出しが同時に進行していると（＝前のコマンドの応答が届く前に次のコマンドを送ると）、それぞれが登録した`inputreport`リスナーが**両方とも**次に届いた1件の応答に反応してしまい、別コマンドへの応答を自分の応答として誤って受け取る（応答の取り違え）ことがあった。応答コマンドID自体は一致するため、既存のエラーチェックをすり抜けてしまう。
+  - クリックでの登録はキーマップのキーをクリック→パネルが開く→キーコードをクリックという手順が必要で毎回間が空くのに対し、ドラッグ&ドロップは常時表示のパネルから直接ドラッグできるため連続操作の間隔が短く、取り違えが起きやすかった。**全機種で起こり得る一般的な問題であり、Keyball61固有ではない。**
+  - 修正: `KeyballHID`に`commandQueue`（Promiseチェーン）を追加し、`sendCommand()`は必ず前のコマンドの完了（成功/失敗問わず）を待ってから実際の送受信(`sendCommandNow()`)を行うキュー方式に変更。呼び出し側（`assignKey`等）は無変更。
+- Web版は`1.8.0`としてリリース。`npx tsc --noEmit`・`npm run build`・`npm run update-firmware`成功、本人が実機（Keyball61）で両方の不具合が解消したことを確認済み。`main`にコミット・push・本番デプロイ済み。
+
 ---
 
 ## 5. 主要ファイル

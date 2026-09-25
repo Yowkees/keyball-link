@@ -12,7 +12,7 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR } from './lib/protocol';
+import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel } from './lib/protocol';
 import { LATEST_FW_VERSION, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
@@ -966,6 +966,7 @@ export default function App() {
                 comboAvailable={fwFeatures.combo}
                 macroSlots={state.macroSlots}
                 onMacroSave={handleMacroSave}
+                macroBufferSize={macroBufferSizeForModel(state.model)}
                 isConnected={isConnected}
                 keyLayout={keyLayout}
                 tdSlots={state.tdSlots}

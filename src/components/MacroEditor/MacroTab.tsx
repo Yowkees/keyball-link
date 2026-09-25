@@ -13,6 +13,7 @@ interface MacroTabProps {
   comboAvailable: boolean;    // コンボ機能自体が使えるファームか（AVR版は非対応）
   macroSlots: MacroSlot[];
   onMacroSave: (idx: number, slot: MacroSlot) => Promise<void>;
+  macroBufferSize: number;  // 接続中機種の実際のマクロバッファ容量（Keyball61は他機種より小さい）
   isConnected: boolean;
   keyLayout: KeyLayout;
   tdSlots: TdSlot[];
@@ -27,7 +28,7 @@ interface MacroTabProps {
 // 共通のジャンルなので1つのタブにまとめる。詳細設定タブと同じ「左に項目一覧・右に詳細」の
 // サイドバー形式に統一している。
 export function MacroTab({
-  macroAvailable, tapDanceAvailable, comboAvailable, macroSlots, onMacroSave, isConnected, keyLayout,
+  macroAvailable, tapDanceAvailable, comboAvailable, macroSlots, onMacroSave, macroBufferSize, isConnected, keyLayout,
   tdSlots, onTdSlotChange, comboSlots, comboEnabled, onComboEnabledChange, onComboSlotChange,
 }: MacroTabProps) {
   const sections: { key: MacroSection; title: string; note: string; render: () => React.ReactNode }[] = [
@@ -35,7 +36,7 @@ export function MacroTab({
       key: 'macro', title: 'マクロ', note: '複数キー入力をまとめて1キーで実行',
       render: () => (
         macroAvailable ? (
-          <MacroEditor slots={macroSlots} keyLayout={keyLayout} isConnected={isConnected} onSave={onMacroSave} />
+          <MacroEditor slots={macroSlots} keyLayout={keyLayout} isConnected={isConnected} onSave={onMacroSave} bufferSize={macroBufferSize} />
         ) : (
           <p className="settings-desc" style={{ color: 'var(--red)' }}>
             ⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。<br />

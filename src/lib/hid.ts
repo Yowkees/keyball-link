@@ -7,6 +7,9 @@ export class KeyballHID {
   private device: HIDDevice | null = null;
   // 物理的に切断（ケーブル抜き等）されたときに呼ばれる
   onDisconnect: (() => void) | null = null;
+  // 接続中機種の実際のマクロバッファ容量（バイト）。機種判定後にuseKeyball.ts側で
+  // セットする（macroBufferSizeForModel参照）。未接続時はデフォルト値のまま。
+  macroBufferSize: number = MACRO_BUFFER_SIZE;
 
   get connected(): boolean {
     return this.device !== null && this.device.opened;
@@ -30,6 +33,10 @@ export class KeyballHID {
     }
   };
 
+  // 直前までに積まれたコマンドの完了を表す「列の末尾」。常に解決済みの状態を保ち、
+  // 個々のコマンドの成功/失敗に関わらず次のコマンドの実行を妨げないようにする。
+  private commandQueue: Promise<unknown> = Promise.resolve();
+
   async connect(): Promise<void> {
     const devices = await navigator.hid.requestDevice({
       filters: [{ vendorId: KEYBALL_VID, usagePage: KEYBALL_USAGE_PAGE, usage: KEYBALL_USAGE_ID }],
@@ -46,7 +53,21 @@ export class KeyballHID {
     this.device = null;
   }
 
+  // WebHIDのinputreportには要求と応答を対応付けるID等が無く、複数のリスナーが
+  // 同時に登録されていると「別コマンドへの応答を自分の応答として誤って受け取る」
+  // 取り違えが起こり得る（2026-09-25、ドラッグ&ドロップでのキー登録が見た目上は
+  // 成功するのに実際には反映されない不具合の原因として判明）。そのため、実際の
+  // 送受信は必ず前のコマンドが完了してから1つずつ行うようキューで直列化する。
   private sendCommand(packet: Uint8Array): Promise<Uint8Array> {
+    const task = this.commandQueue.then(
+      () => this.sendCommandNow(packet),
+      () => this.sendCommandNow(packet),  // 前のコマンドが失敗していても列を止めない
+    );
+    this.commandQueue = task.catch(() => undefined);
+    return task;
+  }
+
+  private sendCommandNow(packet: Uint8Array): Promise<Uint8Array> {
     if (!this.device?.opened) return Promise.reject(new Error('未接続'));
 
     return new Promise((resolve, reject) => {
@@ -512,15 +533,17 @@ export class KeyballHID {
     return slots;
   }
 
-  // バッファ全体をEEPROMから読み込む（複数パケット）
+  // バッファ全体をEEPROMから読み込む（複数パケット）。バイト数は接続中機種の
+  // 実際の容量（macroBufferSize、機種によって異なる。protocol.tsのmacroBufferSizeForModel参照）
   async readMacroBuffer(): Promise<Uint8Array> {
-    const buffer = new Uint8Array(MACRO_BUFFER_SIZE);
-    for (let offset = 0; offset < MACRO_BUFFER_SIZE; offset += MACRO_CHUNK_SIZE) {
+    const size = this.macroBufferSize;
+    const buffer = new Uint8Array(size);
+    for (let offset = 0; offset < size; offset += MACRO_CHUNK_SIZE) {
       const r = await this.sendCommand(makePacket(
         CMD.GET_MACRO, (offset >> 8) & 0xFF, offset & 0xFF,
       ));
       if (r[0] !== CMD.GET_MACRO) throw new Error('マクロ非対応のファームです');
-      const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
+      const len = Math.min(MACRO_CHUNK_SIZE, size - offset);
       buffer.set(r.slice(3, 3 + len), offset);
     }
     return buffer;
@@ -528,8 +551,9 @@ export class KeyballHID {
 
   // バッファ全体をEEPROMに書き込む（複数パケット）
   async writeMacroBuffer(buffer: Uint8Array): Promise<void> {
-    for (let offset = 0; offset < MACRO_BUFFER_SIZE; offset += MACRO_CHUNK_SIZE) {
-      const len = Math.min(MACRO_CHUNK_SIZE, MACRO_BUFFER_SIZE - offset);
+    const size = this.macroBufferSize;
+    for (let offset = 0; offset < size; offset += MACRO_CHUNK_SIZE) {
+      const len = Math.min(MACRO_CHUNK_SIZE, size - offset);
       const chunk = buffer.slice(offset, offset + len);
       const r = await this.sendCommand(makePacket(
         CMD.SET_MACRO,
@@ -552,7 +576,7 @@ export class KeyballHID {
 
   async setMacroSlot(idx: number, slot: MacroSlot, allSlots: MacroSlot[]): Promise<void> {
     const updated = allSlots.map((s, i) => i === idx ? slot : s);
-    const buffer = encodeMacroBuffer(updated);
+    const buffer = encodeMacroBuffer(updated, this.macroBufferSize);
     await this.writeMacroBuffer(buffer);
   }
 }

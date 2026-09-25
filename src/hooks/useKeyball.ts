@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
-import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer } from '../lib/protocol';
+import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
 
@@ -106,6 +106,10 @@ export function useKeyball() {
       await hid.current.connect();
       const info = await hid.current.getInfo();
       const model = MODEL_MAP[info.model] ?? null;
+      // Keyball61はEEPROM容量制約でマクロバッファが他機種より小さい
+      // （macroBufferSizeForModel参照）。以降のマクロ読み書きすべてに影響するため
+      // 機種判定直後、getAllMacroSlots()より前にセットする。
+      hid.current.macroBufferSize = macroBufferSizeForModel(model);
       const keymap = await hid.current.getFullKeymap(info.layers, info.rows, info.cols);
       const trackball = await hid.current.getTrackball();
       let led = null;
@@ -218,7 +222,7 @@ export function useKeyball() {
 
   const setMacroSlot = useCallback(async (idx: number, slot: MacroSlot, allSlots: MacroSlot[]) => {
     const updated = allSlots.map((s, i) => i === idx ? slot : s);
-    await hid.current.writeMacroBuffer(encodeMacroBuffer(updated));
+    await hid.current.writeMacroBuffer(encodeMacroBuffer(updated, hid.current.macroBufferSize));
     setState(prev => {
       const macroSlots = [...prev.macroSlots];
       macroSlots[idx] = slot;
@@ -227,7 +231,7 @@ export function useKeyball() {
   }, []);
 
   const setAllMacroSlots = useCallback(async (slots: MacroSlot[]) => {
-    await hid.current.writeMacroBuffer(encodeMacroBuffer(slots));
+    await hid.current.writeMacroBuffer(encodeMacroBuffer(slots, hid.current.macroBufferSize));
     setState(prev => ({ ...prev, macroSlots: slots }));
   }, []);
 

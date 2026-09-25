@@ -1425,6 +1425,11 @@ body { background: var(--bg); overflow-x: hidden; }
   align-items: center;
   gap: 6px;
 }
+.builder-mod-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
 .builder-layer-buttons {
   display: flex;
   flex-wrap: wrap;

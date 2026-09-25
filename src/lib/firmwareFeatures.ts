@@ -31,8 +31,8 @@ export function firmwareFeaturesForChip(chip: Chip | undefined) {
 // 伴いkeyball39と同じ課題を抱えることになった）。
 // hex/uf2 を作り直して差し替えるたびにここも更新する。
 export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
-  keyball39: { major: 1, minor: 3, patch: 0 },
-  keyball44: { major: 1, minor: 3, patch: 0 },
-  keyball61: { major: 1, minor: 3, patch: 0 },
+  keyball39: { major: 1, minor: 4, patch: 0 },
+  keyball44: { major: 1, minor: 4, patch: 0 },
+  keyball61: { major: 1, minor: 4, patch: 0 },
   keyballplus: { major: 1, minor: 1, patch: 0 },
 };

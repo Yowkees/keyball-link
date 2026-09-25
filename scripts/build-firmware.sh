@@ -15,6 +15,10 @@
 # （CONSOLE_ENABLE=yes・dprintf・debug_enableのpre_init）」だったと判明し
 # 削除（keyball-plus-firmware側で対応）。診断コード除去後は通常版26354/28672・
 # LED版27766/28672でどちらも余裕を持って収まるため、ビルド対象に復帰させた。
+# あわせて、keyball-plus-firmwareにdriversディレクトリ(pmw3360センサー
+# ドライバ)が一度もコミットされていなかった欠落も発見し、リポジトリ本体に
+# 追加して解消済み（そのため、このスクリプトでkeyball-link-firmware側から
+# driversをコピーしてくる処理は不要になった）。
 #
 # QMK_HOMEについて（2026-09-08〜、2026-09-18にRP2040分を追加、2026-09-25に
 # Keyball+ AVR分を復帰）:

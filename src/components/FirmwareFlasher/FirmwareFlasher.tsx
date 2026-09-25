@@ -7,25 +7,31 @@ import { chipForProductId } from '../../lib/deviceIds';
 import type { Chip } from '../../lib/deviceIds';
 import type { ModelKey } from '../../layouts';
 
-// 2026-09-18、Keyball+はRP2040版のみをリリース対象とし、AVR版はビルド・配布を
-// 停止した（本人判断）。keyball-plus-firmware側のソース・ビルド済みファイルは
-// 削除せず保持しているが、この一覧・UIからは意図的に外している。
+// 2026-09-18、Keyball+のAVR版LEDがフラッシュ容量超過のため一時非公開にしていたが、
+// 2026-09-25、原因（診断用コードの残存）を解消しビルド対象に復帰させたため再度公開。
 const BUILTIN_FIRMWARE_AVR: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.hex',
   keyball44: '/firmware/keyball_keyball44_web_configurator.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator.hex',
+  keyballplus: '/firmware/keyball_keyballplus_web_configurator.hex',
 };
 // LED版（AVR各機種）。LED有効・メディアキー有効・マクロ/ジェスチャー等を削減した構成
 const BUILTIN_FIRMWARE_AVR_LED: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator_led.hex',
   keyball44: '/firmware/keyball_keyball44_web_configurator_led.hex',
   keyball61: '/firmware/keyball_keyball61_web_configurator_led.hex',
+  keyballplus: '/firmware/keyball_keyballplus_web_configurator_led.hex',
 };
 // RP2040版。移植済みの機種のみ（LED版の分岐は無い＝1機種1ビルド）
 const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
   keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
 };
+// 2026-09-25: RP2040版はまだ一般公開しない方針（本人指示）。ビルド自体は
+// build-firmware.shで継続しているが、Web UI上はこのフラグで丸ごと非表示にする。
+// 公開時はtrueに変更する。
+const RP2040_PUBLIC_RELEASE = false;
+
 const MODEL_LABELS: Record<ModelKey, string> = {
   keyball39: 'Keyball39',
   keyball44: 'Keyball44',
@@ -58,7 +64,9 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
 
   // 接続中デバイスのproductIdからチップ種別を自動判定する（同じ機種名でも
   // AVR/RP2040でPIDが異なる。KEYBALL_MODEL値だけでは区別できない機種があるため）。
+  // RP2040版が非公開の間は、RP2040実機を繋いでもAVR側の表示のまま維持する。
   useEffect(() => {
+    if (!RP2040_PUBLIC_RELEASE) return;
     if (productId != null) {
       const detected = chipForProductId(productId);
       if (detected) setChip(detected);
@@ -68,7 +76,9 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   // 選んだ機種にそのchip種別のビルド済みファームウェアが無い状態のままだと
   // 書き込み先が無くなってしまうため、無い方から有る方へ自動的に切り替える
   // （例: Keyball+はRP2040版のみのため、AVRを選んでいたらRP2040へ）。
+  // RP2040版が非公開の間はこの自動切り替え自体を行わない。
   useEffect(() => {
+    if (!RP2040_PUBLIC_RELEASE) return;
     if (source !== 'builtin') return;
     if (chip === 'rp2040' && !BUILTIN_FIRMWARE_RP2040[selectedModel] && BUILTIN_FIRMWARE_AVR[selectedModel]) {
       setChip('avr');
@@ -296,11 +306,13 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
               title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
               AVR版（Pro Micro等）
             </button>
-            <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
-              onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
-              title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
-              RP2040版（RP2040 ProMicro）
-            </button>
+            {RP2040_PUBLIC_RELEASE && (
+              <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
+                onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
+                title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
+                RP2040版（RP2040 ProMicro）
+              </button>
+            )}
           </div>
 
           {source === 'builtin' && (

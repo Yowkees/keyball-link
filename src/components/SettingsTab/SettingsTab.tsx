@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { KbSettings } from '../../lib/protocol';
 import { OS_VARIANT_NAMES } from '../../lib/protocol';
-import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
+import { firmwareFeaturesForChip } from '../../lib/firmwareFeatures';
+import { chipForProductId } from '../../lib/deviceIds';
 import type { KeyLayout } from '../../lib/keycodes';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { UsageGuide } from '../UsageGuide/UsageGuide';
@@ -30,6 +31,8 @@ export function SettingsTab({
 }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
+  const chip = productId != null ? chipForProductId(productId) : undefined;
+  const fwFeatures = firmwareFeaturesForChip(chip);
 
   const apply = async (patch: Partial<KbSettings>) => {
     setSaving(true);
@@ -60,7 +63,7 @@ export function SettingsTab({
           </div>
 
           <div className="setting-rows" style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-            {FIRMWARE_FEATURES.autoShift && (
+            {fwFeatures.autoShift && (
               <ToggleRow
                 label="Auto Shift"
                 desc="長押しでShift文字を入力（例: aの長押し→A）。"
@@ -79,7 +82,7 @@ export function SettingsTab({
         </div>
       ),
     },
-    ...(FIRMWARE_FEATURES.osDetection ? [{
+    ...(fwFeatures.osDetection ? [{
       key: 'osdetect' as const, title: 'OS自動判別', note: '接続先のOSを判定してキーを切り替え',
       render: () => (
         <>

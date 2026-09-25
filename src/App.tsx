@@ -12,8 +12,9 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion } from './lib/protocol';
-import { LATEST_FW_VERSION } from './lib/firmwareFeatures';
+import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR } from './lib/protocol';
+import { LATEST_FW_VERSION, firmwareFeaturesForChip } from './lib/firmwareFeatures';
+import { chipForProductId } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { PRESETS } from './lib/presets';
@@ -85,7 +86,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, testLed, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -586,6 +587,12 @@ export default function App() {
   const isConnected = state.connectionState === 'connected';
   const currentCode = selectedKeyIndex !== null ? (layerKeycodes[selectedKeyIndex] ?? 0) : 0;
 
+  // 接続中デバイスのチップ種別（AVR/RP2040）。productIdの生値から判定するため、
+  // Keyball+のようにAVR/RP2040で同じKEYBALL_MODELを返す機種でも区別できる。
+  // 未接続時はundefined（＝不明。機能グレーアウトは行わない）。
+  const chip = isConnected && state.productId != null ? chipForProductId(state.productId) : undefined;
+  const fwFeatures = firmwareFeaturesForChip(chip);
+
   // 接続中ファームで使える機能（未接続なら不明＝true扱いでグレーアウトしない）。
   // v1.1.0〜メディアキーは通常版・LED版共通で有効。ジェスチャーは非LED版のみ、RGBはLED版のみ。
   const fwAvail = {
@@ -595,8 +602,13 @@ export default function App() {
     macro:      !isConnected || state.gesture !== null || state.gestureModes !== null,      // マクロキー（v1.1.0〜非LED版のみ。判定理由は上のgestureと同じ）
     precision:  !isConnected || state.precision !== null, // 精密モードキー（RP2040版など対応FWのみ）
     gestureModes: !isConnected || state.gestureModes !== null, // 複数ジェスチャーモード（RP2040版限定）
+    tapDance:   fwFeatures.tapDance,   // タップダンス（TD0〜TD7）。AVR版は非対応
     layerCount: state.info?.layers ?? 4,                     // 実際のレイヤー数（未接続時は4扱い）
   };
+
+  // AVR接続時、LEDエフェクト選択肢をファームが実際に対応している4種のみに絞る
+  // （RGB_MATRIX限定エフェクトを選ぶとLEDが消灯してしまうため）。RP2040・未接続時は制限なし。
+  const ledAllowedEffectIds = chip === 'avr' ? LED_EFFECT_IDS_AVR : undefined;
 
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。
@@ -900,6 +912,7 @@ export default function App() {
                         onLayerLedEnableChange={handleLayerLedEnableChange}
                         onLayerLedChange={handleLayerLedChange}
                         switchableLayers={Array.from({ length: Math.max((state.info?.layers ?? 4) - 1, 0) }, (_, i) => i + 1)}
+                        allowedEffectIds={ledAllowedEffectIds}
                       />
                     </div>
                   )}
@@ -949,6 +962,8 @@ export default function App() {
             {activeTab === 'macro' && (
               <MacroTab
                 macroAvailable={fwAvail.macro}
+                tapDanceAvailable={fwFeatures.tapDance}
+                comboAvailable={fwFeatures.combo}
                 macroSlots={state.macroSlots}
                 onMacroSave={handleMacroSave}
                 isConnected={isConnected}
@@ -1014,7 +1029,11 @@ export default function App() {
                 }}
                 model={state.model}
                 productId={state.productId}
-                onTestLed={isConnected ? testLed : undefined}
+                // 「LED位置実測（開発用）」はLED配線順調査用の内部ツールで一般ユーザーには
+                // 不要なため、一般公開版では常時非表示にする（2026-09-25、本人指示）。
+                // onTestLedをundefinedのままにするとSettingsTab側のセクション自体が
+                // 出なくなる（`...(onTestLed ? [...] : [])`のガード）。
+                onTestLed={undefined}
                 ledCount={state.model === 'keyballplus' ? 55 : undefined}
               >
                 {isConnected && layout && (

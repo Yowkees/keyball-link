@@ -7,7 +7,6 @@ import {
   makeModTapKeycode, makeLtKeycode, getLayerTapLayers,
   makeModsKeycode, MODIFIER_BITS, MOD_RIGHT_BIT,
 } from '../../lib/protocol';
-import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 
 export type PanelType = '通常' | 'ホールド' | 'カスタム';
 
@@ -25,21 +24,25 @@ interface KeyConfigModalProps {
 }
 
 // ── グループ定義 ──────────────────────────────────────────
-const GROUP_CATEGORIES: { label: string; groups: string[] }[] = [
-  { label: 'すべて',     groups: [] },
-  { label: '文字/数字',  groups: ['文字', '数字'] },
-  { label: '記号',       groups: ['記号', 'Shift記号', 'JIS記号'] },
-  { label: '操作',       groups: ['基本', '修飾', '矢印', 'システム'] },
-  { label: 'F/テンキー', groups: ['F', 'テンキー'] },
-  { label: '日本語',     groups: ['日本語'] },
-  { label: 'レイヤー',   groups: FIRMWARE_FEATURES.tapDance ? ['レイヤー', 'ワンショット', 'タップダンス'] : ['レイヤー', 'ワンショット'] },
-  { label: 'マウス',     groups: ['マウス'] },
-  { label: 'メディア',   groups: ['メディア'] },
-  { label: 'RGB',        groups: ['RGB'] },
-  { label: 'Keyball',    groups: ['Keyball'] },
-  { label: 'マクロ',     groups: ['マクロ'] },
-  { label: '特殊',       groups: ['特殊'] },
-];
+// タップダンス非対応ファーム（AVR版）接続時は「レイヤー」カテゴリからタップダンス
+// サブグループ自体を除外する（avail.tapDanceに応じて動的に切り替えるため関数化）。
+function buildGroupCategories(tapDanceAvail: boolean): { label: string; groups: string[] }[] {
+  return [
+    { label: 'すべて',     groups: [] },
+    { label: '文字/数字',  groups: ['文字', '数字'] },
+    { label: '記号',       groups: ['記号', 'Shift記号', 'JIS記号'] },
+    { label: '操作',       groups: ['基本', '修飾', '矢印', 'システム'] },
+    { label: 'F/テンキー', groups: ['F', 'テンキー'] },
+    { label: '日本語',     groups: ['日本語'] },
+    { label: 'レイヤー',   groups: tapDanceAvail ? ['レイヤー', 'ワンショット', 'タップダンス'] : ['レイヤー', 'ワンショット'] },
+    { label: 'マウス',     groups: ['マウス'] },
+    { label: 'メディア',   groups: ['メディア'] },
+    { label: 'RGB',        groups: ['RGB'] },
+    { label: 'Keyball',    groups: ['Keyball'] },
+    { label: 'マクロ',     groups: ['マクロ'] },
+    { label: '特殊',       groups: ['特殊'] },
+  ];
+}
 
 // 修飾と組み合わせ可能な基本キー（0xFF以下）かどうか
 function isBasicKey(code: number): boolean {
@@ -143,19 +146,20 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, compact, on
   const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
   const [mods, setMods] = useState(isMods ? (currentCode >> 8) & 0x1F : 0);
 
+  const groupCategories = buildGroupCategories(avail.tapDance);
   const categories = allowedGroups
-    ? GROUP_CATEGORIES.filter(cat => cat.groups.length === 0 || cat.groups.some(g => allowedGroups.includes(g)))
-    : GROUP_CATEGORIES;
+    ? groupCategories.filter(cat => cat.groups.length === 0 || cat.groups.some(g => allowedGroups.includes(g)))
+    : groupCategories;
 
   const baseKeys = KEYCODES.filter(k =>
-    (k.group !== 'タップダンス' || FIRMWARE_FEATURES.tapDance) &&
+    (k.group !== 'タップダンス' || avail.tapDance) &&
     (!allowedGroups || allowedGroups.includes(k.group))
   );
 
   const filtered = baseKeys.filter(k => {
     if (k.layout && k.layout !== keyLayout) return false;
     if (activeCategory !== 'すべて') {
-      const cat = GROUP_CATEGORIES.find(c => c.label === activeCategory);
+      const cat = groupCategories.find(c => c.label === activeCategory);
       if (cat && cat.groups.length > 0 && !cat.groups.includes(k.group)) return false;
     }
     if (search) {

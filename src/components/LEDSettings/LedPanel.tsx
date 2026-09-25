@@ -12,6 +12,7 @@ interface LedPanelProps {
   onLayerLedEnableChange: (v: boolean) => void;
   onLayerLedChange: (layer: number, cfg: LayerLedConfig) => void;
   switchableLayers: number[];   // レイヤー連動LEDの対象にできるレイヤー番号
+  allowedEffectIds?: readonly number[];  // 指定時、エフェクト選択肢をこのIDのみに絞る（AVR接続時など）
 }
 
 // 「通常」のLED設定と「レイヤー連動LED」を、同じ設定UI（エフェクト・色相バー・スライダー）を
@@ -21,6 +22,7 @@ interface LedPanelProps {
 // 保存は画面右上の「保存」ボタン（EEPROM書き込み）に一本化し、ここには置かない。
 export function LedPanel({
   led, onLedChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, switchableLayers,
+  allowedEffectIds,
 }: LedPanelProps) {
   const [target, setTarget] = useState<'normal' | number>('normal');
 
@@ -83,6 +85,7 @@ export function LedPanel({
           config={led}
           onChange={onLedChange}
           headerLeft={targetTabs}
+          allowedEffectIds={allowedEffectIds}
           extraRow={
             <ToggleRow
               label="レイヤー0は基本の光り方です（常時有効）"
@@ -106,6 +109,7 @@ export function LedPanel({
         config={layerCfg}
         onChange={c => onLayerLedChange(target, { ...layerCfg, ...c })}
         headerLeft={targetTabs}
+        allowedEffectIds={allowedEffectIds}
         extraRow={
           <ToggleRow
             label={`レイヤー${target}で専用の光り方を使う`}

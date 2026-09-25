@@ -691,10 +691,11 @@ export interface FirmwareAvail {
   macro:      boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
   precision:  boolean;  // 精密モードキー（PRC_MO）。RP2040版など対応ファームのみ
   gestureModes: boolean;  // 複数ジェスチャーモードの手動切替キー（GST_HOLD2〜4）。RP2040版限定
+  tapDance:   boolean;  // タップダンス（TD0〜TD7）。RP2040版のみ（AVR版はTAP_DANCE_ENABLE未使用）
   layerCount: number;   // 実際のレイヤー数（AVR版4、RP2040版8など）。MO(n)等の上限判定に使う
 }
 
-export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true, precision: true, gestureModes: true, layerCount: 4 };
+export const FW_ALL_AVAILABLE: FirmwareAvail = { media: true, gesture: true, rgb: true, macro: true, precision: true, gestureModes: true, tapDance: true, layerCount: 4 };
 
 // MO(4) / TG(7) のような「レイヤー切替」キーの末尾の数字を取り出す（該当しなければnull）
 function parseLayerSwitchTarget(entry: { group: string; short: string }): number | null {
@@ -711,6 +712,7 @@ export function isKeycodeUnavailable(
   if (entry.group === 'メディア' && !avail.media)     return true;
   if (entry.group === 'RGB'      && !avail.rgb)       return true;
   if (entry.group === 'マクロ'   && !avail.macro)     return true;
+  if (entry.group === 'タップダンス' && !avail.tapDance) return true;
   if (entry.short === 'GST_HOLD' && !avail.gesture)   return true;
   if (entry.short === 'PRC_MO'   && !avail.precision) return true;
   if ((entry.short === 'GST_HOLD2' || entry.short === 'GST_HOLD3' || entry.short === 'GST_HOLD4') && !avail.gestureModes) return true;

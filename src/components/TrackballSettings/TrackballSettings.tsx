@@ -117,19 +117,21 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         dimmed={!accelAvailable}
       />
 
-      {dpiCurve && (
-        <div className="trackball-bar__dpicurve">
-          <p className="settings-desc">
-            上の「加速度」が実際にどんな速度カーブになるかをグラフで確認できます（見るだけで編集はできません）。
-          </p>
-          <DpiCurveEditor
-            points={computeAccelCurvePoints(config.accel)}
-            disabled={!accelAvailable}
-            interactive={false}
-            yMax={127}
-          />
-        </div>
-      )}
+      {/* 2026-09-25: このプレビューはconfig.accelのみから計算する純粋なグラフ表示で、
+          加速度の計算式自体はAVR・RP2040で共通（lib/keyball/keyball.c）のため、
+          以前のように dpiCurve（RP2040限定の内部状態）の有無では出し分けない。
+          AVR接続時にも表示し、ボール動作タブの見た目をRP2040版と統一する。 */}
+      <div className="trackball-bar__dpicurve">
+        <p className="settings-desc">
+          上の「加速度」が実際にどんな速度カーブになるかをグラフで確認できます（見るだけで編集はできません）。
+        </p>
+        <DpiCurveEditor
+          points={computeAccelCurvePoints(config.accel)}
+          disabled={!accelAvailable}
+          interactive={false}
+          yMax={127}
+        />
+      </div>
 
       <div className="trackball-bar__item">
         <span className="trackball-bar__label">スクロール方向</span>

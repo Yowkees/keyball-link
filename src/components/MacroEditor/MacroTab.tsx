@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, TdSlot, ComboSlot } from '../../lib/protocol';
-import { FIRMWARE_FEATURES } from '../../lib/firmwareFeatures';
 import { MacroEditor } from './MacroEditor';
 import { TapDanceSection } from './TapDanceSection';
 import { ComboSection } from './ComboSection';
@@ -10,6 +9,8 @@ type MacroSection = 'macro' | 'tapdance' | 'combo';
 
 interface MacroTabProps {
   macroAvailable: boolean;   // マクロ機能自体が使えるファームか（LED版はメディアキーと引き換えに廃止）
+  tapDanceAvailable: boolean; // タップダンス機能自体が使えるファームか（AVR版は非対応）
+  comboAvailable: boolean;    // コンボ機能自体が使えるファームか（AVR版は非対応）
   macroSlots: MacroSlot[];
   onMacroSave: (idx: number, slot: MacroSlot) => Promise<void>;
   isConnected: boolean;
@@ -26,7 +27,7 @@ interface MacroTabProps {
 // 共通のジャンルなので1つのタブにまとめる。詳細設定タブと同じ「左に項目一覧・右に詳細」の
 // サイドバー形式に統一している。
 export function MacroTab({
-  macroAvailable, macroSlots, onMacroSave, isConnected, keyLayout,
+  macroAvailable, tapDanceAvailable, comboAvailable, macroSlots, onMacroSave, isConnected, keyLayout,
   tdSlots, onTdSlotChange, comboSlots, comboEnabled, onComboEnabledChange, onComboSlotChange,
 }: MacroTabProps) {
   const sections: { key: MacroSection; title: string; note: string; render: () => React.ReactNode }[] = [
@@ -43,11 +44,11 @@ export function MacroTab({
         )
       ),
     },
-    ...(FIRMWARE_FEATURES.tapDance ? [{
+    ...(tapDanceAvailable ? [{
       key: 'tapdance' as const, title: 'タップダンス', note: '叩く回数・長押しで動作を変える',
       render: () => <TapDanceSection tdSlots={tdSlots} onTdSlotChange={onTdSlotChange} keyLayout={keyLayout} disabled={!isConnected} />,
     }] : []),
-    ...(FIRMWARE_FEATURES.combo ? [{
+    ...(comboAvailable ? [{
       key: 'combo' as const, title: 'コンボ', note: '複数キー同時押しで別の動作を実行',
       render: () => (
         <ComboSection

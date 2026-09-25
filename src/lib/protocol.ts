@@ -292,8 +292,11 @@ export interface LedConfig {
 //   本家RGBLIGHT版と共有のリストのため一旦保留。
 // 11・13は季節限定エフェクト（クリスマスと同じ市松模様の交互点灯。色相固定なので
 // 色相スライダーは無効）。
-// 14・15・16・17はRGB_MATRIX版限定の追加エフェクト。本家RGBLIGHT版のファームでは
-// これらのIDに対応が無いため単純に無視される（ファーム側の境界チェックでオフ扱いになる）。
+// 14・15・16・17はRGB_MATRIX版限定の追加エフェクト。AVR版（RGBLIGHT版）のファーム
+// ではこれらのIDに対応が無いため、選択するとLEDが消灯する（kb_hid.cのRGBLIGHT分岐は
+// off/ソリッド/ブリージング/レインボームードの4種のみで、範囲外のIDはoff扱いになる
+// ため）。2026-09-25判明、Web UI側は`LED_EFFECT_IDS_AVR`でAVR接続時にこの4種のみに
+// 絞り込むようにした（下記参照）。
 // 18(ジェスチャーウェーブ)は選択式エフェクトではないためここには含めない。複数
 // ジェスチャーモード機能と連動する常時有効なオーバーレイで、ジェスチャーで実際に
 // キーが送出された瞬間だけファーム側(keyball_gesture_wave_task)が現在のLED表示を
@@ -315,6 +318,13 @@ export const LED_EFFECTS = [
   { id: 11, label: 'ハロウィン' },
   { id: 13, label: 'イースター' },
 ] as const;
+
+// AVR版（RGBLIGHT版）ファームが実際に対応しているエフェクトID。
+// kb_hid.c の RGBLIGHT分岐（keyball-link-firmware/keyball-plus-firmware共通）は
+// off(0)/ソリッド(1)/ブリージング(2)/レインボームード(3)の4種のみを実装しており、
+// それ以外のIDをSET_LEDで送るとLEDが消灯する。AVR接続時はLED_EFFECTSをこの4種のみに
+// 絞り込んで、選択しても実際には効かないエフェクトを選べないようにする。
+export const LED_EFFECT_IDS_AVR = [0, 1, 2, 3] as const;
 
 // 季節限定エフェクト（色相固定・2〜3色クロスフェード動作。色相スライダーは無効にする）
 export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;

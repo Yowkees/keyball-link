@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ファームウェア（AVR版: keyball39/44/61、各 通常版/LED版 = 計6パターン。
+# ファームウェア（AVR版: keyball39/44/61 + keyballplus、各 通常版/LED版 = 計8パターン。
 # RP2040版: keyball39 + keyballplus、各1パターン = 計2パターン）をビルドし、
 # public/firmware/ に配置するための唯一の正規手順。
 #
@@ -9,14 +9,18 @@
 # 「ビルドしたら即その場でコピー」を1本のスクリプトに閉じ込め、
 # 最後に全ファイルの整合性を機械的に検証するようにしている。
 #
-# 2026-09-18: Keyball+はRP2040版のみをリリース対象とし、AVR版
-# （keyball-plus-firmware）のビルド・配布はこのスクリプトから外した
-# （本人判断。ソース自体は削除していない）。
+# 2026-09-18: Keyball+のAVR版（keyball-plus-firmware）はLED版のフラッシュ容量
+# 超過（134バイト超過）のため、一旦このスクリプトから外し非公開にしていた。
+# 2026-09-25: 原因が「LED27-29消灯調査用に残っていた診断用コード
+# （CONSOLE_ENABLE=yes・dprintf・debug_enableのpre_init）」だったと判明し
+# 削除（keyball-plus-firmware側で対応）。診断コード除去後は通常版26354/28672・
+# LED版27766/28672でどちらも余裕を持って収まるため、ビルド対象に復帰させた。
 #
-# QMK_HOMEについて（2026-09-08〜、2026-09-18にRP2040分を追加）:
-# AVR版（Keyball Link 39/44/61）とRP2040版は、それぞれ専用のworktree
-# （qmk_firmware-keyball-link / qmk_firmware-keyball-rp2040）を使う。
-# ~/qmk_firmware は対話的なRP2040開発セッション用の作業ディレクトリのため
+# QMK_HOMEについて（2026-09-08〜、2026-09-18にRP2040分を追加、2026-09-25に
+# Keyball+ AVR分を復帰）:
+# AVR版（Keyball Link 39/44/61・Keyball+）とRP2040版は、それぞれ専用のworktree
+# （qmk_firmware-keyball-link / qmk_firmware-keyball-plus / qmk_firmware-keyball-rp2040）
+# を使う。~/qmk_firmware は対話的なRP2040開発セッション用の作業ディレクトリのため
 # 共有しない。理由は、以前共有していた時期に「開発中のkeyboards/keyballをこの
 # スクリプトが誤って上書きしてしまう」事故と紙一重の状況が実際に発生したため。
 # デフォルト値を安易に ~/qmk_firmware に戻さないこと。
@@ -38,11 +42,14 @@ LINK_SRC="${LINK_SRC:-$HOME/keyball-link-firmware}"
 LINK_QMK="${LINK_QMK:-$HOME/qmk_firmware-keyball-link}"
 LINK_KEYBOARDS=(keyball39 keyball44 keyball61)
 
+PLUS_SRC="${PLUS_SRC:-$HOME/keyball-plus-firmware}"
+PLUS_QMK="${PLUS_QMK:-$HOME/qmk_firmware-keyball-plus}"
+
 RP2040_SRC="${RP2040_SRC:-$HOME/keyball-rp2040-firmware}"
 RP2040_QMK="${RP2040_QMK:-$HOME/qmk_firmware-keyball-rp2040}"
 RP2040_KEYBOARDS=(keyball39 keyballplus)
 
-for d in "$LINK_QMK" "$RP2040_QMK"; do
+for d in "$LINK_QMK" "$PLUS_QMK" "$RP2040_QMK"; do
   if [ ! -d "$d" ]; then
     echo "エラー: QMKビルド環境が見つかりません: $d" >&2
     exit 1
@@ -50,6 +57,10 @@ for d in "$LINK_QMK" "$RP2040_QMK"; do
 done
 if [ ! -d "$LINK_SRC/keyboards/keyball" ]; then
   echo "エラー: Keyball Linkのファームウェアソースが見つかりません: $LINK_SRC/keyboards/keyball" >&2
+  exit 1
+fi
+if [ ! -d "$PLUS_SRC/keyboards/keyball" ]; then
+  echo "エラー: Keyball+のファームウェアソースが見つかりません: $PLUS_SRC/keyboards/keyball" >&2
   exit 1
 fi
 if [ ! -d "$RP2040_SRC/keyboards/keyball" ]; then
@@ -77,6 +88,18 @@ for kb in "${LINK_KEYBOARDS[@]}"; do
   cp "keyball_${kb}_web_configurator.hex" "$DEST_DIR/keyball_${kb}_web_configurator_led.hex"
 done
 
+echo "== Keyball+: ソースをビルド環境に同期 =="
+rsync -a --delete "$PLUS_SRC/keyboards/keyball/" "$PLUS_QMK/keyboards/keyball/" --exclude '.git'
+
+cd "$PLUS_QMK"
+echo "== keyballplus 通常版 =="
+qmk compile -kb keyball/keyballplus -km web_configurator
+cp "keyball_keyballplus_web_configurator.hex" "$DEST_DIR/keyball_keyballplus_web_configurator.hex"
+
+echo "== keyballplus LED版 =="
+qmk compile -kb keyball/keyballplus -km web_configurator -e LED_VERSION=yes
+cp "keyball_keyballplus_web_configurator.hex" "$DEST_DIR/keyball_keyballplus_web_configurator_led.hex"
+
 echo "== RP2040版: ソースをビルド環境に同期 =="
 rsync -a --delete "$RP2040_SRC/keyboards/keyball/" "$RP2040_QMK/keyboards/keyball/" --exclude '.git'
 
@@ -89,7 +112,8 @@ done
 
 echo "== 整合性チェック =="
 fail=0
-for kb in "${LINK_KEYBOARDS[@]}"; do
+ALL_AVR_KEYBOARDS=("${LINK_KEYBOARDS[@]}" keyballplus)
+for kb in "${ALL_AVR_KEYBOARDS[@]}"; do
   normal="$DEST_DIR/keyball_${kb}_web_configurator.hex"
   led="$DEST_DIR/keyball_${kb}_web_configurator_led.hex"
 

@@ -8,6 +8,7 @@ interface LEDSettingsProps {
   onChange: (cfg: LedConfig) => void;
   headerLeft?: ReactNode;   // エフェクト選択の左隣に表示する要素（レイヤー選択タブなど）
   extraRow?: ReactNode;     // エフェクト選択の下・色相バーの上に追加する行
+  allowedEffectIds?: readonly number[];  // 指定時、選択肢をこのIDのみに絞る（AVR接続時など）
 }
 
 // スライダー操作のたびにonChange（EEPROM書き込みを伴うHIDコマンド）を即送信すると、
@@ -45,8 +46,11 @@ function LedSlider({ label, value, max, onChange }: {
   );
 }
 
-export function LEDSettings({ config, onChange, headerLeft, extraRow }: LEDSettingsProps) {
+export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEffectIds }: LEDSettingsProps) {
   const [local, setLocal] = useState(config);
+  const effects = allowedEffectIds
+    ? LED_EFFECTS.filter(e => allowedEffectIds.includes(e.id))
+    : LED_EFFECTS;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // プリセット読み込みなど外部要因でconfigが変わった場合は表示に反映する
@@ -100,7 +104,7 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow }: LEDSetti
             commitNow({ ...local, effectId, sat });
           }}
         >
-          {LED_EFFECTS.map(e => (
+          {effects.map(e => (
             <option key={e.id} value={e.id}>{e.label}</option>
           ))}
         </select>

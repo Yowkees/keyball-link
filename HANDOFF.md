@@ -228,6 +228,19 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 - **現在の運用状態（2026-09-18時点）**: `main`＝本番公開中の安定版、`rp2040`＝開発中の新機能一式（本項の内容含む）をしばらく並行運用。`main`との統合タイミングは本人の判断待ち（上記「mainブランチとの統合」の推奨手順を参照）。
 - **保留タスクとして明示的に残す**: ホールドタブの「ジェスチャー」「精密モード」機能（タップダンス枠を裏で流用する実装案）は、上記「続き3」で一旦撤去・タップのみ対応の仕様に確定したが、本人の意向により**プランファイル（`~/.claude/plans/sequential-churning-cloud.md`）は削除せず、将来再検討するタスクとして保持**している。次回この機能に着手する際は、前回撤去の原因（TD枠の奪い合いで2つ目のキー設定が1つ目を上書きしてしまう不具合）を踏まえた設計に直すこと。
 
+### 2026-09-25: AVR版Keyball+復活・ファーム対応機能に応じたUI出し分け・`rp2040`を`main`へマージして本番デプロイ
+- **AVR版Keyball+を復活**: フラッシュ容量超過（LED版134バイト超過）の原因が、LED27-29消灯調査で残っていた診断用コード（`CONSOLE_ENABLE=yes`・`dprintf`・`keyboard_pre_init_user`での`debug_enable=true`、`keyball-plus-firmware`側）と判明。削除したところ通常版26354/28672・LED版27766/28672でどちらも余裕を持って収まった。あわせて、ビルドに必要なPMW3360センサードライバが`keyball-plus-firmware`リポジトリに一度もコミットされていなかった欠落（過去にworktree構築時、手動コピーされたまま放置）も発見・修正し、別デバイスでもクローンからビルド可能にした。`build-firmware.sh`・`FirmwareFlasher.tsx`・`firmwareFeatures.ts`のAVR版Keyball+関連を復帰。
+- **接続中ファームの対応機能に応じたUI出し分けを追加**: `FIRMWARE_FEATURES`が「常に全部true」の静的定数で、AVR接続時でも対応していない機能（タップダンス・コンボ・Auto Shift・OS自動判別）を選択できてしまう不具合が複数見つかったため、`firmwareFeaturesForChip(chip)`という関数に変更（`chip`は`productId`から`chipForProductId()`で判定）。あわせてLEDエフェクトも、AVR版（RGBLIGHT版ファーム）が実際に対応している4種（オフ/ソリッド/ブリージング/レインボームード）のみに絞り込むよう`LED_EFFECT_IDS_AVR`を追加。「LED位置実測（開発用）」は一般ユーザーに不要なため`onTestLed`を常時`undefined`にして非表示化。「ボール動作」タブの加速度カーブプレビューは、計算式自体がAVR/RP2040共通（`lib/keyball/keyball.c`）であるにも関わらず`dpiCurve`(RP2040限定の内部状態)の有無で出し分けていたのが原因でAVR側だけ表示されていなかったのを修正し、常時表示に統一。
+- **RP2040版ファームウェアの一般公開はまだ見送り**: `FirmwareFlasher.tsx`に`RP2040_PUBLIC_RELEASE = false`フラグを追加し、チップ選択のRP2040タブ自体を非表示化（本人指示）。ビルド自体（`build-firmware.sh`）は継続しているため、公開時はフラグを`true`に戻すだけでよい。
+- **`rp2040`ブランチを`main`にマージし、本番デプロイ**: 本人より「公開をお願いします。今後は`main`ブランチの変更は全てに反映するようにしてください」と明確な指示があり実施。
+  - `main`は分岐後に10コミット独自に進んでいた（AML_OFF追加・マクロの修飾+キー合成対応・Mod-Tap複数修飾対応・Remap互換プリセット・キーコード衝突チェッカー追加・AVR版keyball39/44/61/keyballplusのトラックボール誤動作/LED誤点灯修正等）。`rp2040`上で`git merge main`を実行し、コンフリクト8件（`CHANGELOG.md`/`package.json`/`build-firmware.sh`/`App.tsx`/`KeyConfigModal.tsx`/`firmwareFeatures.ts`/`keycodes.ts`/keyballplusのhexバイナリ2つ）を手動解決。
+    - `keycodes.ts`のキーコード番号(`0x7E10`〜`0x7E15`)は、mainが`0x7E11`を将来のPRC_MO用に予約済み(未使用)にしていたため衝突せず、`rp2040`側の値（GST_HOLD1〜4・PRC_MO・AML_OFF全部入り）をそのまま採用できた。
+    - `KeyConfigModal.tsx`のホールドパネルは、main側が「適用」ボタンを押す方式、`rp2040`側が値が変わるたびに自動反映する方式（2026-09-17に統一済みの設計）と分かれていたため、`rp2040`側（自動反映）を採用。
+    - keyballplusのhexバイナリはmerge時は一旦`--ours`で解決した上で、`npm run update-firmware`を再実行して両リポジトリの最新ソースから作り直した（結果はビルド前と同一だった＝`build-firmware.sh`は常にソースリポジトリの最新状態を見るため、ブランチの分岐に関わらず最新のAVR修正が自動的に反映される仕組みになっている）。
+  - マージ後`npx tsc --noEmit`・`npm run build`・`npm run update-firmware`（AVR8パターン+RP2040 2パターン全ビルド成功・整合性チェックOK）を確認。本人が実機（AVR版Keyball39/44/61・Keyball+）で動作確認し「問題ありませんでした」と確認済み。
+  - `rp2040`を`origin`にpush→`main`を`git merge --ff-only rp2040`でfast-forward→`origin/main`にpush→`npm run deploy`で本番（`keyball-link.shiroganelab.com`）に反映済み。バージョンは`1.7.0`。
+  - **今後の運用方針（本人指示）**: 「今後はmainブランチの変更は全てに反映するようにしてください」＝ 別セッション等で`main`に直接変更が入った場合、放置して大きく分岐させず、早めに開発ブランチ側へ取り込むこと。今回のように10コミット分溜めてから一括マージするのは避ける。
+
 ---
 
 ## 5. 主要ファイル

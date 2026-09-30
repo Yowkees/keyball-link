@@ -252,6 +252,24 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
   - 修正: `KeyballHID`に`commandQueue`（Promiseチェーン）を追加し、`sendCommand()`は必ず前のコマンドの完了（成功/失敗問わず）を待ってから実際の送受信(`sendCommandNow()`)を行うキュー方式に変更。呼び出し側（`assignKey`等）は無変更。
 - Web版は`1.8.0`としてリリース。`npx tsc --noEmit`・`npm run build`・`npm run update-firmware`成功、本人が実機（Keyball61）で両方の不具合が解消したことを確認済み。`main`にコミット・push・本番デプロイ済み。
 
+### 2026-09-29: RP2040版に新LEDエフェクト「トラックボールブリージングウェーブ」を追加 → ジェスチャー専用に再設計 → ジェスチャー連動LEDが発火しなくなる不具合も発見・修正（ビルド確認のみ・実機未確認・未コミット）
+- 本人希望「トラックボールを動かした方向にふわっとブリージングのようなウェーブが出るエフェクトを追加したい」を受けて着手。詳細な経緯・原因分析は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)の2026-09-29エントリ参照（要約: 最初は常時反応する選択式エフェクトとして実装したが、本人から「ジェスチャー専用にしてほしい／レイヤー連動LED点灯中も上書きしてほしい／ジェスチャー連動LEDが何度か使うと発火しなくなる不具合も調べてほしい」との依頼を受けて再設計。3番目の調査で「レイヤー切り替えがジェスチャーウェーブの後片付けタイミングと競合し、スロットが永久にロックされる」根本原因を特定し、後片付けのタイミングをより堅牢な場所に移して修正）。
+- Web UI側の対応:
+  - `src/lib/protocol.ts`の`LED_EFFECTS`から`{id:19}`を削除（選択式エフェクトではなくなったため）。代わりに新設定「ジェスチャー連動LEDウェーブの見た目」（`gestureWaveStyle`。0=シャープ・既存 / 1=ブリージング・新規）を追加し、`GET/SET_GESTURE_WAVE_STYLE`(0x31/0x32)で読み書きする。
+  - `hid.ts`・`useKeyball.ts`・`components/LayerFeatures/GestureCard.tsx`・`components/TrackballSettingsTab/TrackballSettingsTab.tsx`・`App.tsx`まで配線（既存の`gestureWaveEnable`/`gestureWaveSpeed`と同じ経路）。設定タブの「ジェスチャー」→「ジェスチャーウェーブ」内に「見た目」セレクトとして表示。プリセットの書き出し/読み込みにも対応。
+  - さらに本人から「色相・彩度・明るさも個別に調整したい」との追加要望があり、`GestureWaveColor`型（hue/sat/val）を追加。`GET/SET_GESTURE_WAVE_COLOR`(0x33/0x34)で読み書きし、`GestureCard.tsx`のジェスチャーウェーブ設定に色相・彩度・明るさの3本のスライダーを追加（同じく`hid.ts`〜`App.tsx`まで配線、プリセット対応済み）。ファーム側の詳細（EEPROM未書込み時0x00問題への対処など）は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)参照。
+- ファームウェアはv0.2.0に更新（0.1.0→0.2.0、新機能のためminorを上げた）。Web版は`1.9.0`としてCHANGELOG・package.jsonを更新済み。
+- `qmk compile`（keyball39・keyballplus RP2040版）・`npx tsc --noEmit`・`npm run update-firmware`（全機種ビルド＋整合性チェック）・`npm run build`いずれも成功。
+- **実機確認はこれから**。特に「ジェスチャー連動LEDが発火しなくなる」不具合は再現までに時間がかかるタイプだったため、レイヤー切り替えを絡めた普段通りの操作をしばらく繰り返して再発しないか確認してほしい。確認後、問題なければ両リポジトリともコミット・push・本番デプロイする（本人の明確な許可を得てから実行する運用は継続）。
+
+### 2026-09-29（続き）〜2026-09-30: ブリージングの見た目を再設計・左右非対称の修正・実機確認OK・FirmwareFlasherの「もう一度書き込む」ボタン廃止（ビルド確認済み・実機確認OK・未コミット）
+- 実機確認の中で本人から「ブリージングが順番にウェーブになっていない」「動きはシャープと同じで残像が残っていくイメージ」等のフィードバックがあり、ファーム側（`~/keyball-rp2040-firmware`）の`TRACKBALL_BREATH`エフェクトを、GESTURE_WAVEと全く同じ判定・幅・速度を土台にしたアタック/リリース式フェード（点灯時250ms・消灯時600ms）へ再設計。詳細な経緯は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)の同日エントリ参照。Web UI側（本リポジトリ）の変更は無し（見た目・色設定のHIDコマンド自体は既存のまま）。
+- 「左右にボールを振った時のLEDの光り方が小さい」との指摘を受け、ファーム側の物理LED座標を調査した結果、横方向の座標レンジが縦方向の約1.4倍あることが判明。左右方向用の帯幅を縦方向より広く（`WAVE_WIDTH_H=28` vs `WAVE_WIDTH_V=20`）分離して解消（ファーム側のみの変更）。
+- 「何度もフリックした時は上書きするように」との依頼を一度実装したが、直後に本人が「やっぱり上書きは無しで」と撤回。元の「前のウェーブ表示中は次の発火を無視する」挙動に戻した（ファーム側のみの変更）。
+- **本人が実機で動作確認し「動作確認OKでした」と確認済み**（2026-09-30）。
+- **`FirmwareFlasher.tsx`の「もう一度書き込む」ボタンを廃止**（本人依頼）。`reset()`関数と専用ボタンを削除し、代わりに主ボタン「書き込む」の`canFlash`条件を`phase === 'idle'`から`!isWorking`（書き込み中・ポート選択中以外は常に押せる）に変更。書き込み完了後・失敗後もボタンを1つ増やさず同じボタンで再書き込みできるようにした。
+- **未コミット**。`RP2040_PUBLIC_RELEASE`（`FirmwareFlasher.tsx`）は実機確認用に一時的に`true`のままなので、本番デプロイ前に`false`へ戻すこと。両リポジトリのコミット・push・デプロイは本人の明確な許可を得てから実行する。
+
 ---
 
 ## 5. 主要ファイル

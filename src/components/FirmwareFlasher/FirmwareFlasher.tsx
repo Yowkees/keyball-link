@@ -230,17 +230,12 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
     }
   };
 
-  // 「もう一度書き込む」用。選択中のファイル/機種はそのまま残し、
-  // 同じ内容ですぐ再書き込みできるようにする（毎回選び直させない）。
-  const reset = () => {
-    setPhase('idle');
-    setProgress(0);
-    setMessage('');
-  };
-
-  const canFlash = supported && phase === 'idle' &&
-    (source === 'builtin' || customFile !== null);
   const isWorking = phase === 'port' || phase === 'flashing';
+  // 「もう一度書き込む」ボタンを廃止したため、書き込み完了後(done)・失敗後(error)も
+  // 同じ「書き込む」ボタンでそのまま再度書き込めるようにする（進行中(isWorking)の
+  // 間だけ押せなくする）。
+  const canFlash = supported && !isWorking &&
+    (source === 'builtin' || customFile !== null);
 
   return (
     <div className="firmware-flasher">
@@ -439,11 +434,6 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
         </div>
       )}
 
-      {(phase === 'done' || phase === 'error') && (
-        <button className="btn btn--ghost btn--small" onClick={reset} style={{ marginTop: 8 }}>
-          もう一度書き込む
-        </button>
-      )}
     </div>
   );
 }

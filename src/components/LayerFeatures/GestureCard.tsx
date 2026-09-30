@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GestureConfig, GestureModeConfig, GestureThreshold } from '../../lib/protocol';
+import type { GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
@@ -18,6 +18,10 @@ interface GestureCardProps {
   onGestureWaveSpeedChange: (speed: number) => Promise<void>;
   gestureWaveEnable: boolean | null;
   onGestureWaveEnableChange: (v: boolean) => Promise<void>;
+  gestureWaveStyle: number | null;
+  onGestureWaveStyleChange: (style: number) => Promise<void>;
+  gestureWaveColor: GestureWaveColor | null;
+  onGestureWaveColorChange: (c: GestureWaveColor) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
   layersInclBase: number[];
@@ -29,6 +33,7 @@ interface GestureCardProps {
 export function GestureCard({
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
+  gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   disabled, keyLayout, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
 }: GestureCardProps) {
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)
@@ -138,6 +143,20 @@ export function GestureCard({
               disabled={disabled}
               onChange={onGestureWaveEnableChange}
             />
+            {gestureWaveStyle !== null && (
+              <>
+                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>見た目</p>
+                <select
+                  className="trackball-bar__select"
+                  value={gestureWaveStyle}
+                  disabled={disabled || !gestureWaveEnable}
+                  onChange={e => onGestureWaveStyleChange(Number(e.target.value))}
+                >
+                  <option value={0}>シャープ（瞬間的に光る）</option>
+                  <option value={1}>ブリージング（柔らかく呼吸するように流れる）</option>
+                </select>
+              </>
+            )}
             <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
             <SliderControl
               value={gestureWaveSpeed} min={1} max={255} step={1}
@@ -149,6 +168,28 @@ export function GestureCard({
               <span>デフォルト: 200</span>
               <span>255（速い）</span>
             </div>
+            {gestureWaveColor !== null && (
+              <>
+                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
+                <SliderControl
+                  value={gestureWaveColor.hue} min={0} max={255} step={1}
+                  disabled={disabled || !gestureWaveEnable} unit=""
+                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, hue: v })}
+                />
+                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>彩度</p>
+                <SliderControl
+                  value={gestureWaveColor.sat} min={0} max={255} step={1}
+                  disabled={disabled || !gestureWaveEnable} unit=""
+                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, sat: v })}
+                />
+                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>明るさ</p>
+                <SliderControl
+                  value={gestureWaveColor.val} min={0} max={255} step={1}
+                  disabled={disabled || !gestureWaveEnable} unit=""
+                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, val: v })}
+                />
+              </>
+            )}
           </div>
         )}
 

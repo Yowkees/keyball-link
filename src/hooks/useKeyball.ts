@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
-import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
+import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import type { Preset } from '../lib/presets';
@@ -24,6 +24,8 @@ export interface KeyballState {
   gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応
   gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応
   gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応
+  gestureWaveStyle: number | null;  // ジェスチャー連動LEDウェーブの見た目(0=シャープ 1=ブリージング)。null = 非対応
+  gestureWaveColor: GestureWaveColor | null;  // ジェスチャー連動LEDウェーブ専用の色。null = 非対応
   shake: ShakeConfig | null;  // シェイク機能。null = 非対応ファーム
   dflick: DFlickConfig | null;  // ダブルフリック。null = 非対応ファーム
   comboSlots: ComboSlot[] | null;  // コンボ。null = 非対応ファーム
@@ -66,6 +68,8 @@ const initialKeyballState = (): KeyballState => ({
   gestureThreshold: null,
   gestureWaveSpeed: null,
   gestureWaveEnable: null,
+  gestureWaveStyle: null,
+  gestureWaveColor: null,
   shake: null,
   dflick: null,
   comboSlots: null,
@@ -126,6 +130,7 @@ export function useKeyball() {
       let gestureThreshold: GestureThreshold | null = null;
       let gestureWaveSpeed: number | null = null;
       let gestureWaveEnable: boolean | null = null;
+      let gestureWaveStyle: number | null = null;
       try {
         const modes: GestureModeConfig[] = [];
         for (let m = 0; m < GESTURE_MODE_COUNT; m++) modes.push(await hid.current.getGestureMode(m));
@@ -134,6 +139,9 @@ export function useKeyball() {
         gestureWaveEnable = await hid.current.getGestureWaveEnable();
         gestureModes = modes;
       } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
+      try { gestureWaveStyle = await hid.current.getGestureWaveStyle(); } catch { /* スタイル切り替え非対応の旧FW */ }
+      let gestureWaveColor: GestureWaveColor | null = null;
+      try { gestureWaveColor = await hid.current.getGestureWaveColor(); } catch { /* 色設定非対応の旧FW */ }
       let shake: ShakeConfig | null = null;
       try { shake = await hid.current.getShakeConfig(); } catch { /* シェイク非対応FW */ }
       let dflick: DFlickConfig | null = null;
@@ -175,6 +183,8 @@ export function useKeyball() {
         gestureThreshold,
         gestureWaveSpeed,
         gestureWaveEnable,
+        gestureWaveStyle,
+        gestureWaveColor,
         shake,
         dflick,
         comboSlots,
@@ -277,6 +287,16 @@ export function useKeyball() {
   const setGestureWaveEnable = useCallback(async (v: boolean) => {
     await hid.current.setGestureWaveEnable(v);
     setPartial({ gestureWaveEnable: v });
+  }, []);
+
+  const setGestureWaveStyle = useCallback(async (style: number) => {
+    await hid.current.setGestureWaveStyle(style);
+    setPartial({ gestureWaveStyle: style });
+  }, []);
+
+  const setGestureWaveColor = useCallback(async (c: GestureWaveColor) => {
+    await hid.current.setGestureWaveColor(c);
+    setPartial({ gestureWaveColor: c });
   }, []);
 
   const setShake = useCallback(async (s: ShakeConfig) => {
@@ -409,5 +429,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

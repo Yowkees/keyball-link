@@ -11,7 +11,7 @@ import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
 import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
-import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
+import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel } from './lib/protocol';
 import { LATEST_FW_VERSION, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId } from './lib/deviceIds';
@@ -86,7 +86,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -360,6 +360,16 @@ export default function App() {
     catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
+  const handleGestureWaveStyleChange = async (style: number) => {
+    try { await setGestureWaveStyle(style); setHasUnsaved(true); }
+    catch (e) { showToast(`ジェスチャーウェーブの見た目の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
+  const handleGestureWaveColorChange = async (c: GestureWaveColor) => {
+    try { await setGestureWaveColor(c); setHasUnsaved(true); }
+    catch (e) { showToast(`ジェスチャーウェーブの色の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  };
+
   const handleShakeChange = async (s: ShakeConfig) => {
     try { await setShake(s); setHasUnsaved(true); }
     catch (e) { showToast(`シェイク設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
@@ -431,6 +441,8 @@ export default function App() {
       gestureThreshold: state.gestureThreshold,
       gestureWaveSpeed: state.gestureWaveSpeed,
       gestureWaveEnable: state.gestureWaveEnable,
+      gestureWaveStyle: state.gestureWaveStyle,
+      gestureWaveColor: state.gestureWaveColor,
       shake: state.shake,
       dflick: state.dflick,
       precision: state.precision,
@@ -511,6 +523,12 @@ export default function App() {
         }
         if (typeof data.gestureWaveEnable === 'boolean') {
           try { await setGestureWaveEnable(data.gestureWaveEnable); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.gestureWaveStyle === 'number') {
+          try { await setGestureWaveStyle(data.gestureWaveStyle); } catch { /* 非対応FW */ }
+        }
+        if (data.gestureWaveColor) {
+          try { await setGestureWaveColor(data.gestureWaveColor); } catch { /* 非対応FW */ }
         }
         if (data.shake) {
           try { await setShake(data.shake); } catch { /* 非対応FW */ }
@@ -1005,6 +1023,10 @@ export default function App() {
                 onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
                 gestureWaveEnable={state.gestureWaveEnable}
                 onGestureWaveEnableChange={handleGestureWaveEnableChange}
+                gestureWaveStyle={state.gestureWaveStyle}
+                onGestureWaveStyleChange={handleGestureWaveStyleChange}
+                gestureWaveColor={state.gestureWaveColor}
+                onGestureWaveColorChange={handleGestureWaveColorChange}
                 shake={state.shake}
                 onShakeChange={handleShakeChange}
                 dflick={state.dflick}

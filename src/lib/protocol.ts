@@ -57,6 +57,10 @@ export const CMD = {
   GET_OS: 0x2E,
   GET_DPI_CURVE: 0x2F,
   SET_DPI_CURVE: 0x30,
+  GET_GESTURE_WAVE_STYLE: 0x31,
+  SET_GESTURE_WAVE_STYLE: 0x32,
+  GET_GESTURE_WAVE_COLOR: 0x33,
+  SET_GESTURE_WAVE_COLOR: 0x34,
 } as const;
 
 // OS自動判別の種別（ファームウェア os_variant_t と一致させる）
@@ -309,11 +313,15 @@ export interface LedConfig {
 // off/ソリッド/ブリージング/レインボームードの4種のみで、範囲外のIDはoff扱いになる
 // ため）。2026-09-25判明、Web UI側は`LED_EFFECT_IDS_AVR`でAVR接続時にこの4種のみに
 // 絞り込むようにした（下記参照）。
-// 18(ジェスチャーウェーブ)は選択式エフェクトではないためここには含めない。複数
-// ジェスチャーモード機能と連動する常時有効なオーバーレイで、ジェスチャーで実際に
-// キーが送出された瞬間だけファーム側(keyball_gesture_wave_task)が現在のLED表示を
-// 自動的に一時上書きする（通常LED・レイヤー連動LEDのどちらが選ばれていても発動する）。
-// 速度はgestureWaveSpeed（GET/SET_GESTURE_WAVE_SPEED）で別途設定する。
+// 18(ジェスチャーウェーブ)・19(トラックボールブリージングウェーブ)は選択式エフェクト
+// ではないためここには含めない。複数ジェスチャーモード機能と連動する常時有効な
+// オーバーレイで、ジェスチャーで実際にキーが送出された瞬間だけファーム側
+// (keyball_gesture_wave_task)が現在のLED表示を自動的に一時上書きする（通常LED・
+// レイヤー連動LEDのどちらが選ばれていても発動する）。18はシャープに一瞬光る見た目、
+// 19は輪郭が柔らかく呼吸するように流れる見た目で、どちらを使うかは
+// gestureWaveStyle（GET/SET_GESTURE_WAVE_STYLE）で切り替える（2026-09-29〜、
+// 本人希望でどちらのスタイルも選べるようにした）。速度は共通でgestureWaveSpeed
+// （GET/SET_GESTURE_WAVE_SPEED）で設定する。
 export const LED_EFFECTS = [
   { id: 0,  label: 'オフ' },
   { id: 1,  label: 'ソリッド' },
@@ -534,6 +542,23 @@ export interface GestureThreshold {
 export const GESTURE_WAVE_SPEED_DEFAULT = 200;
 export const GESTURE_WAVE_SPEED_MIN     = 1;
 export const GESTURE_WAVE_SPEED_MAX     = 255;
+
+// ジェスチャー連動LEDウェーブの見た目。0=シャープ（帯が瞬間的に光ってすぐ消える）
+// 1=ブリージング（輪郭が柔らかく、呼吸するように流れる。2026-09-29〜）
+export const GESTURE_WAVE_STYLE_SHARP  = 0;
+export const GESTURE_WAVE_STYLE_BREATH = 1;
+
+// ジェスチャー連動LEDウェーブ専用の色（2026-09-29〜。本人希望で、その時点で表示中の
+// 通常LED/レイヤー連動LEDの色をそのまま使う仕様から、色相・彩度・明るさを個別に
+// 調整できる仕様に変更した）
+export interface GestureWaveColor {
+  hue: number;
+  sat: number;
+  val: number;
+}
+export const GESTURE_WAVE_HUE_DEFAULT = 0;
+export const GESTURE_WAVE_SAT_DEFAULT = 255;
+export const GESTURE_WAVE_VAL_DEFAULT = 255;
 
 // シェイク機能（トラックボールを振ると設定したキーを発動）。ジェスチャーモードの
 // 選択状態に関わらず常時判定する。keyが0の間は機能そのものが無効（キー未設定）。

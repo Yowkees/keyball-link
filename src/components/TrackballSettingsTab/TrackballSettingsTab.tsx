@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type {
-  KbSettings, TrackballConfig, GestureConfig, GestureModeConfig, GestureThreshold,
+  KbSettings, TrackballConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor,
   PrecisionConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, DpiCurveConfig,
 } from '../../lib/protocol';
 import { useLayerConflict } from '../../hooks/useLayerConflict';
@@ -33,6 +33,10 @@ interface TrackballSettingsTabProps {
   onGestureWaveSpeedChange: (speed: number) => Promise<void>;
   gestureWaveEnable: boolean | null;
   onGestureWaveEnableChange: (v: boolean) => Promise<void>;
+  gestureWaveStyle: number | null;
+  onGestureWaveStyleChange: (style: number) => Promise<void>;
+  gestureWaveColor: GestureWaveColor | null;
+  onGestureWaveColorChange: (c: GestureWaveColor) => Promise<void>;
   shake: ShakeConfig | null;
   onShakeChange: (s: ShakeConfig) => Promise<void>;
   dflick: DFlickConfig | null;
@@ -53,6 +57,7 @@ export function TrackballSettingsTab({
   settings, onChange, accelAvailable, dpiCurve, onDpiCurveChange,
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
+  gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   shake, onShakeChange, dflick, onDFlickChange,
   precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, keyLayout,
 }: TrackballSettingsTabProps) {
@@ -130,6 +135,8 @@ export function TrackballSettingsTab({
           gestureThreshold={gestureThreshold} onGestureThresholdChange={onGestureThresholdChange}
           gestureWaveSpeed={gestureWaveSpeed} onGestureWaveSpeedChange={onGestureWaveSpeedChange}
           gestureWaveEnable={gestureWaveEnable} onGestureWaveEnableChange={onGestureWaveEnableChange}
+          gestureWaveStyle={gestureWaveStyle} onGestureWaveStyleChange={onGestureWaveStyleChange}
+          gestureWaveColor={gestureWaveColor} onGestureWaveColorChange={onGestureWaveColorChange}
           disabled={disabled} keyLayout={keyLayout} layersInclBase={layersInclBase} layerWarn={layerWarn}
           changeGestureLayer={v => changeLayer('gesture', v, () => onGestureChange({ ...gesture!, layer: v }))}
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}

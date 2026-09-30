@@ -332,15 +332,18 @@ export class KeyballHID {
     await this.sendCommand(makePacket(CMD.SET_GESTURE_THRESHOLD, t.h & 0xFF, t.v & 0xFF));
   }
 
-  // ジェスチャー連動LEDウェーブの速さ（複数ジェスチャーモードと同じくRP2040版限定）
-  async getGestureWaveSpeed(): Promise<number> {
-    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_SPEED));
+  // ジェスチャー連動LEDウェーブの速さ（複数ジェスチャーモードと同じくRP2040版限定）。
+  // 2026-09-30〜、本人希望で「ジェスチャー1〜4のモードごとに個別設定したい」に対応し、
+  // 単一値からモード(0-3)ごとの値に変更した。GET_GESTURE_MODEと同じく、要求[cmd, mode]
+  // → 応答[cmd, mode, speed, status]でmodeを一度エコーバックする形式。
+  async getGestureWaveSpeed(mode: number): Promise<number> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_SPEED, mode));
     if (r[0] !== CMD.GET_GESTURE_WAVE_SPEED) throw new Error('ジェスチャーウェーブ非対応のファームです');
-    return (r[1] >= GESTURE_WAVE_SPEED_MIN && r[1] <= GESTURE_WAVE_SPEED_MAX) ? r[1] : GESTURE_WAVE_SPEED_DEFAULT;
+    return (r[2] >= GESTURE_WAVE_SPEED_MIN && r[2] <= GESTURE_WAVE_SPEED_MAX) ? r[2] : GESTURE_WAVE_SPEED_DEFAULT;
   }
 
-  async setGestureWaveSpeed(speed: number): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_SPEED, speed & 0xFF));
+  async setGestureWaveSpeed(mode: number, speed: number): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_SPEED, mode, speed & 0xFF));
   }
 
   async getGestureWaveEnable(): Promise<boolean> {
@@ -353,24 +356,25 @@ export class KeyballHID {
     await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_ENABLE, v ? 1 : 0));
   }
 
-  async getGestureWaveStyle(): Promise<number> {
-    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_STYLE));
+  // 見た目・色もモードごと（速さと同じ2026-09-30〜の変更）
+  async getGestureWaveStyle(mode: number): Promise<number> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_STYLE, mode));
     if (r[0] !== CMD.GET_GESTURE_WAVE_STYLE) throw new Error('ジェスチャーウェーブのスタイル切り替えに非対応のファームです');
-    return r[1] === GESTURE_WAVE_STYLE_BREATH ? GESTURE_WAVE_STYLE_BREATH : GESTURE_WAVE_STYLE_SHARP;
+    return r[2] === GESTURE_WAVE_STYLE_BREATH ? GESTURE_WAVE_STYLE_BREATH : GESTURE_WAVE_STYLE_SHARP;
   }
 
-  async setGestureWaveStyle(style: number): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_STYLE, style === GESTURE_WAVE_STYLE_BREATH ? GESTURE_WAVE_STYLE_BREATH : GESTURE_WAVE_STYLE_SHARP));
+  async setGestureWaveStyle(mode: number, style: number): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_STYLE, mode, style === GESTURE_WAVE_STYLE_BREATH ? GESTURE_WAVE_STYLE_BREATH : GESTURE_WAVE_STYLE_SHARP));
   }
 
-  async getGestureWaveColor(): Promise<GestureWaveColor> {
-    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_COLOR));
+  async getGestureWaveColor(mode: number): Promise<GestureWaveColor> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_COLOR, mode));
     if (r[0] !== CMD.GET_GESTURE_WAVE_COLOR) throw new Error('ジェスチャーウェーブの色設定に非対応のファームです');
-    return { hue: r[1], sat: r[2], val: r[3] };
+    return { hue: r[2], sat: r[3], val: r[4] };
   }
 
-  async setGestureWaveColor(c: GestureWaveColor): Promise<void> {
-    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_COLOR, c.hue & 0xFF, c.sat & 0xFF, c.val & 0xFF));
+  async setGestureWaveColor(mode: number, c: GestureWaveColor): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_WAVE_COLOR, mode, c.hue & 0xFF, c.sat & 0xFF, c.val & 0xFF));
   }
 
   // OS自動判別: 現在検出しているOS種別を返す（0=判別中,1=Linux,2=Windows,3=macOS,4=iOS）。

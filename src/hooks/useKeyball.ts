@@ -22,10 +22,13 @@ export interface KeyballState {
   gesture: GestureConfig | null;  // null = このファームはジェスチャー非対応
   gestureModes: GestureModeConfig[] | null;  // 複数ジェスチャーモード（RP2040版限定）。null = 非対応
   gestureThreshold: GestureThreshold | null;  // 上記の発動しきい値（全モード共通）。null = 非対応
-  gestureWaveSpeed: number | null;  // ジェスチャー連動LEDウェーブの速さ。null = 非対応
+  // ジェスチャー連動LEDウェーブの速さ・見た目・色は、2026-09-30〜モードごと(0-3)に
+  // 個別設定できるようになったため、gestureModesと同じ「インデックス=モード番号」の
+  // 配列で持つ。gestureWaveEnable（機能そのもののON/OFF）だけは全モード共通のまま。
+  gestureWaveSpeed: number[] | null;  // null = 非対応
   gestureWaveEnable: boolean | null;  // ジェスチャー連動LEDウェーブの有効/無効。null = 非対応
-  gestureWaveStyle: number | null;  // ジェスチャー連動LEDウェーブの見た目(0=シャープ 1=ブリージング)。null = 非対応
-  gestureWaveColor: GestureWaveColor | null;  // ジェスチャー連動LEDウェーブ専用の色。null = 非対応
+  gestureWaveStyle: number[] | null;  // 見た目(0=シャープ 1=ブリージング)。null = 非対応
+  gestureWaveColor: GestureWaveColor[] | null;  // 専用の色。null = 非対応
   shake: ShakeConfig | null;  // シェイク機能。null = 非対応ファーム
   dflick: DFlickConfig | null;  // ダブルフリック。null = 非対応ファーム
   comboSlots: ComboSlot[] | null;  // コンボ。null = 非対応ファーム
@@ -128,20 +131,32 @@ export function useKeyball() {
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
-      let gestureWaveSpeed: number | null = null;
+      let gestureWaveSpeed: number[] | null = null;
       let gestureWaveEnable: boolean | null = null;
-      let gestureWaveStyle: number | null = null;
+      let gestureWaveStyle: number[] | null = null;
       try {
         const modes: GestureModeConfig[] = [];
-        for (let m = 0; m < GESTURE_MODE_COUNT; m++) modes.push(await hid.current.getGestureMode(m));
+        const speeds: number[] = [];
+        for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+          modes.push(await hid.current.getGestureMode(m));
+          speeds.push(await hid.current.getGestureWaveSpeed(m));
+        }
         gestureThreshold = await hid.current.getGestureThreshold();
-        gestureWaveSpeed = await hid.current.getGestureWaveSpeed();
         gestureWaveEnable = await hid.current.getGestureWaveEnable();
         gestureModes = modes;
+        gestureWaveSpeed = speeds;
       } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
-      try { gestureWaveStyle = await hid.current.getGestureWaveStyle(); } catch { /* スタイル切り替え非対応の旧FW */ }
-      let gestureWaveColor: GestureWaveColor | null = null;
-      try { gestureWaveColor = await hid.current.getGestureWaveColor(); } catch { /* 色設定非対応の旧FW */ }
+      try {
+        const styles: number[] = [];
+        for (let m = 0; m < GESTURE_MODE_COUNT; m++) styles.push(await hid.current.getGestureWaveStyle(m));
+        gestureWaveStyle = styles;
+      } catch { /* スタイル切り替え非対応の旧FW */ }
+      let gestureWaveColor: GestureWaveColor[] | null = null;
+      try {
+        const colors: GestureWaveColor[] = [];
+        for (let m = 0; m < GESTURE_MODE_COUNT; m++) colors.push(await hid.current.getGestureWaveColor(m));
+        gestureWaveColor = colors;
+      } catch { /* 色設定非対応の旧FW */ }
       let shake: ShakeConfig | null = null;
       try { shake = await hid.current.getShakeConfig(); } catch { /* シェイク非対応FW */ }
       let dflick: DFlickConfig | null = null;
@@ -279,9 +294,14 @@ export function useKeyball() {
     setPartial({ gestureThreshold: t });
   }, []);
 
-  const setGestureWaveSpeed = useCallback(async (speed: number) => {
-    await hid.current.setGestureWaveSpeed(speed);
-    setPartial({ gestureWaveSpeed: speed });
+  const setGestureWaveSpeed = useCallback(async (mode: number, speed: number) => {
+    await hid.current.setGestureWaveSpeed(mode, speed);
+    setState(prev => {
+      if (!prev.gestureWaveSpeed) return prev;
+      const gestureWaveSpeed = [...prev.gestureWaveSpeed];
+      gestureWaveSpeed[mode] = speed;
+      return { ...prev, gestureWaveSpeed };
+    });
   }, []);
 
   const setGestureWaveEnable = useCallback(async (v: boolean) => {
@@ -289,14 +309,24 @@ export function useKeyball() {
     setPartial({ gestureWaveEnable: v });
   }, []);
 
-  const setGestureWaveStyle = useCallback(async (style: number) => {
-    await hid.current.setGestureWaveStyle(style);
-    setPartial({ gestureWaveStyle: style });
+  const setGestureWaveStyle = useCallback(async (mode: number, style: number) => {
+    await hid.current.setGestureWaveStyle(mode, style);
+    setState(prev => {
+      if (!prev.gestureWaveStyle) return prev;
+      const gestureWaveStyle = [...prev.gestureWaveStyle];
+      gestureWaveStyle[mode] = style;
+      return { ...prev, gestureWaveStyle };
+    });
   }, []);
 
-  const setGestureWaveColor = useCallback(async (c: GestureWaveColor) => {
-    await hid.current.setGestureWaveColor(c);
-    setPartial({ gestureWaveColor: c });
+  const setGestureWaveColor = useCallback(async (mode: number, c: GestureWaveColor) => {
+    await hid.current.setGestureWaveColor(mode, c);
+    setState(prev => {
+      if (!prev.gestureWaveColor) return prev;
+      const gestureWaveColor = [...prev.gestureWaveColor];
+      gestureWaveColor[mode] = c;
+      return { ...prev, gestureWaveColor };
+    });
   }, []);
 
   const setShake = useCallback(async (s: ShakeConfig) => {

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
-export function SliderControl({ value, min, max, step, disabled, unit, onCommit, format }: {
+export function SliderControl({ value, min, max, step, disabled, unit, onCommit, onChange, format }: {
   value: number; min: number; max: number; step: number;
   disabled: boolean; unit: string; onCommit: (v: number) => void;
+  onChange?: (v: number) => void;  // ドラッグ中の値をリアルタイムに受け取りたい場合（色相バーの追従表示など）
   format?: (v: number) => string;  // 表示用の値の整形（例: ×10保持の値を1桁小数で表示）
 }) {
   const [local, setLocal] = useState(value);
@@ -20,7 +21,7 @@ export function SliderControl({ value, min, max, step, disabled, unit, onCommit,
     <div className="tapping-term-row">
       <input
         type="range" min={min} max={max} step={step} value={local} disabled={disabled}
-        onChange={e => setLocal(Number(e.target.value))}
+        onChange={e => { const v = Number(e.target.value); setLocal(v); onChange?.(v); }}
         onPointerUp={commit}
         onKeyUp={commit}
         className="tapping-term-slider"

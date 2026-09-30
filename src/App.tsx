@@ -12,7 +12,7 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel } from './lib/protocol';
+import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT } from './lib/protocol';
 import { LATEST_FW_VERSION, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
@@ -350,8 +350,8 @@ export default function App() {
     catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
-  const handleGestureWaveSpeedChange = async (speed: number) => {
-    try { await setGestureWaveSpeed(speed); setHasUnsaved(true); }
+  const handleGestureWaveSpeedChange = async (mode: number, speed: number) => {
+    try { await setGestureWaveSpeed(mode, speed); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーウェーブ速度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
@@ -360,13 +360,13 @@ export default function App() {
     catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
-  const handleGestureWaveStyleChange = async (style: number) => {
-    try { await setGestureWaveStyle(style); setHasUnsaved(true); }
+  const handleGestureWaveStyleChange = async (mode: number, style: number) => {
+    try { await setGestureWaveStyle(mode, style); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーウェーブの見た目の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
-  const handleGestureWaveColorChange = async (c: GestureWaveColor) => {
-    try { await setGestureWaveColor(c); setHasUnsaved(true); }
+  const handleGestureWaveColorChange = async (mode: number, c: GestureWaveColor) => {
+    try { await setGestureWaveColor(mode, c); setHasUnsaved(true); }
     catch (e) { showToast(`ジェスチャーウェーブの色の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
   };
 
@@ -518,17 +518,41 @@ export default function App() {
         if (data.gestureThreshold) {
           try { await setGestureThreshold(data.gestureThreshold); } catch { /* 非対応FW */ }
         }
-        if (typeof data.gestureWaveSpeed === 'number') {
-          try { await setGestureWaveSpeed(data.gestureWaveSpeed); } catch { /* 非対応FW */ }
+        // gestureWaveSpeed/Style/Colorは2026-09-30〜モードごとの配列になった。旧形式
+        // (v2初期、単一値)のプリセットも読み込めるよう、配列でなければ全モードへ同じ値を
+        // 適用する（本人が過去に書き出したプリセットを無効にしないため）。
+        if (Array.isArray(data.gestureWaveSpeed)) {
+          for (let m = 0; m < data.gestureWaveSpeed.length; m++) {
+            if (typeof data.gestureWaveSpeed[m] !== 'number') continue;
+            try { await setGestureWaveSpeed(m, data.gestureWaveSpeed[m]); } catch { /* 非対応FW */ }
+          }
+        } else if (typeof data.gestureWaveSpeed === 'number') {
+          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+            try { await setGestureWaveSpeed(m, data.gestureWaveSpeed); } catch { /* 非対応FW */ }
+          }
         }
         if (typeof data.gestureWaveEnable === 'boolean') {
           try { await setGestureWaveEnable(data.gestureWaveEnable); } catch { /* 非対応FW */ }
         }
-        if (typeof data.gestureWaveStyle === 'number') {
-          try { await setGestureWaveStyle(data.gestureWaveStyle); } catch { /* 非対応FW */ }
+        if (Array.isArray(data.gestureWaveStyle)) {
+          for (let m = 0; m < data.gestureWaveStyle.length; m++) {
+            if (typeof data.gestureWaveStyle[m] !== 'number') continue;
+            try { await setGestureWaveStyle(m, data.gestureWaveStyle[m]); } catch { /* 非対応FW */ }
+          }
+        } else if (typeof data.gestureWaveStyle === 'number') {
+          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+            try { await setGestureWaveStyle(m, data.gestureWaveStyle); } catch { /* 非対応FW */ }
+          }
         }
-        if (data.gestureWaveColor) {
-          try { await setGestureWaveColor(data.gestureWaveColor); } catch { /* 非対応FW */ }
+        if (Array.isArray(data.gestureWaveColor)) {
+          for (let m = 0; m < data.gestureWaveColor.length; m++) {
+            if (!data.gestureWaveColor[m]) continue;
+            try { await setGestureWaveColor(m, data.gestureWaveColor[m]); } catch { /* 非対応FW */ }
+          }
+        } else if (data.gestureWaveColor) {
+          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+            try { await setGestureWaveColor(m, data.gestureWaveColor); } catch { /* 非対応FW */ }
+          }
         }
         if (data.shake) {
           try { await setShake(data.shake); } catch { /* 非対応FW */ }

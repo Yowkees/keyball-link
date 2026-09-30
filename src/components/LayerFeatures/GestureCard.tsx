@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -7,6 +7,19 @@ import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
 
+// 色相スライダーの上に表示する虹色バー。現在の彩度・明度を反映した色で12段階に分けて描画する
+// （LEDSettings.tsxのbuildGradientと同じ考え方）。どの色相がどの色になるか一目で分かるようにする。
+function buildHueGradient(c: GestureWaveColor): string {
+  const sat = Math.round((c.sat / 255) * 100);
+  const light = Math.max(6, Math.min(62, Math.round((c.val / 255) * 62)));
+  const stops: string[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const hDeg = Math.round((360 * i) / 12);
+    stops.push(`hsl(${hDeg} ${sat}% ${light}%) ${(i * 100 / 12).toFixed(1)}%`);
+  }
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
 interface GestureCardProps {
   gesture: GestureConfig | null;
   onGestureChange: (g: GestureConfig) => Promise<void>;
@@ -14,14 +27,16 @@ interface GestureCardProps {
   onGestureModeChange: (mode: number, g: GestureModeConfig) => Promise<void>;
   gestureThreshold: GestureThreshold | null;
   onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
-  gestureWaveSpeed: number | null;
-  onGestureWaveSpeedChange: (speed: number) => Promise<void>;
+  // 速さ・見た目・色はモードごと（2026-09-30〜。本人希望で「ジェスチャー1〜4で
+  // それぞれ違う光り方にしたい」に対応）。有効/無効だけは全モード共通のまま。
+  gestureWaveSpeed: number[] | null;
+  onGestureWaveSpeedChange: (mode: number, speed: number) => Promise<void>;
   gestureWaveEnable: boolean | null;
   onGestureWaveEnableChange: (v: boolean) => Promise<void>;
-  gestureWaveStyle: number | null;
-  onGestureWaveStyleChange: (style: number) => Promise<void>;
-  gestureWaveColor: GestureWaveColor | null;
-  onGestureWaveColorChange: (c: GestureWaveColor) => Promise<void>;
+  gestureWaveStyle: number[] | null;
+  onGestureWaveStyleChange: (mode: number, style: number) => Promise<void>;
+  gestureWaveColor: GestureWaveColor[] | null;
+  onGestureWaveColorChange: (mode: number, c: GestureWaveColor) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
   layersInclBase: number[];
@@ -36,10 +51,14 @@ export function GestureCard({
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   disabled, keyLayout, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
 }: GestureCardProps) {
-  const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)
+  const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);
+  // 色相バーをスライダーのドラッグ中も追従させるためのローカル表示値（通常のLED色相バーと同じ考え方）。
+  // 選択中のモード(gestureModeTab)が変わった時も、そのモードの色に追従させる。
+  const [liveColor, setLiveColor] = useState<GestureWaveColor | null>(gestureWaveColor?.[gestureModeTab] ?? null);
+  useEffect(() => { setLiveColor(gestureWaveColor?.[gestureModeTab] ?? null); }, [gestureWaveColor, gestureModeTab]);
 
   if (gestureModes && gestureThreshold) {
     const mode = gestureModes[gestureModeTab];
@@ -138,19 +157,22 @@ export function GestureCard({
           <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             <ToggleRow
               label="ジェスチャーウェーブ"
-              desc="キーが送出された瞬間、LEDが流れるように光ります。"
+              desc="キーが送出された瞬間、LEDが流れるように光ります（4モード共通のON/OFF）。"
               checked={gestureWaveEnable}
               disabled={disabled}
               onChange={onGestureWaveEnableChange}
             />
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>
+              ジェスチャー{gestureModeTab + 1}の光り方
+            </p>
             {gestureWaveStyle !== null && (
               <>
-                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>見た目</p>
+                <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>見た目</p>
                 <select
                   className="trackball-bar__select"
-                  value={gestureWaveStyle}
+                  value={gestureWaveStyle[gestureModeTab]}
                   disabled={disabled || !gestureWaveEnable}
-                  onChange={e => onGestureWaveStyleChange(Number(e.target.value))}
+                  onChange={e => onGestureWaveStyleChange(gestureModeTab, Number(e.target.value))}
                 >
                   <option value={0}>シャープ（瞬間的に光る）</option>
                   <option value={1}>ブリージング（柔らかく呼吸するように流れる）</option>
@@ -159,37 +181,48 @@ export function GestureCard({
             )}
             <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
             <SliderControl
-              value={gestureWaveSpeed} min={1} max={255} step={1}
+              value={gestureWaveSpeed[gestureModeTab]} min={1} max={255} step={1}
               disabled={disabled || !gestureWaveEnable} unit=""
-              onCommit={v => onGestureWaveSpeedChange(v)}
+              onCommit={v => onGestureWaveSpeedChange(gestureModeTab, v)}
             />
             <div className="tapping-term-hints">
               <span>1（ゆっくり）</span>
               <span>デフォルト: 200</span>
               <span>255（速い）</span>
             </div>
-            {gestureWaveColor !== null && (
-              <>
-                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
-                <SliderControl
-                  value={gestureWaveColor.hue} min={0} max={255} step={1}
-                  disabled={disabled || !gestureWaveEnable} unit=""
-                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, hue: v })}
-                />
-                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>彩度</p>
-                <SliderControl
-                  value={gestureWaveColor.sat} min={0} max={255} step={1}
-                  disabled={disabled || !gestureWaveEnable} unit=""
-                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, sat: v })}
-                />
-                <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>明るさ</p>
-                <SliderControl
-                  value={gestureWaveColor.val} min={0} max={255} step={1}
-                  disabled={disabled || !gestureWaveEnable} unit=""
-                  onCommit={v => onGestureWaveColorChange({ ...gestureWaveColor, val: v })}
-                />
-              </>
-            )}
+            {gestureWaveColor !== null && (() => {
+              const color = gestureWaveColor[gestureModeTab];
+              const barColor = liveColor ?? color;
+              return (
+                <>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
+                  <div className="led-panel__bar" style={{ marginBottom: 8 }}>
+                    <div className="led-panel__bar-fill" style={{ background: buildHueGradient(barColor) }} />
+                    <div className="led-panel__marker" style={{ left: `${(barColor.hue / 255 * 100).toFixed(1)}%` }} />
+                  </div>
+                  <SliderControl
+                    value={color.hue} min={0} max={255} step={1}
+                    disabled={disabled || !gestureWaveEnable} unit=""
+                    onChange={v => setLiveColor({ ...barColor, hue: v })}
+                    onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, hue: v })}
+                  />
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>彩度</p>
+                  <SliderControl
+                    value={color.sat} min={0} max={255} step={1}
+                    disabled={disabled || !gestureWaveEnable} unit=""
+                    onChange={v => setLiveColor({ ...barColor, sat: v })}
+                    onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, sat: v })}
+                  />
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>明るさ</p>
+                  <SliderControl
+                    value={color.val} min={0} max={255} step={1}
+                    disabled={disabled || !gestureWaveEnable} unit=""
+                    onChange={v => setLiveColor({ ...barColor, val: v })}
+                    onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, val: v })}
+                  />
+                </>
+              );
+            })()}
           </div>
         )}
 

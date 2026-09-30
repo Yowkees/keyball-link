@@ -27,10 +27,13 @@ const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
   keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
 };
-// 2026-09-25: RP2040版はまだ一般公開しない方針（本人指示）。ビルド自体は
-// build-firmware.shで継続しているが、Web UI上はこのフラグで丸ごと非表示にする。
-// 公開時はtrueに変更する。
-const RP2040_PUBLIC_RELEASE = false;
+// RP2040版はまだ一般公開しない方針（本人指示）のため、本番(mainブランチ)では
+// このフラグをfalseにしてWeb UI上でRP2040タブごと非表示にする。
+// 2026-09-30: 一方、rp2040ブランチ（Cloudflare Pagesのプレビュー用URL
+// https://rp2040.keyball-link.pages.dev/ ）は本番ドメインではなく実機確認専用の
+// 隠しURLという位置付けのため、このブランチ限定でtrueに固定する（今後mainの変更を
+// このブランチへ取り込む際も、このフラグ部分だけは書き戻さないこと）。
+const RP2040_PUBLIC_RELEASE = true;
 
 const MODEL_LABELS: Record<ModelKey, string> = {
   keyball39: 'Keyball39',

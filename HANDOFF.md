@@ -270,6 +270,13 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 - **`FirmwareFlasher.tsx`の「もう一度書き込む」ボタンを廃止**（本人依頼）。`reset()`関数と専用ボタンを削除し、代わりに主ボタン「書き込む」の`canFlash`条件を`phase === 'idle'`から`!isWorking`（書き込み中・ポート選択中以外は常に押せる）に変更。書き込み完了後・失敗後もボタンを1つ増やさず同じボタンで再書き込みできるようにした。
 - **未コミット**。`RP2040_PUBLIC_RELEASE`（`FirmwareFlasher.tsx`）は実機確認用に一時的に`true`のままなので、本番デプロイ前に`false`へ戻すこと。両リポジトリのコミット・push・デプロイは本人の明確な許可を得てから実行する。
 
+### 2026-09-30〜2026-10-02: ジェスチャーウェーブのモード別設定UI・色相バー追加・RP2040ファームv0.4.4まで更新（実機確認OK・コミット済み）
+- 上の2026-09-29〜30エントリの内容はコミット・デプロイ済み（「未コミット」の記載は解消）。
+- **デプロイの注意（重要）**: `git push`だけでは https://rp2040.keyball-link.pages.dev/ も本番も一切更新されない。`npm run deploy`（`wrangler pages deploy`）を手元で実行して初めて反映される。wranglerは現在のgitブランチ名を自動で使うため、`rp2040`ブランチで実行すると`rp2040.keyball-link.pages.dev`（RP2040版の実機確認用・非公開）、`main`で実行すると本番に出る。RP2040版の作業は`main`でコミット→`rp2040`へ`git merge --no-ff main`→`RP2040_PUBLIC_RELEASE`が`true`のままか確認→`rp2040`で`npm run deploy`→`main`に戻る、の手順。
+- **ジェスチャーウェーブ設定をモード1〜4ごとに分割**（本人希望。色＝色相・彩度・明るさ、見た目、速さが対象。有効/無効は全体共通のまま）: `hid.ts`の`get/setGestureWaveSpeed/Style/Color(mode, …)`、`useKeyball.ts`で配列state化、`GestureCard.tsx`は`gestureModeTab`で表示中モードの値を出す。プリセット読み込みは旧形式（単一値）・新形式（配列）両対応。ファーム側はv0.3.0以降が必要で、古いファームのまま新UIで設定すると値がずれる・他モードに統合されて見える（実際に一度発生、再書き込みで解消）。
+- **ジェスチャーウェーブの色相スライダー横に色相バーを追加**: 通常LEDのバーと同じ仕様で、スライダーのドラッグ中も白いマーカーが追従する（`SettingsControls.tsx`の`SliderControl`に、離した時の`onCommit`とは別に、ドラッグ中ずっと呼ばれる`onChange`を追加）。
+- **RP2040ファームウェアの更新**: v0.4.0（OLEDアニメーション11種）→v0.4.4（ジェスチャーウェーブを重ね描き化してアンダーグローを変えない等）。経緯・トラックボールが止まった件の記録は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)の同期間のエントリ参照。uf2は`~/qmk_firmware-keyball-rp2040`でビルドしたものを`public/firmware/`へコピーしている。
+
 ---
 
 ## 5. 主要ファイル
@@ -295,7 +302,7 @@ npm install          # 初回のみ
 npm run dev           # 開発サーバー（http://localhost:5173）
 npx tsc --noEmit       # 型チェック（ビルド前の確認に）
 npm run build          # 本番ビルド（dist/に出力）
-npm run deploy          # ビルド＋Cloudflare Pagesへ本番デプロイ
+npm run deploy          # ビルド＋Cloudflare Pagesへデプロイ（mainなら本番、rp2040ならrp2040.keyball-link.pages.dev）
 ```
 
 ---

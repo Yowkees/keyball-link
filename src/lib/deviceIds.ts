@@ -15,8 +15,18 @@ export const MODEL_PIDS_AVR: Record<ModelKey, number> = {
 
 // RP2040版（SparkFun Pro Micro RP2040）のProductID。移植済みの機種のみ。
 export const MODEL_PIDS_RP2040: Partial<Record<ModelKey, number>> = {
-  keyball39: 1536,
-  keyballplus: 1792,
+  keyball39: 1536,    // 0x0600
+  keyballplus: 1792,  // 0x0700
+  keyball44: 2048,    // 0x0800
+  keyball61: 2304,    // 0x0900
+};
+
+// RP2040版のLED総数（「LED位置実測（開発用）」の上限に使う。各機種のRGB_MATRIX_LED_COUNTと一致させること）
+export const RP2040_LED_COUNT: Partial<Record<ModelKey, number>> = {
+  keyball39: 46,
+  keyballplus: 55,
+  keyball44: 59,
+  keyball61: 71,
 };
 
 // KeyLayoutCards.tsx の既存呼び出し用エイリアス（AVR版の表を指す）

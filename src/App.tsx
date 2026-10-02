@@ -13,8 +13,8 @@ import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
 import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT } from './lib/protocol';
-import { LATEST_FW_VERSION, firmwareFeaturesForChip } from './lib/firmwareFeatures';
-import { chipForProductId } from './lib/deviceIds';
+import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
+import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { PRESETS } from './lib/presets';
@@ -28,6 +28,10 @@ type Theme = 'dark' | 'light';
 type AccentTheme = 'mint' | 'amber' | 'violet';
 
 // レイヤータブの色分けドット（モックアップ準拠。5レイヤー目以降は無彩色にフォールバック）
+// 開発（rp2040.keyball-link.pages.dev）とローカル開発サーバーでだけ表示する開発用ツールの判定
+const isDevHost = typeof location !== 'undefined'
+  && (location.hostname.startsWith('rp2040.') || location.hostname === 'localhost');
+
 const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];
 const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
   { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },
@@ -86,7 +90,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -654,7 +658,7 @@ export default function App() {
 
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。
-  const accelAvailable = !isConnected || state.gesture !== null
+  const accelAvailable = !isConnected || state.gesture !== null || chip === 'rp2040'
     || state.model === 'keyball39' || state.model === 'keyballplus';
 
   return (
@@ -986,9 +990,9 @@ export default function App() {
                       {state.firmwareVersion ? (
                         <>
                           {formatVersion(state.firmwareVersion)}
-                          {state.model && isOlderVersion(state.firmwareVersion, LATEST_FW_VERSION[state.model]) && (
+                          {state.model && isOlderVersion(state.firmwareVersion, latestFwVersion(state.model, chip)) && (
                             <span className="app-footer__warn">
-                              （最新版 {formatVersion(LATEST_FW_VERSION[state.model])} があります。「ファームウェア」タブから更新できます）
+                              （最新版 {formatVersion(latestFwVersion(state.model, chip))} があります。「ファームウェア」タブから更新できます）
                             </span>
                           )}
                         </>
@@ -1008,7 +1012,7 @@ export default function App() {
                 comboAvailable={fwFeatures.combo}
                 macroSlots={state.macroSlots}
                 onMacroSave={handleMacroSave}
-                macroBufferSize={macroBufferSizeForModel(state.model)}
+                macroBufferSize={macroBufferSizeForModel(state.model, chip)}
                 isConnected={isConnected}
                 keyLayout={keyLayout}
                 tdSlots={state.tdSlots}
@@ -1081,8 +1085,10 @@ export default function App() {
                 // 不要なため、一般公開版では常時非表示にする（2026-09-25、本人指示）。
                 // onTestLedをundefinedのままにするとSettingsTab側のセクション自体が
                 // 出なくなる（`...(onTestLed ? [...] : [])`のガード）。
-                onTestLed={undefined}
-                ledCount={state.model === 'keyballplus' ? 55 : undefined}
+                // 2026-10-02: Keyball44/61のRP2040版のLED配線確認のため、開発
+                // （rp2040.keyball-link.pages.dev）とローカル開発サーバーでだけ表示する。
+                onTestLed={isDevHost && isConnected && chip === 'rp2040' ? testLed : undefined}
+                ledCount={chip === 'rp2040' && state.model ? RP2040_LED_COUNT[state.model] : undefined}
               >
                 {isConnected && layout && (
                   <MatrixTestPanel layout={layout} ballSide={ballSide} onGetMatrix={getMatrixState} splitGapPx={matrixSplitGap} />

@@ -3,6 +3,7 @@ import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
+import { chipForProductId } from '../lib/deviceIds';
 import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -116,7 +117,8 @@ export function useKeyball() {
       // Keyball61はEEPROM容量制約でマクロバッファが他機種より小さい
       // （macroBufferSizeForModel参照）。以降のマクロ読み書きすべてに影響するため
       // 機種判定直後、getAllMacroSlots()より前にセットする。
-      hid.current.macroBufferSize = macroBufferSizeForModel(model);
+      const pid = hid.current.productId;
+      hid.current.macroBufferSize = macroBufferSizeForModel(model, pid != null ? chipForProductId(pid) : undefined);
       const keymap = await hid.current.getFullKeymap(info.layers, info.rows, info.cols);
       const trackball = await hid.current.getTrackball();
       let led = null;

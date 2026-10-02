@@ -1030,6 +1030,7 @@ export default function App() {
               <TrackballSettingsTab
                 isConnected={isConnected}
                 layerCount={state.info?.layers ?? 4}
+                avail={fwAvail}
                 trackball={state.trackball}
                 onTrackballChange={handleTrackballChange}
                 settings={state.kbSettings}

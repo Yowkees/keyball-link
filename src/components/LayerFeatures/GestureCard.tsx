@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
-import type { KeyLayout } from '../../lib/keycodes';
-import { getKeyDisplayLabel } from '../../lib/keycodes';
+import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
+import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
@@ -39,6 +39,7 @@ interface GestureCardProps {
   onGestureWaveColorChange: (mode: number, c: GestureWaveColor) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
+  avail: FirmwareAvail;  // キー選択で、接続中ファームで使えないキーをグレーアウトする（キー設定パネルと同じ）
   layersInclBase: number[];
   layerWarn: LayerWarn | null;
   changeGestureLayer: (v: number) => void;
@@ -49,7 +50,7 @@ export function GestureCard({
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
-  disabled, keyLayout, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
+  disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
 }: GestureCardProps) {
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
@@ -233,6 +234,8 @@ export function GestureCard({
             keyLayout={keyLayout}
             defaultPanel="通常"
             hideHold
+            avail={avail}
+            excludeCode={isGestureExcludedKeycode}
             onSelect={async (kc) => {
               await onGestureModeChange(editModeDir.mode, { ...gestureModes[editModeDir.mode], [editModeDir.dir]: kc });
               setEditModeDir(null);
@@ -329,6 +332,8 @@ export function GestureCard({
           keyLayout={keyLayout}
           defaultPanel="通常"
           hideHold
+          avail={avail}
+          excludeCode={isGestureExcludedKeycode}
           onSelect={async (kc) => { await onGestureChange({ ...gesture, [editDir]: kc }); setEditDir(null); }}
           onClose={() => setEditDir(null)}
         />

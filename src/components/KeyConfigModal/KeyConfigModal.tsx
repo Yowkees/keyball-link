@@ -19,6 +19,7 @@ interface KeyConfigModalProps {
   avail?: FirmwareAvail;  // 接続中ファームで使えない機能のキーをグレーアウト
   layerCount?: number;    // 接続中ファームの実際のレイヤー数（未指定時は4）
   allowedGroups?: string[]; // 指定時、通常パネルの候補をこのグループのみに絞る（マクロ登録など）
+  excludeCode?: (code: number) => boolean; // trueのキーは候補から外し、カスタム入力でも設定不可にする
   onSelect: (keycode: number) => void;
   onClose: () => void;
 }
@@ -131,11 +132,12 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
 }
 
 // ── 通常キーパネル（修飾キー付加対応） ────────────────────
-function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, compact, onSelect }: {
+function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode, compact, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
   allowedGroups?: string[];
+  excludeCode?: (code: number) => boolean;
   compact?: boolean;  // true: カテゴリはドロップダウン+検索を横並び、キーは5列固定（右側常時パネル用）
   onSelect: (c: number) => void;
 }) {
@@ -146,15 +148,16 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, compact, on
   const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
   const [mods, setMods] = useState(isMods ? (currentCode >> 8) & 0x1F : 0);
 
-  const groupCategories = buildGroupCategories(avail.tapDance);
+  const baseKeys = KEYCODES.filter(k =>
+    (k.group !== 'タップダンス' || avail.tapDance) &&
+    (!allowedGroups || allowedGroups.includes(k.group)) &&
+    !excludeCode?.(k.code)
+  );
+
+  const groupCategories = buildGroupCategories(baseKeys.some(k => k.group === 'タップダンス'));
   const categories = allowedGroups
     ? groupCategories.filter(cat => cat.groups.length === 0 || cat.groups.some(g => allowedGroups.includes(g)))
     : groupCategories;
-
-  const baseKeys = KEYCODES.filter(k =>
-    (k.group !== 'タップダンス' || avail.tapDance) &&
-    (!allowedGroups || allowedGroups.includes(k.group))
-  );
 
   const filtered = baseKeys.filter(k => {
     if (k.layout && k.layout !== keyLayout) return false;
@@ -388,9 +391,10 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
 }
 
 // ── カスタムパネル（16進数手動入力） ──────────────────────
-function CustomPanel({ currentCode, keyLayout, onSelect }: {
+function CustomPanel({ currentCode, keyLayout, excludeCode, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
+  excludeCode?: (code: number) => boolean;
   onSelect: (c: number) => void;
 }) {
   const [text, setText] = useState('0x' + currentCode.toString(16).toUpperCase().padStart(4, '0'));
@@ -403,6 +407,7 @@ function CustomPanel({ currentCode, keyLayout, onSelect }: {
 
   const valid = parsed !== null && parsed >= 0 && parsed <= 0xFFFF;
   const entry = valid ? findKeycode(parsed) : null;
+  const blocked = valid && !!excludeCode?.(parsed);
 
   return (
     <div className="builder-panel">
@@ -424,13 +429,14 @@ function CustomPanel({ currentCode, keyLayout, onSelect }: {
           <>
             解釈: <strong>{getKeyDisplayLabel(parsed, keyLayout).replace('\n', ' / ')}</strong>
             <span className="modal-title__code">（{entry.short} / 0x{parsed.toString(16).toUpperCase().padStart(4, '0')}）</span>
+            {blocked && <div style={{ color: 'var(--red)' }}>このキーはここには設定できません</div>}
           </>
         ) : (
           <span style={{ color: 'var(--red)' }}>0x0000〜0xFFFF の16進数を入力してください</span>
         )}
       </div>
 
-      <button className="btn btn--primary builder-panel__set" disabled={!valid} onClick={() => valid && onSelect(parsed)}>
+      <button className="btn btn--primary builder-panel__set" disabled={!valid || blocked} onClick={() => valid && !blocked && onSelect(parsed)}>
         このキーコードを設定
       </button>
     </div>
@@ -524,7 +530,7 @@ export function KeyConfigPanel({
 }
 
 export function KeyConfigModal({
-  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, layerCount, allowedGroups, onSelect, onClose,
+  currentCode, keyLayout, defaultPanel, hideHold, avail = FW_ALL_AVAILABLE, layerCount, allowedGroups, excludeCode, onSelect, onClose,
 }: KeyConfigModalProps) {
   const initialPanel = defaultPanel ?? detectPanelType(currentCode);
   const [panel, setPanel] = useState<PanelType>(
@@ -563,9 +569,9 @@ export function KeyConfigModal({
         </div>
 
         <div className="modal-body">
-          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} allowedGroups={allowedGroups} onSelect={handleSelect} />}
+          {panel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} allowedGroups={allowedGroups} excludeCode={excludeCode} onSelect={handleSelect} />}
           {panel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} layerCount={layerCount} onSelect={handleSelect} />}
-          {panel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={handleSelect} />}
+          {panel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} excludeCode={excludeCode} onSelect={handleSelect} />}
         </div>
       </div>
     </div>

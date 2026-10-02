@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ファームウェア（AVR版: keyball39/44/61 + keyballplus、各 通常版/LED版 = 計8パターン。
-# RP2040版: keyball39 + keyballplus、各1パターン = 計2パターン）をビルドし、
+# RP2040版: keyball39 + keyballplus + keyball44 + keyball61、各1パターン = 計4パターン）をビルドし、
 # public/firmware/ に配置するための唯一の正規手順。
 #
 # 過去に「ビルド直後にコピーせず、後から別のスクリプトが
@@ -51,7 +51,7 @@ PLUS_QMK="${PLUS_QMK:-$HOME/qmk_firmware-keyball-plus}"
 
 RP2040_SRC="${RP2040_SRC:-$HOME/keyball-rp2040-firmware}"
 RP2040_QMK="${RP2040_QMK:-$HOME/qmk_firmware-keyball-rp2040}"
-RP2040_KEYBOARDS=(keyball39 keyballplus)
+RP2040_KEYBOARDS=(keyball39 keyballplus keyball44 keyball61)
 
 for d in "$LINK_QMK" "$PLUS_QMK" "$RP2040_QMK"; do
   if [ ! -d "$d" ]; then

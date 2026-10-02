@@ -194,8 +194,10 @@ export const MACRO_BUFFER_SIZE  = 400;  // 全スロット共有バッファ（�
 export const MACRO_BUFFER_SIZE_KEYBALL61 = 240;
 export const MACRO_CHUNK_SIZE   = 28;   // 1HIDパケットあたりのデータ量
 
-// 接続中の機種に応じたマクロバッファ容量（バイト）を返す
-export function macroBufferSizeForModel(model: ModelKey | null): number {
+// 接続中の機種に応じたマクロバッファ容量（バイト）を返す。
+// RP2040版はEEPROMに余裕があり、Keyball61も他機種と同じ400バイト（keyball-rp2040-firmwareのkb_macro.h）。
+export function macroBufferSizeForModel(model: ModelKey | null, chip?: 'avr' | 'rp2040'): number {
+  if (chip === 'rp2040') return MACRO_BUFFER_SIZE;
   return model === 'keyball61' ? MACRO_BUFFER_SIZE_KEYBALL61 : MACRO_BUFFER_SIZE;
 }
 

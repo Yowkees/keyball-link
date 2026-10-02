@@ -23,12 +23,10 @@ export function firmwareFeaturesForChip(chip: Chip | undefined) {
 
 // public/firmware/ に置いている hex/uf2（配布中の最新版）のバージョン。
 // keyball44/61 は keyball-link-firmware（AVR版）のkb_version.hと一致させること。
-// keyball39・keyballplusはAVR版・RP2040版の両方を配布しているが、この値は
-// AVR版（keyball-link-firmware / keyball-plus-firmware）のバージョンのみを
-// 表す。RP2040版（keyball-rp2040-firmware、0.1.0系の別バージョン体系）は
-// 接続中がRP2040版の場合この比較が正しく機能しない（既知の課題。チップ種別
-// ごとに比較対象を分ける改修が必要。2026-09-25、keyballplusのAVR版配布再開に
-// 伴いkeyball39と同じ課題を抱えることになった）。
+// この値はAVR版（keyball-link-firmware / keyball-plus-firmware）のバージョン。
+// RP2040版（keyball-rp2040-firmware、0.x系の別バージョン体系）は全機種共通で
+// LATEST_FW_VERSION_RP2040を使う（2026-10-02、チップ種別ごとに比較対象を分けた。
+// 以前はRP2040版接続時もAVR版の値と比べてしまい「最新版 v1.4.1 があります」と誤表示していた）。
 // hex/uf2 を作り直して差し替えるたびにここも更新する。
 export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
   keyball39: { major: 1, minor: 4, patch: 1 },
@@ -36,3 +34,10 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
   keyball61: { major: 1, minor: 4, patch: 1 },
   keyballplus: { major: 1, minor: 1, patch: 0 },
 };
+
+// RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
+export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 4, patch: 6 };
+
+export function latestFwVersion(model: ModelKey, chip: Chip | undefined): FirmwareVersion {
+  return chip === 'rp2040' ? LATEST_FW_VERSION_RP2040 : LATEST_FW_VERSION[model];
+}

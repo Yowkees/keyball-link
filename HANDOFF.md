@@ -289,6 +289,12 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 - **ジェスチャーウェーブの色相スライダー横に色相バーを追加**: 通常LEDのバーと同じ仕様で、スライダーのドラッグ中も白いマーカーが追従する（`SettingsControls.tsx`の`SliderControl`に、離した時の`onCommit`とは別に、ドラッグ中ずっと呼ばれる`onChange`を追加）。
 - **RP2040ファームウェアの更新**: v0.4.0（OLEDアニメーション11種）→v0.4.4（ジェスチャーウェーブを重ね描き化してアンダーグローを変えない等）。経緯・トラックボールが止まった件の記録は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)の同期間のエントリ参照。uf2は`~/qmk_firmware-keyball-rp2040`でビルドしたものを`public/firmware/`へコピーしている。
 
+### 2026-10-02（続き）: ジェスチャーのキー選択制限・スクロール速度の移動・RP2040版v0.4.6（実機確認OK・コミット済み）
+- **ジェスチャー方向のキー選択からMO(0-31)・タップダンスTD(n)・SCRL_TO/SCRL_MOを除外**（本人指示）。ジェスチャーは押してすぐ離す1回分の入力なので、MOとタップダンスは意味をなさず、スクロール切替キーは状態が不定になるため。`keycodes.ts`の`isGestureExcludedKeycode()`を`KeyConfigModal`の`excludeCode`に渡し、通常タブの一覧から外すだけでなく、カスタム（16進数入力）でも「このキーはここには設定できません」と表示して設定不可にした。既に割り当て済みの設定はそのまま残る。
+- 同時に、ジェスチャーのキー選択でも接続中ファームで使えないキーをグレーアウトするようにした（`avail`をApp→TrackballSettingsTab→GestureCard→KeyConfigModalへ配線。キー設定パネルと同じ挙動）。
+- **スクロール速度（scrollDiv、0=速い〜7=遅い）を「ボール動作」から「スクロール設定」へ移動**（本人指示）。保存の仕組み（即時送信＋共通の未保存表示）は従来どおり。「スクロール方向」「反転」はボール動作に残したまま（移動するか本人に確認中で未回答）。
+- RP2040版ファームウェアをv0.4.6に更新（慣性スクロールの作り直し。詳細は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)）。
+
 ---
 
 ## 5. 主要ファイル

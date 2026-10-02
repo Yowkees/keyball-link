@@ -118,12 +118,13 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'scroll', title: 'スクロール設定', note: 'スクロールになるレイヤー・慣性',
+      key: 'scroll', title: 'スクロール設定', note: 'スクロールになるレイヤー・速度・慣性',
       render: () => (
         <ScrollLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
           changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
           scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
+          trackball={trackball} onTrackballChange={onTrackballChange}
         />
       ),
     },

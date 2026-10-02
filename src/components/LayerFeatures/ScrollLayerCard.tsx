@@ -1,7 +1,9 @@
-import type { KbSettings, ScrollInertiaConfig } from '../../lib/protocol';
+import type { KbSettings, ScrollInertiaConfig, TrackballConfig } from '../../lib/protocol';
 import { LAYER_NONE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+
+const SCROLL_DIV_MAX = 7;
 
 interface ScrollLayerCardProps {
   settings: KbSettings;
@@ -11,9 +13,11 @@ interface ScrollLayerCardProps {
   changeScrollLayer: (v: number) => void;
   scrollInertia: ScrollInertiaConfig | null;
   onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
+  trackball: TrackballConfig | null;  // スクロール速度(scrollDiv)はトラックボール設定の一部として保存される
+  onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
 }
 
-export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange }: ScrollLayerCardProps) {
+export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange }: ScrollLayerCardProps) {
   return (
     <>
       <div className="setting-row">
@@ -34,6 +38,21 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
       </div>
       {layerWarn?.target === 'scroll' && (
         <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+      )}
+
+      {trackball && (
+        <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+          <p className="settings-desc" style={{ fontWeight: 600 }}>スクロール速度</p>
+          <SliderControl
+            value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}
+            disabled={disabled} unit=""
+            onCommit={v => onTrackballChange({ ...trackball, scrollDiv: v })}
+          />
+          <div className="tapping-term-hints">
+            <span>0（速い）</span>
+            <span>{SCROLL_DIV_MAX}（遅い）</span>
+          </div>
+        </div>
       )}
 
       <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>

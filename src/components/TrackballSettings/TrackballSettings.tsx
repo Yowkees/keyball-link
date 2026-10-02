@@ -15,7 +15,6 @@ interface TrackballSettingsProps {
 }
 
 const MAX_CPI_INDEX = 17;
-const MAX_SCROLL_DIV = 7;
 const MAX_ACCEL = 10;
 
 // スライダーはドラッグ中にローカル表示のみ更新し、離したときだけ親に通知する
@@ -94,16 +93,6 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         renderLabel={i => String(cpiIndexToValue(i))}
         scale="100〜1800"
         onCommit={v => onChange({ ...config, cpiIndex: v })}
-      />
-
-      <TrackballSlider
-        label="スクロール速度"
-        value={config.scrollDiv}
-        min={0}
-        max={MAX_SCROLL_DIV}
-        renderLabel={v => String(v)}
-        scale="速〜遅"
-        onCommit={v => onChange({ ...config, scrollDiv: v })}
       />
 
       <TrackballSlider

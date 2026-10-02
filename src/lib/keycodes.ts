@@ -683,6 +683,15 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   return disp;
 }
 
+// ジェスチャー方向に割り当てられないキー（2026-10-02、本人指示）。ジェスチャーは「押して
+// すぐ離す」1回分の入力なので、MO（押している間だけ）とタップダンスは意味をなさず、
+// SCRL_TO/SCRL_MOは押すたびに状態が反転するため結果が不定になる。
+export function isGestureExcludedKeycode(code: number): boolean {
+  return (code >= 0x5220 && code <= 0x523F)   // MO(0)〜MO(31)
+    || (code >= 0x5700 && code <= 0x57FF)      // TD(n)
+    || code === 0x7E06 || code === 0x7E07;     // SCRL_TO / SCRL_MO
+}
+
 // 接続中ファームで各機能が使えるか（未接続なら不明＝true扱いでグレーアウトしない）
 export interface FirmwareAvail {
   media:      boolean;  // メディアキー（EXTRAKEY）。v1.1.0〜通常版・LED版共通で利用可

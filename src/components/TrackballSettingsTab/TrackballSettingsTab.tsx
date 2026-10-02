@@ -11,11 +11,12 @@ import { GestureCard } from '../LayerFeatures/GestureCard';
 import { ShakeCard } from '../LayerFeatures/ShakeCard';
 import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
-import type { KeyLayout } from '../../lib/keycodes';
+import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 
 interface TrackballSettingsTabProps {
   isConnected: boolean;
   layerCount: number;
+  avail: FirmwareAvail;
   trackball: TrackballConfig | null;
   onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
   settings: KbSettings;
@@ -53,7 +54,7 @@ type TbSection = 'ball' | 'automouse' | 'scroll' | 'gesture' | 'precision' | 'sh
 // トップレベル「トラックボール設定」タブ。詳細設定タブと同じ「左に項目一覧・右に詳細」の
 // サイドバー形式に統一し、1機能ずつ切り替えて表示する。
 export function TrackballSettingsTab({
-  isConnected, layerCount, trackball, onTrackballChange,
+  isConnected, layerCount, avail, trackball, onTrackballChange,
   settings, onChange, accelAvailable, dpiCurve, onDpiCurveChange,
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
@@ -137,7 +138,7 @@ export function TrackballSettingsTab({
           gestureWaveEnable={gestureWaveEnable} onGestureWaveEnableChange={onGestureWaveEnableChange}
           gestureWaveStyle={gestureWaveStyle} onGestureWaveStyleChange={onGestureWaveStyleChange}
           gestureWaveColor={gestureWaveColor} onGestureWaveColorChange={onGestureWaveColorChange}
-          disabled={disabled} keyLayout={keyLayout} layersInclBase={layersInclBase} layerWarn={layerWarn}
+          disabled={disabled} keyLayout={keyLayout} avail={avail} layersInclBase={layersInclBase} layerWarn={layerWarn}
           changeGestureLayer={v => changeLayer('gesture', v, () => onGestureChange({ ...gesture!, layer: v }))}
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}
         />

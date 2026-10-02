@@ -26,6 +26,8 @@ const BUILTIN_FIRMWARE_AVR_LED: Partial<Record<ModelKey, string>> = {
 const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
   keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
+  keyball44: '/firmware/keyball_keyball44_web_configurator.uf2',  // 2026-10-02〜。LED配線は暫定
+  keyball61: '/firmware/keyball_keyball61_web_configurator.uf2',  // 2026-10-02〜。LED配線は暫定
 };
 // 2026-09-25: RP2040版はまだ一般公開しない方針（本人指示）。ビルド自体は
 // build-firmware.shで継続しているが、Web UI上はこのフラグで丸ごと非表示にする。

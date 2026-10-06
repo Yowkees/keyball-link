@@ -87,7 +87,7 @@ export function GestureCard({
 
         <div className="gesture-card__cols">
         <div className="gesture-card__col">
-        <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <div className="card-sep">
           <div className="gesture-grid">
             {dirs.map(([dir, label, contKey]) => (
               <div key={dir} className="gesture-row">
@@ -108,7 +108,7 @@ export function GestureCard({
             ))}
           </div>
 
-          <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div className="card-sep">
             <div className="setting-row">
               <div className="setting-row__text">
                 <span className="setting-row__label">連動レイヤー</span>
@@ -131,7 +131,7 @@ export function GestureCard({
           </div>
         </div>
 
-        <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <div className="card-sep">
           <p className="settings-desc" style={{ fontWeight: 600 }}>感度（4モード共通）</p>
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
           <SliderControl
@@ -155,7 +155,7 @@ export function GestureCard({
 
         <div className="gesture-card__col">
         {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
-          <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div className="card-sep">
             <ToggleRow
               label="ジェスチャーウェーブ（4モード共通）"
               desc=""
@@ -266,7 +266,7 @@ export function GestureCard({
         ))}
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div className="card-sep">
         <div className="gesture-row">
           <span className="gesture-dir">タップ</span>
           <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditTap(true)}>
@@ -275,7 +275,7 @@ export function GestureCard({
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div className="card-sep">
         <div className="setting-row">
           <div className="setting-row__text">
             <span className="setting-row__label">ジェスチャーレイヤー</span>
@@ -297,7 +297,7 @@ export function GestureCard({
         )}
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div className="card-sep">
         <p className="settings-desc" style={{ fontWeight: 600 }}>感度</p>
         <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
         <SliderControl

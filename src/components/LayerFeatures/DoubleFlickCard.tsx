@@ -52,7 +52,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>時間窓</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }}>2回目の受付時間</p>
         <SliderControl
           value={dflick.windowMs} min={DFLICK_WINDOW_MS_MIN} max={DFLICK_WINDOW_MS_MAX} step={DFLICK_WINDOW_MS_STEP}
           disabled={disabled} unit="ms"

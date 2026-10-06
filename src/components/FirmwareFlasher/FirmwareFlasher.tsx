@@ -243,9 +243,14 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
     (source === 'builtin' || customFile !== null);
 
   return (
+    // 2026-10-06〜: 「書き込む前に」「①選択」「②書き込む」の3枚のカードを横に並べ、
+    // 画面の幅いっぱいを使う（以前は幅560pxの縦1列）。狭い画面では縦1列に戻る（index.css）。
     <div className="firmware-flasher">
-      <h3 className="settings-title">ファームウェア書き込み</h3>
-
+      <section className="board-card fw-card">
+        <header className="board-card__head">
+          <span className="board-card__title">書き込む前に</span>
+        </header>
+        <div className="board-card__body fw-card__body">
       {!supported && (
         <div className="flash-alert flash-alert--warn">
           {chip === 'rp2040'
@@ -283,12 +288,16 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
         </p>
       </details>
+        </div>
+      </section>
 
       {/* Step 1 */}
-      <div className="flash-step">
-        <span className="flash-step-num">1</span>
-        <div className="flash-step-body">
-          <p className="flash-step-label">ファームウェアを選択</p>
+      <section className="board-card fw-card">
+        <header className="board-card__head">
+          <span className="flash-step-num">1</span>
+          <span className="board-card__title">ファームウェアを選択</span>
+        </header>
+        <div className="board-card__body fw-card__body">
           <div className="fw-source-tabs">
             <button className={`fw-source-tab ${source === 'builtin' ? 'fw-source-tab--active' : ''}`}
               onClick={() => setSource('builtin')} disabled={isWorking}>
@@ -386,12 +395,15 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
             </>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Step 2 */}
-      <div className="flash-step">
-        <span className="flash-step-num">2</span>
-        <div className="flash-step-body">
+      <section className="board-card fw-card">
+        <header className="board-card__head">
+          <span className="flash-step-num">2</span>
+          <span className="board-card__title">書き込む</span>
+        </header>
+        <div className="board-card__body fw-card__body">
           {chip === 'avr' ? (
             isHIDConnected ? (
               <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わります。</p>
@@ -418,8 +430,6 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           <button className="btn btn--primary" onClick={handleFlash} disabled={!canFlash}>
             書き込む
           </button>
-        </div>
-      </div>
 
       {/* メッセージ */}
       {message && (
@@ -438,7 +448,8 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           <span className="flash-progress-label">{progress}%</span>
         </div>
       )}
-
+        </div>
+      </section>
     </div>
   );
 }

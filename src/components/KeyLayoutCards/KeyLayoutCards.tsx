@@ -59,9 +59,11 @@ interface MacOSSetupSectionProps {
   defaultLayout: KeyLayout;
   model: ModelKey | null;
   productId: number | null;
+  // 設定ボードのカード内タブ用（未指定なら全部表示）。'select'=説明・配列の選択、'command'=実行手順とコマンド
+  part?: 'select' | 'command';
 }
 
-export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetupSectionProps) {
+export function MacOSSetupSection({ defaultLayout, model, productId, part }: MacOSSetupSectionProps) {
   const [layout, setLayout] = useState<KeyLayout>(defaultLayout);
   const [copied, setCopied] = useState(false);
 
@@ -80,6 +82,7 @@ export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetu
 
   return (
     <div>
+      {part !== 'command' && <>
       <p className="settings-desc">
         macOSはKeyballの配列（JIS/US）を自動判定できない場合があります。<br />
         以下のコマンドを一度実行することで、@キーなどの記号が正しく入力できるようになります。
@@ -102,15 +105,21 @@ export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetu
           <span className="layout-toggle-example">@ は Shift+2</span>
         </button>
       </div>
+      </>}
 
-      {!model ? (
+      {part === 'select' && model && (
+        <p className="settings-desc" style={{ marginTop: 8 }}>
+          対象モデル: <strong>{model}</strong>（{layout === 'JIS' ? 'JIS配列' : 'US配列'}）。「コマンド」タブの手順で設定します。
+        </p>
+      )}
+      {part === 'select' ? null : !model ? (
         <p className="settings-desc" style={{ marginTop: 8 }}>
           キーボードを接続すると、そのモデル専用のコマンドが表示されます。
         </p>
       ) : (
         <>
           <p className="settings-desc" style={{ marginTop: 4, marginBottom: 4 }}>
-            対象モデル: <strong>{model}</strong>
+            対象モデル: <strong>{model}</strong>{part && <>（{layout === 'JIS' ? 'JIS配列' : 'US配列'}）</>}
           </p>
 
           <div className="macos-steps">

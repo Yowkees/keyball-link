@@ -11,9 +11,11 @@ interface ShakeCardProps {
   onShakeChange: (s: ShakeConfig) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
+  // 設定ボードのカード内タブ用（未指定なら全部表示）。'basic'=ON/OFF・キー・感度、'detail'=反転回数・時間
+  part?: 'basic' | 'detail';
 }
 
-export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCardProps) {
+export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: ShakeCardProps) {
   const [editKey, setEditKey] = useState(false);
 
   if (!shake) {
@@ -22,6 +24,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
 
   return (
     <>
+      {part !== 'detail' && <>
       <ToggleRow
         label="シェイクを有効化"
         desc=""
@@ -49,7 +52,10 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      </>}
+
+      {part !== 'basic' && <>
+      <div style={part ? undefined : { marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>反転回数</p>
         <SliderControl
           value={shake.reversals} min={SHAKE_REVERSALS_MIN} max={SHAKE_REVERSALS_MAX} step={1}
@@ -76,6 +82,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
           <span>{SHAKE_RUN_MAX_MS_MAX}ms（緩い）</span>
         </div>
       </div>
+      </>}
 
       {editKey && (
         <KeyConfigModal

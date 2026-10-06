@@ -36,15 +36,28 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
+    // 設定ボードのカード内（高さが画面に合わせて決まっている）に置かれた時は、
+    // 幅だけでなくカードの残りの高さにも収まるよう縮める（2026-10-06〜）。
+    // 幅は自分ではなく親要素で測る（高さで縮めた時に自分の幅を狭めるため）。
+    const parent = el.parentElement;
+    const body = el.closest('.board-card__body') as HTMLElement | null;
     const update = () => {
-      const w = el.clientWidth;
-      if (w > 0) setScale(w / naturalWidth);
+      const w = parent?.clientWidth ?? el.clientWidth;
+      if (w <= 0) return;
+      let s = w / naturalWidth;
+      if (body) {
+        const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+        const avail = body.clientHeight - top - 12;
+        if (avail > 0) s = Math.min(s, avail / naturalHeight);
+      }
+      setScale(s);
     };
     update();
     const obs = new ResizeObserver(update);
-    obs.observe(el);
+    obs.observe(parent ?? el);
+    if (body) obs.observe(body);
     return () => obs.disconnect();
-  }, [naturalWidth]);
+  }, [naturalWidth, naturalHeight, active]);
 
   const pollLoop = useCallback(async () => {
     while (activeRef.current) {
@@ -107,7 +120,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
       )}
 
       {/* wrapRef でコンテナ幅を計測し、内側を transform: scale で拡大 */}
-      <div ref={wrapRef} className="matrix-layout-wrap" style={{ height: naturalHeight * scale }}>
+      <div ref={wrapRef} className="matrix-layout-wrap" style={{ height: naturalHeight * scale, width: naturalWidth * scale, marginInline: 'auto' }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: naturalWidth, height: naturalHeight, position: 'absolute' }}>
           {layout.map(k => {
             if (k.ball === ballSide) return null;

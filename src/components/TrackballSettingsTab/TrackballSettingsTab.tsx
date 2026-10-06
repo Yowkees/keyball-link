@@ -12,6 +12,7 @@ import { ShakeCard } from '../LayerFeatures/ShakeCard';
 import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
+import { SettingsBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 
 interface TrackballSettingsTabProps {
   isConnected: boolean;
@@ -49,10 +50,8 @@ interface TrackballSettingsTabProps {
   keyLayout: KeyLayout;
 }
 
-type TbSection = 'ball' | 'automouse' | 'scroll' | 'gesture' | 'precision' | 'shake' | 'dflick';
-
-// トップレベル「トラックボール設定」タブ。詳細設定タブと同じ「左に項目一覧・右に詳細」の
-// サイドバー形式に統一し、1機能ずつ切り替えて表示する。
+// トップレベル「トラックボール設定」タブ。全項目をカードにして画面いっぱいに並べる
+// （2026-10-06〜。以前は「左に項目一覧・右に詳細」のサイドバー形式）。
 export function TrackballSettingsTab({
   isConnected, layerCount, avail, trackball, onTrackballChange,
   settings, onChange, accelAvailable, dpiCurve, onDpiCurveChange,
@@ -90,10 +89,12 @@ export function TrackballSettingsTab({
     apply({ autoMouseEnable: v });
   };
 
-  const sections: { key: TbSection; title: string; note: string; render: () => React.ReactNode }[] = [
+  const hasWave = gestureModes !== null && gestureWaveSpeed !== null && gestureWaveEnable !== null;
+
+  const cards: BoardCard[] = [
     ...(trackball ? [{
-      key: 'ball' as const, title: 'ボール動作', note: 'CPI・感度カーブ・方向',
-      render: () => (
+      key: 'ball', title: 'ボール動作', panes: ['基本', '速度カーブ'],
+      render: (pane: number) => (
         <TrackballSettings
           config={trackball}
           onChange={onTrackballChange}
@@ -103,34 +104,26 @@ export function TrackballSettingsTab({
           accelAvailable={accelAvailable}
           dpiCurve={dpiCurve}
           onDpiCurveChange={onDpiCurveChange}
+          part={pane === 0 ? 'basic' : 'curve'}
         />
       ),
     }] : []),
     {
-      key: 'automouse', title: '自動マウスレイヤー', note: 'トラックボール操作で自動レイヤー切替',
-      render: () => (
-        <AutoMouseLayerCard
-          settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
-          changeAmlEnable={changeAmlEnable}
-          changeAmlLayer={v => changeLayer('aml', v, () => apply({ autoMouseLayer: v }))}
-          apply={apply}
-        />
-      ),
-    },
-    {
-      key: 'scroll', title: 'スクロール設定', note: 'スクロールになるレイヤー・速度・慣性',
-      render: () => (
+      key: 'scroll', title: 'スクロール設定', panes: ['基本', '慣性'],
+      render: pane => (
         <ScrollLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
           changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
           scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
           trackball={trackball} onTrackballChange={onTrackballChange}
+          part={pane === 0 ? 'basic' : 'inertia'}
         />
       ),
     },
     {
-      key: 'gesture', title: 'ジェスチャー', note: 'トラックボールを振って操作',
-      render: () => (
+      key: 'gesture', title: 'ジェスチャー',
+      panes: hasWave ? ['キー割り当て', '感度', 'ウェーブ'] : ['キー割り当て', '感度'],
+      render: pane => (
         <GestureCard
           gesture={gesture} onGestureChange={onGestureChange}
           gestureModes={gestureModes} onGestureModeChange={onGestureModeChange}
@@ -142,11 +135,24 @@ export function TrackballSettingsTab({
           disabled={disabled} keyLayout={keyLayout} avail={avail} layersInclBase={layersInclBase} layerWarn={layerWarn}
           changeGestureLayer={v => changeLayer('gesture', v, () => onGestureChange({ ...gesture!, layer: v }))}
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}
+          part={(['keys', 'sensitivity', 'wave'] as const)[pane]}
         />
       ),
     },
     {
-      key: 'precision', title: '精密モード', note: 'トラックボールを精密操作',
+      key: 'aml', title: '自動マウスレイヤー', panes: ['基本', '詳細'],
+      render: pane => (
+        <AutoMouseLayerCard
+          settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
+          changeAmlEnable={changeAmlEnable}
+          changeAmlLayer={v => changeLayer('aml', v, () => apply({ autoMouseLayer: v }))}
+          apply={apply}
+          part={pane === 0 ? 'basic' : 'detail'}
+        />
+      ),
+    },
+    {
+      key: 'precision', title: '精密モード', note: '押している間だけ感度を下げる',
       render: () => (
         <PrecisionModeCard
           precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
@@ -155,44 +161,27 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'shake', title: 'シェイク', note: 'トラックボールを振って発動',
-      render: () => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />,
+      key: 'shake', title: 'シェイク', panes: shake ? ['基本', '詳細'] : undefined,
+      render: pane => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'basic' : 'detail'} />,
     },
     {
-      key: 'dflick', title: 'ダブルフリック', note: '同じ方向へ素早く2回振って発動',
-      render: () => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />,
+      key: 'dflick', title: 'ダブルフリック', panes: dflick ? ['キー割り当て', '詳細'] : undefined,
+      render: pane => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'keys' : 'detail'} />,
     },
   ];
 
-  const [section, setSection] = useState<TbSection>('ball');
-  const active = sections.find(s => s.key === section) ?? sections[0];
-
+  // 13〜14インチのノートPCで1画面に収まる配置。ジェスチャーは中身が多いので
+  // 縦2段分を使い、他は1段ずつ。ボール動作が無い（未接続）時は隣のカードが広がる。
   return (
     <div className="settings-tab">
-      <div className="settings-sidebar-layout">
-        <div className="settings-sidebar">
-          {sections.map(s => (
-            <button
-              key={s.key}
-              className={`settings-sidebar__item ${active.key === s.key ? 'settings-sidebar__item--active' : ''}`}
-              onClick={() => setSection(s.key)}
-            >
-              <span className="settings-sidebar__title">{s.title}</span>
-              {s.note && <span className="settings-sidebar__note">{s.note}</span>}
-            </button>
-          ))}
-        </div>
-
-        <div className="settings-detail">
-          <div className="settings-detail__head">
-            <span className="settings-detail__title">{active.title}</span>
-            {active.note && <span className="settings-detail__note">{active.note}</span>}
-          </div>
-          <div className="settings-detail__body">
-            {active.render()}
-          </div>
-        </div>
-      </div>
+      <SettingsBoard
+        cards={cards}
+        columns="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr)"
+        areas={[
+          'ball scroll gesture aml',
+          'precision shake gesture dflick',
+        ]}
+      />
     </div>
   );
 }

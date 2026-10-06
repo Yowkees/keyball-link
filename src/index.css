@@ -3489,7 +3489,7 @@ body { background: var(--bg); overflow-x: hidden; }
   max-width: 300px;
   padding: 8px 11px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--text) 68%, transparent);
+  background: color-mix(in srgb, var(--text) 55%, transparent);
   backdrop-filter: blur(4px);
   color: var(--bg2);
   font-size: 12px;
@@ -3517,10 +3517,10 @@ p[data-tip] { width: fit-content; }
    「初めての方はこちら」は控えめな文字リンクにして、大きさと強さに差を付ける */
 .placeholder-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 28px; }
 .placeholder-connect {
-  padding: 16px 48px;
-  font-size: 17px;
-  letter-spacing: 0.04em;
-  border-radius: 14px;
+  padding: 12px 36px;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  border-radius: 12px;
   background: var(--accent);
   color: var(--key-sel-fg, #fff);
 }

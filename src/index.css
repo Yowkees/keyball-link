@@ -3330,23 +3330,10 @@ body { background: var(--bg); overflow-x: hidden; }
     gap: 0 16px;
   }
   .board-card--motion .motion-col + .motion-col { margin-top: 0; border-top: none; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--border); }
-  /* ダブルフリックの割り当てキーは2×2に並べて高さを抑える */
-  .board-card--motion .dflick-keys { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; }
-  .board-card--motion .dflick-keys .gesture-dir { min-width: 0; }
 }
 
-/* ボール動作カード下部の精密モード（見出し｜減速の強さ｜レイヤーを横1行に） */
+/* ボール動作カード下部の精密モード（見出し＋連動レイヤー、その下に減速レベル） */
 .ball-precision { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
-.ball-precision__title { display: block; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 4px; }
-.precision-card__layer { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
-@media (min-width: 1100px) and (min-height: 760px) {
-  .ball-precision { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 14px; }
-  .ball-precision__title { margin-bottom: 0; }
-  .ball-precision .precision-card { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: center; gap: 0 16px; }
-  .ball-precision .precision-card__layer { margin-top: 0; border-top: none; padding-top: 0; }
-  .ball-precision .setting-row { padding: 0; }
-  .ball-precision .setting-row__label { white-space: nowrap; }
-}
 
 /* カード内の区切り線（各カードのブロック間） */
 .card-sep { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
@@ -3358,8 +3345,6 @@ body { background: var(--bg); overflow-x: hidden; }
   .board-card--scroll .scroll-card__inertia { margin-top: 0; border-top: none; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--border); }
 
 
-  /* ダブルフリックの割り当てキー（2×2）は方向の文字を省いて矢印だけにし、キー名の幅を確保する */
-  .board-card--motion .dflick-keys .gesture-dir__word { display: none; }
 }
 
 /* 左にカードのタブ、右に選んだカード（SettingsSidebarBoard。トラックボール設定） */
@@ -3428,7 +3413,6 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-sidebar-layout .board-card__body { padding: 20px 24px 24px; }
 .board-sidebar-layout .board-card .card-sep,
 .board-sidebar-layout .board-card .scroll-card__inertia,
-.board-sidebar-layout .board-card .precision-card__layer,
 .board-sidebar-layout .ball-precision { margin-top: 18px; padding-top: 16px; }
 .board-sidebar-layout .board-card .settings-desc { margin-bottom: 8px; }
 .board-sidebar-layout .board-card .tapping-term-row { margin-top: 4px; margin-bottom: 14px; }
@@ -3446,8 +3430,6 @@ body { background: var(--bg); overflow-x: hidden; }
   .board-sidebar-layout .board-card--scroll .scroll-card__inertia,
   .board-sidebar-layout .board-card--motion .motion-col + .motion-col { margin-top: 0; padding-top: 0; padding-left: 40px; }
   .board-sidebar-layout .board-card--ball .trackball-bar { gap: 16px 40px; }
-  .board-sidebar-layout .ball-precision .precision-card__layer { margin-top: 0; padding-top: 0; }
-  .board-sidebar-layout .ball-precision .precision-card { gap: 0 32px; }
 }
 
 /* スクロール設定（タブ表示）: 慣性スクロールも縦に並べる */
@@ -3460,3 +3442,19 @@ body { background: var(--bg); overflow-x: hidden; }
 /* 色相の虹色バー（右に数値欄と同じ幅の空き） */
 .hue-bar-row { margin-bottom: 4px; }
 .hue-bar-row .led-panel__bar { flex: 1; margin: 0; }
+
+/* 色相の虹色バーをそのままドラッグして調整する（GestureCard） */
+.hue-bar { cursor: pointer; }
+.hue-bar--disabled { opacity: 0.5; cursor: default; }
+.hue-bar__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+
+/* 精密モード: 見出しの隣に連動レイヤーの選択欄 */
+.precision-card__head { display: flex; align-items: center; gap: 12px; }
+.precision-card__title { font-weight: 700; font-size: 13px; color: var(--text); }
+
+/* スクロール設定・オートマウスレイヤーのバーは長くなりすぎないよう幅を抑える */
+.board-card--scroll .tapping-term-row,
+.board-card--aml .tapping-term-row { max-width: 420px; }
+.board-card--scroll .setting-row { max-width: 420px; }
+
+.board-card--ball .ball-precision .tapping-term-row { max-width: 420px; }

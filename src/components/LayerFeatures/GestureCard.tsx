@@ -177,20 +177,25 @@ export function GestureCard({
               return (
                 <>
                   <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
-                  {/* 虹色バーの長さを下のスライダーに揃えるため、右側に数値欄と同じ幅の空きを置く */}
+                  {/* 虹色バーそのものをドラッグして色相を選ぶ（2026-10-06、本人希望で下の数値バーを廃止）。
+                      バーの上に透明なスライダーを重ね、白い目印を動かす。右に数値を表示 */}
                   <div className="tapping-term-row hue-bar-row">
-                    <div className="led-panel__bar">
+                    <div className={`led-panel__bar hue-bar ${disabled || !gestureWaveEnable ? 'hue-bar--disabled' : ''}`}>
                       <div className="led-panel__bar-fill" style={{ background: buildHueGradient(barColor) }} />
                       <div className="led-panel__marker" style={{ left: `${(barColor.hue / 255 * 100).toFixed(1)}%` }} />
+                      <input
+                        type="range" min={0} max={255} step={1}
+                        className="hue-bar__input"
+                        aria-label="色相"
+                        value={barColor.hue}
+                        disabled={disabled || !gestureWaveEnable}
+                        onChange={e => setLiveColor({ ...barColor, hue: Number(e.target.value) })}
+                        onPointerUp={e => onGestureWaveColorChange(gestureModeTab, { ...color, hue: Number((e.target as HTMLInputElement).value) })}
+                        onKeyUp={e => onGestureWaveColorChange(gestureModeTab, { ...color, hue: Number((e.target as HTMLInputElement).value) })}
+                      />
                     </div>
-                    <span className="tapping-term-value" aria-hidden="true" />
+                    <span className="tapping-term-value">{barColor.hue}</span>
                   </div>
-                  <SliderControl
-                    value={color.hue} min={0} max={255} step={1}
-                    disabled={disabled || !gestureWaveEnable} unit=""
-                    onChange={v => setLiveColor({ ...barColor, hue: v })}
-                    onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, hue: v })}
-                  />
                   <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>彩度</p>
                   <SliderControl
                     value={color.sat} min={0} max={255} step={1}

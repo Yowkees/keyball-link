@@ -1,28 +1,20 @@
 import type { KbSettings } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
-import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { SliderControl } from '../SettingsControls/SettingsControls';
 
 interface AutoMouseLayerCardProps {
   settings: KbSettings;
   disabled: boolean;
   switchableLayers: number[];
   layerWarn: LayerWarn | null;
-  changeAmlEnable: (v: boolean) => void;
   changeAmlLayer: (v: number) => void;
   apply: (patch: Partial<KbSettings>) => Promise<void>;
 }
 
-export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layerWarn, changeAmlEnable, changeAmlLayer, apply }: AutoMouseLayerCardProps) {
+export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layerWarn, changeAmlLayer, apply }: AutoMouseLayerCardProps) {
   return (
     <>
       <div className="setting-rows">
-        <ToggleRow
-          label="自動マウスレイヤーを使う"
-          desc=""
-          checked={settings.autoMouseEnable}
-          disabled={disabled}
-          onChange={changeAmlEnable}
-        />
         <div className={`setting-row ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
           <div className="setting-row__text">
             <span className="setting-row__label">切り替わるレイヤー</span>

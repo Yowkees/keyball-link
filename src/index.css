@@ -3179,6 +3179,8 @@ body { background: var(--bg); overflow-x: hidden; }
   min-width: 0;
   flex: 1;
 }
+.board-card__head-right { margin-left: auto; display: flex; align-items: center; }
+.board-card__head-right .toggle-btn { padding-block: 3px; }
 .board-card__tabs {
   display: flex;
   gap: 2px;

@@ -14,6 +14,21 @@ import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { SettingsBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 
+// カード見出しの右端に置く機能のON/OFF（2026-10-06〜。以前はカード内の
+// 「〜を使う」「〜を有効化」の行だったが、本人希望で見出しの右に移した）
+function HeaderToggle({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      className={`toggle-btn ${checked ? 'toggle-btn--on' : ''}`}
+      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      aria-pressed={checked}
+    >
+      {checked ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+
 interface TrackballSettingsTabProps {
   isConnected: boolean;
   layerCount: number;
@@ -147,10 +162,10 @@ export function TrackballSettingsTab({
     },
     {
       key: 'aml', title: '自動マウスレイヤー',
+      headerRight: <HeaderToggle checked={settings.autoMouseEnable} disabled={disabled} onChange={changeAmlEnable} />,
       render: () => (
         <AutoMouseLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
-          changeAmlEnable={changeAmlEnable}
           changeAmlLayer={v => changeLayer('aml', v, () => apply({ autoMouseLayer: v }))}
           apply={apply}
         />
@@ -158,10 +173,12 @@ export function TrackballSettingsTab({
     },
     {
       key: 'shake', title: 'シェイク',
+      headerRight: shake ? <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} /> : undefined,
       render: () => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />,
     },
     {
       key: 'dflick', title: 'ダブルフリック',
+      headerRight: dflick ? <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} /> : undefined,
       render: () => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />,
     },
   ];

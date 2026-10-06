@@ -3,7 +3,7 @@ import type { ShakeConfig } from '../../lib/protocol';
 import { SHAKE_THRESHOLD_MIN, SHAKE_THRESHOLD_MAX, SHAKE_THRESHOLD_DEFAULT, SHAKE_REVERSALS_MIN, SHAKE_REVERSALS_MAX, SHAKE_REVERSALS_DEFAULT, SHAKE_RUN_MAX_MS_MIN, SHAKE_RUN_MAX_MS_MAX, SHAKE_RUN_MAX_MS_DEFAULT, SHAKE_RUN_MAX_MS_STEP } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
-import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { SliderControl } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 interface ShakeCardProps {
@@ -22,13 +22,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
 
   return (
     <>
-      <ToggleRow
-        label="シェイクを有効化"
-        desc=""
-        checked={shake.enable} disabled={disabled}
-        onChange={v => onShakeChange({ ...shake, enable: v })}
-      />
-      <div className="gesture-row" style={{ marginTop: 12 }}>
+      <div className="gesture-row">
         <span className="gesture-dir">発動キー</span>
         <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditKey(true)}>
           {shake.key ? getKeyDisplayLabel(shake.key, keyLayout) : '未設定'}

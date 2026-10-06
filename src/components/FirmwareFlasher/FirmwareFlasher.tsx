@@ -261,34 +261,9 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
 
           <div className="fw-step">
             <p className="fw-step__title"><span className="flash-step-num">1</span>ファームウェアを選択</p>
-          <div className="fw-source-tabs">
-            <button className={`fw-source-tab ${source === 'builtin' ? 'fw-source-tab--active' : ''}`}
-              onClick={() => setSource('builtin')} disabled={isWorking}>
-              ビルド済みを使用
-            </button>
-            <button className={`fw-source-tab ${source === 'file' ? 'fw-source-tab--active' : ''}`}
-              onClick={() => setSource('file')} disabled={isWorking}>
-              {chip === 'rp2040' ? '.uf2 ファイルを選択' : '.hex ファイルを選択'}
-            </button>
-          </div>
-
-          <div className="fw-source-tabs" style={{ marginTop: 10 }}>
-            <button className={`fw-source-tab ${chip === 'avr' ? 'fw-source-tab--active' : ''}`}
-              onClick={() => setChip('avr')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel])}
-              title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
-              AVR版（Pro Micro等）
-            </button>
-            {RP2040_PUBLIC_RELEASE && (
-              <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
-                onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
-                title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
-                RP2040版（RP2040 ProMicro）
-              </button>
-            )}
-          </div>
-
-          {source === 'builtin' && (
-            <div className="model-selector" style={{ marginTop: 12 }}>
+          {/* 2026-10-06〜: 上から「モデル」→「AVR版/RP2040版」→「ビルド済み/ファイル」の順に選ぶ */}
+          <p className="fw-field-label">モデル</p>
+            <div className="model-selector">
               {(Object.keys(MODEL_LABELS) as ModelKey[]).map(model => {
                 const total = (BUILTIN_FIRMWARE_AVR[model] ? (flashCounts[flashCountKey(model, false)] ?? 0) : 0) +
                   (BUILTIN_FIRMWARE_AVR_LED[model] ? (flashCounts[flashCountKey(model, true)] ?? 0) : 0) +
@@ -310,7 +285,34 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
                 </span>
               )}
             </div>
-          )}
+
+          <p className="fw-field-label">マイコン</p>
+          <div className="fw-source-tabs">
+            <button className={`fw-source-tab ${chip === 'avr' ? 'fw-source-tab--active' : ''}`}
+              onClick={() => setChip('avr')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel])}
+              title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
+              AVR版（Pro Micro等）
+            </button>
+            {RP2040_PUBLIC_RELEASE && (
+              <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
+                onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
+                title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
+                RP2040版（RP2040 ProMicro）
+              </button>
+            )}
+          </div>
+
+          <p className="fw-field-label">ファームウェア</p>
+          <div className="fw-source-tabs">
+            <button className={`fw-source-tab ${source === 'builtin' ? 'fw-source-tab--active' : ''}`}
+              onClick={() => setSource('builtin')} disabled={isWorking}>
+              ビルド済みを使用
+            </button>
+            <button className={`fw-source-tab ${source === 'file' ? 'fw-source-tab--active' : ''}`}
+              onClick={() => setSource('file')} disabled={isWorking}>
+              {chip === 'rp2040' ? '.uf2 ファイルを選択' : '.hex ファイルを選択'}
+            </button>
+          </div>
 
           {source === 'builtin' && chip === 'avr' && BUILTIN_FIRMWARE_AVR_LED[selectedModel] && (
             <div className="version-selector" style={{ marginTop: 12 }}>

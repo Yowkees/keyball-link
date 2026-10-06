@@ -3559,3 +3559,5 @@ p[data-tip] { width: fit-content; }
 .board-sidebar-layout > .board-card--narrow { max-width: 560px; }
 /* ファームウェアの「書き込む」ボタンは横いっぱいに伸ばさない */
 .fw-step > .btn--primary { align-self: flex-start; padding: 10px 40px; }
+/* ファームウェア選択の各項目の見出し（モデル・マイコン・ファームウェア） */
+.fw-field-label { margin: 6px 0 -4px; font-size: 12px; font-weight: 600; color: var(--text-dim); }

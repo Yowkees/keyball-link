@@ -814,7 +814,7 @@ export default function App() {
                   <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
                   <div className="placeholder-actions">
                     <button
-                      className="btn btn--primary"
+                      className="btn btn--primary placeholder-connect"
                       data-guide="connect-btn"
                       onClick={connect}
                       disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}

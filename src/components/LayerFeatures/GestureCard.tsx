@@ -161,7 +161,7 @@ export function GestureCard({
             {gestureWaveStyle !== null && (
               <>
                 <select
-                  className="trackball-bar__select"
+                  className="trackball-bar__select gesture-wave-style"
                   value={gestureWaveStyle[gestureModeTab]}
                   disabled={disabled || !gestureWaveEnable}
                   onChange={e => onGestureWaveStyleChange(gestureModeTab, Number(e.target.value))}
@@ -171,21 +171,19 @@ export function GestureCard({
                 </select>
               </>
             )}
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
-            <SliderControl
-              value={gestureWaveSpeed[gestureModeTab]} min={1} max={255} step={1}
-              disabled={disabled || !gestureWaveEnable} unit=""
-              onCommit={v => onGestureWaveSpeedChange(gestureModeTab, v)}
-            />
             {gestureWaveColor !== null && (() => {
               const color = gestureWaveColor[gestureModeTab];
               const barColor = liveColor ?? color;
               return (
                 <>
                   <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
-                  <div className="led-panel__bar" style={{ marginBottom: 8 }}>
-                    <div className="led-panel__bar-fill" style={{ background: buildHueGradient(barColor) }} />
-                    <div className="led-panel__marker" style={{ left: `${(barColor.hue / 255 * 100).toFixed(1)}%` }} />
+                  {/* 虹色バーの長さを下のスライダーに揃えるため、右側に数値欄と同じ幅の空きを置く */}
+                  <div className="tapping-term-row hue-bar-row">
+                    <div className="led-panel__bar">
+                      <div className="led-panel__bar-fill" style={{ background: buildHueGradient(barColor) }} />
+                      <div className="led-panel__marker" style={{ left: `${(barColor.hue / 255 * 100).toFixed(1)}%` }} />
+                    </div>
+                    <span className="tapping-term-value" aria-hidden="true" />
                   </div>
                   <SliderControl
                     value={color.hue} min={0} max={255} step={1}
@@ -210,6 +208,12 @@ export function GestureCard({
                 </>
               );
             })()}
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
+            <SliderControl
+              value={gestureWaveSpeed[gestureModeTab]} min={1} max={255} step={1}
+              disabled={disabled || !gestureWaveEnable} unit=""
+              onCommit={v => onGestureWaveSpeedChange(gestureModeTab, v)}
+            />
           </div>
         )}
         </div>

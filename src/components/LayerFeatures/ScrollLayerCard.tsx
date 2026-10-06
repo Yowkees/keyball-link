@@ -43,7 +43,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
       )}
 
       {trackball && (
-        <div className="card-sep">
+        <div style={{ marginTop: 14 }}>
           <p className="settings-desc" style={{ fontWeight: 600 }}>スクロール速度</p>
           <SliderControl
             value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}

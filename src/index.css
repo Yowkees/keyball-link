@@ -3449,3 +3449,14 @@ body { background: var(--bg); overflow-x: hidden; }
   .board-sidebar-layout .ball-precision .precision-card__layer { margin-top: 0; padding-top: 0; }
   .board-sidebar-layout .ball-precision .precision-card { gap: 0 32px; }
 }
+
+/* スクロール設定（タブ表示）: 慣性スクロールも縦に並べる */
+@media (min-width: 1100px) and (min-height: 760px) {
+  .board-sidebar-layout .board-card--scroll .scroll-card { display: block; }
+  .board-sidebar-layout .board-card--scroll .scroll-card__inertia { margin-top: 18px; padding-top: 16px; padding-left: 0; border-left: none; border-top: 1px solid var(--border); }
+}
+/* ジェスチャーウェーブ: ON/OFF行の下線と見た目の選択欄が接しないように */
+.gesture-wave-style { margin-top: 12px; margin-bottom: 4px; }
+/* 色相の虹色バー（右に数値欄と同じ幅の空き） */
+.hue-bar-row { margin-bottom: 4px; }
+.hue-bar-row .led-panel__bar { flex: 1; margin: 0; }

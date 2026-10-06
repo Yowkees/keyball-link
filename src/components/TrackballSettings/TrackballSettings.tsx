@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { TrackballConfig, DpiCurveConfig } from '../../lib/protocol';
 import { cpiIndexToValue, computeAccelCurvePoints } from '../../lib/protocol';
 import { DpiCurveEditor } from '../DpiCurveEditor/DpiCurveEditor';
+import { TIPS } from '../../lib/tips';
 
 interface TrackballSettingsProps {
   config: TrackballConfig;
@@ -25,6 +26,7 @@ function TrackballSlider({
   onCommit,
   dimmed = false,
   dimmedReason,
+  tip,
 }: {
   label: string;
   value: number;
@@ -34,6 +36,7 @@ function TrackballSlider({
   onCommit: (v: number) => void;
   dimmed?: boolean;
   dimmedReason?: string;
+  tip?: string;
 }) {
   const [local, setLocal] = useState(value);
   // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
@@ -46,7 +49,7 @@ function TrackballSlider({
   return (
     <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
       title={dimmed ? (dimmedReason ?? 'このファーム版（LED版）では加速度は使用できません') : undefined}>
-      <span className="trackball-bar__label">{label}</span>
+      <span className="trackball-bar__label" data-tip={tip}>{label}</span>
       <input
         type="range"
         min={min}
@@ -85,6 +88,7 @@ export function TrackballSettings({ config, onChange, accelAvailable = true, dpi
 
       <TrackballSlider
         label="CPI"
+        tip={TIPS.cpi}
         value={config.cpiIndex}
         min={0}
         max={MAX_CPI_INDEX}
@@ -94,6 +98,7 @@ export function TrackballSettings({ config, onChange, accelAvailable = true, dpi
 
       <TrackballSlider
         label="加速度"
+        tip={TIPS.accel}
         value={config.accel}
         min={0}
         max={MAX_ACCEL}

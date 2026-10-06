@@ -14,6 +14,7 @@ import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { TIPS } from '../../lib/tips';
 
 // カード見出しの右端に置く機能のON/OFF（2026-10-06〜。以前はカード内の
 // 「〜を使う」「〜を有効化」の行だったが、本人希望で見出しの右に移した）
@@ -173,14 +174,14 @@ export function TrackballSettingsTab({
         <div className="motion-cols">
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title">シェイク</span>
+              <span className="motion-col__title" data-tip={TIPS.shake}>シェイク</span>
               {shake && <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} />}
             </div>
             <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />
           </section>
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title">ダブルフリック</span>
+              <span className="motion-col__title" data-tip={TIPS.dflick}>ダブルフリック</span>
               {dflick && <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} />}
             </div>
             <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />

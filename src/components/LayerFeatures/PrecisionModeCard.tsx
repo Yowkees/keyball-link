@@ -2,6 +2,7 @@ import type { PrecisionConfig } from '../../lib/protocol';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl } from '../SettingsControls/SettingsControls';
+import { TIPS } from '../../lib/tips';
 
 interface PrecisionModeCardProps {
   precision: PrecisionConfig | null;
@@ -20,7 +21,7 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
   return (
     <div className="precision-card">
       <div className="precision-card__head">
-        <span className="precision-card__title">精密モード</span>
+        <span className="precision-card__title" data-tip={TIPS.precision}>精密モード</span>
         <select
           className="trackball-bar__select"
           value={precision.layer}
@@ -36,7 +37,7 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
       {layerWarn?.target === 'precision' && (
         <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
       )}
-      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>減速レベル</p>
+      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.precisionDiv}>減速レベル</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
         disabled={disabled} unit="分の1"

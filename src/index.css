@@ -3475,3 +3475,29 @@ body { background: var(--bg); overflow-x: hidden; }
 /* スクロール設定: スクロール方向・反転の行 */
 .scroll-card__row { border-bottom: none; padding: 6px 0; gap: 10px; }
 .board-card .scroll-card__label { margin: 0; font-weight: 600; min-width: 84px; }
+
+/* ホバーで詳細説明を出す項目（lib/tips.ts）。点線の下線で「説明あり」と分かるようにする */
+[data-tip] { position: relative; cursor: help; text-decoration: underline dotted var(--text-dim); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  width: max-content;
+  max-width: 300px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+p[data-tip] { width: fit-content; }
+/* ジェスチャー1〜4の切り替え部分は下線を付けない（ボタンなので） */
+.gesture-mode-tabs[data-tip] { text-decoration: none; cursor: default; width: fit-content; }

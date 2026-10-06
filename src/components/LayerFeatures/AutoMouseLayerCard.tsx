@@ -2,6 +2,7 @@ import type { KbSettings } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl } from '../SettingsControls/SettingsControls';
+import { TIPS } from '../../lib/tips';
 
 interface AutoMouseLayerCardProps {
   settings: KbSettings;
@@ -18,7 +19,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
       <div className="setting-rows">
         <div className={`setting-row setting-row--compact ${disabled ? 'setting-row--disabled' : ''}`}>
           <div className="setting-row__text">
-            <span className="setting-row__label">切り替わるレイヤー</span>
+            <span className="setting-row__label" data-tip={TIPS.amlLayer}>切り替わるレイヤー</span>
           </div>
           <select
             className="trackball-bar__select"
@@ -40,7 +41,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
       {/* 2つのスライダー。横長カードでは左右に並べる（index.css） */}
       <div className="aml-card__sliders">
       <div>
-      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>通常レイヤーに戻るまでの時間</p>
+      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }} data-tip={TIPS.amlTimeout}>通常レイヤーに戻るまでの時間</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseTimeout} min={100} max={2000} step={50}
@@ -51,7 +52,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
       </div>
 
       <div>
-      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>感度</p>
+      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }} data-tip={TIPS.amlSens}>感度</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseThreshold} min={1} max={40} step={1}

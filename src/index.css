@@ -3478,7 +3478,8 @@ body { background: var(--bg); overflow-x: hidden; }
 
 /* ホバーで詳細説明を出す項目（lib/tips.ts）。点線の下線で「説明あり」と分かるようにする */
 [data-tip] { position: relative; cursor: help; text-decoration: underline dotted var(--text-dim); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-[data-tip]:hover::after {
+/* すぐには出さず、0.6秒ほどマウスを乗せたままにした時だけ表示する（2026-10-06、本人希望） */
+[data-tip]::after {
   content: attr(data-tip);
   position: absolute;
   left: 0;
@@ -3497,6 +3498,14 @@ body { background: var(--bg); overflow-x: hidden; }
   text-align: left;
   pointer-events: none;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0s linear 0.15s;
+}
+[data-tip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s 0.6s, visibility 0s linear 0.6s;
 }
 p[data-tip] { width: fit-content; }
 /* ジェスチャー1〜4の切り替え部分は下線を付けない（ボタンなので） */

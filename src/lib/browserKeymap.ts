@@ -96,6 +96,17 @@ export function browserEventToKeycode(e: KeyboardEvent): number | null {
   return base;
 }
 
+const MODIFIER_CODES = ['ShiftLeft','ShiftRight','ControlLeft','ControlRight',
+  'AltLeft','AltRight','MetaLeft','MetaRight'];
+
+/**
+ * 修飾キー（Ctrl/Shift/Alt/Cmd）単体のキーコードを返す。修飾キーでなければnull。
+ * マクロ記録で、修飾キーだけを押して離した時に1ステップとして記録するために使う。
+ */
+export function modifierEventToKeycode(e: KeyboardEvent): number | null {
+  return MODIFIER_CODES.includes(e.code) ? BASE_MAP[e.code] : null;
+}
+
 /** キーコードから短い表示名を返す（録音プレビュー用） */
 export function keycodeToDisplayName(kc: number): string {
   for (const [code, val] of Object.entries(BASE_MAP)) {

@@ -491,7 +491,7 @@ export interface KbSettings {
   retroTapping:   boolean;
   scrollInvertV:  boolean;  // 縦スクロール反転
   scrollInvertH:  boolean;  // 横スクロール反転
-  autoMouseEnable:   boolean;  // 自動マウスレイヤー有効
+  autoMouseEnable:   boolean;  // オートマウスレイヤー有効
   autoMouseLayer:    number;   // 切り替わる対象レイヤー（0-3）
   autoMouseTimeout:  number;   // 戻るまでの時間(ms)
   autoMouseThreshold: number;  // 発動しきい値（移動量。小さいほど敏感）

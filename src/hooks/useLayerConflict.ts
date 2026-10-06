@@ -10,7 +10,7 @@ export interface LayerWarn {
   mode?: number;
 }
 
-// トラックボール動作レイヤー（自動マウス/スクロール/ジェスチャー/精密モード）が
+// トラックボール動作レイヤー（オートマウス/スクロール/ジェスチャー/精密モード）が
 // お互い同じレイヤーに重複設定されるのを防ぐための共通ロジック。
 // SettingsTab（詳細設定タブ）とキーマップタブのレイヤー連動パネルの両方から使う。
 export function useLayerConflict(
@@ -22,7 +22,7 @@ export function useLayerConflict(
   const [layerWarn, setLayerWarn] = useState<LayerWarn | null>(null);
 
   // target を val にしたとき、併用できない他機能と同じレイヤーになっていたらその名前を返す。
-  // 精密モードは「動きの意味」ではなく「感度」を変えるだけなので、自動マウス・スクロールとは
+  // 精密モードは「動きの意味」ではなく「感度」を変えるだけなので、オートマウス・スクロールとは
   // 併用可能（例：スクロールレイヤーと同じにすれば精密な低速スクロールになる）。ただし
   // ジェスチャーとは併用不可（本人希望、2026-09-11。同じレイヤーにするとジェスチャー中は
   // 精密モードが効かず紛らわしいため）。
@@ -32,7 +32,7 @@ export function useLayerConflict(
     const isGestureFamily = target === 'gesture' || target === 'gestureMode';
     if (target !== 'precision') {
       if (target !== 'aml' && settings.autoMouseEnable)
-        others.push(['自動マウスレイヤー', settings.autoMouseLayer]);
+        others.push(['オートマウスレイヤー', settings.autoMouseLayer]);
       if (target !== 'scroll' && settings.scrollLayer !== LAYER_NONE)
         others.push(['スクロールレイヤー', settings.scrollLayer]);
     }

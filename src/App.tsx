@@ -65,7 +65,7 @@ function getLayerDotColor(layer: number, state: {
   return ledConfigToColor(state.layerLeds[layer]) ?? 'var(--text-dim)';
 }
 
-// 指定レイヤーに紐づいているレイヤー連動機能の一覧（自動マウス/スクロール/ジェスチャー/精密モード/LED連動）。
+// 指定レイヤーに紐づいているレイヤー連動機能の一覧（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）。
 // 各種LAYER_NONE(0xFE)は実レイヤー番号(0〜7)とは一致しないため、単純な等価比較だけで「未割り当て」を除外できる。
 function getLayerFeatures(layer: number, state: {
   kbSettings: { autoMouseEnable: boolean; autoMouseLayer: number; scrollLayer: number };
@@ -76,7 +76,7 @@ function getLayerFeatures(layer: number, state: {
   layerLeds: ({ enabled: boolean } | null)[];
 }): string[] {
   const tags: string[] = [];
-  if (state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === layer) tags.push('自動マウス');
+  if (state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === layer) tags.push('オートマウス');
   if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
   if (state.gesture?.layer === layer || state.gestureModes?.some(m => m.layer === layer)) tags.push('ジェスチャー');
   if (state.precision?.layer === layer) tags.push('精密モード');

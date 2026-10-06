@@ -161,7 +161,7 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'aml', title: '自動マウスレイヤー', className: 'board-card--aml',
+      key: 'aml', title: 'オートマウスレイヤー', className: 'board-card--aml',
       headerRight: <HeaderToggle checked={settings.autoMouseEnable} disabled={disabled} onChange={changeAmlEnable} />,
       render: () => (
         <AutoMouseLayerCard
@@ -196,7 +196,7 @@ export function TrackballSettingsTab({
   ];
 
   // 左に5つのカードのタブ、右に選んだカードを大きく表示する（2026-10-06〜、本人希望）。
-  // 並び順: ボール動作・精密モード → スクロール設定 → ジェスチャー → 自動マウスレイヤー → シェイク・ダブルフリック
+  // 並び順: ボール動作・精密モード → スクロール設定 → ジェスチャー → オートマウスレイヤー → シェイク・ダブルフリック
   const order = ['ball', 'scroll', 'gesture', 'aml', 'motion'];
   const ordered = order.map(k => cards.find(c => c.key === k)).filter((c): c is BoardCard => !!c);
   return (

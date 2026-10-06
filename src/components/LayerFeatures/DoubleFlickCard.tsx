@@ -44,7 +44,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
       </>}
 
       {part !== 'keys' && <>
-      <div style={part ? undefined : { marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={part ? undefined : { marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>フリック判定の感度</p>
         <SliderControl
           value={dflick.flickThreshold} min={DFLICK_FLICK_THRESHOLD_MIN} max={DFLICK_FLICK_THRESHOLD_MAX} step={5}
@@ -58,7 +58,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>フリックとみなす動作時間の上限</p>
         <SliderControl
           value={dflick.maxDurationMs} min={DFLICK_MAX_DURATION_MS_MIN} max={DFLICK_MAX_DURATION_MS_MAX} step={DFLICK_MAX_DURATION_MS_STEP}
@@ -72,7 +72,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>時間窓</p>
         <SliderControl
           value={dflick.windowMs} min={DFLICK_WINDOW_MS_MIN} max={DFLICK_WINDOW_MS_MAX} step={DFLICK_WINDOW_MS_STEP}

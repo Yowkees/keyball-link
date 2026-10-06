@@ -15,16 +15,11 @@ interface ScrollLayerCardProps {
   onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
   trackball: TrackballConfig | null;  // スクロール速度(scrollDiv)はトラックボール設定の一部として保存される
   onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
-  // 設定ボードのカード内タブ用（未指定なら全部表示）。'basic'=レイヤー・速度、'inertia'=慣性スクロール
-  part?: 'basic' | 'inertia';
 }
 
-export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange, part }: ScrollLayerCardProps) {
-  const showBasic = part !== 'inertia';
-  const showInertia = part !== 'basic';
+export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange }: ScrollLayerCardProps) {
   return (
     <>
-      {showBasic && <>
       <div className="setting-row">
         <div className="setting-row__text">
           <span className="setting-row__label">スクロールになるレイヤー</span>
@@ -46,7 +41,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
       )}
 
       {trackball && (
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
           <p className="settings-desc" style={{ fontWeight: 600 }}>スクロール速度</p>
           <SliderControl
             value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}
@@ -59,10 +54,8 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           </div>
         </div>
       )}
-      </>}
 
-      {showInertia && <div style={part ? undefined : { marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-        {!part && <p className="settings-desc" style={{ fontWeight: 600 }}>慣性スクロール</p>}
+      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         {scrollInertia === null ? (
           <p className="settings-desc">このファームは非対応です。</p>
         ) : (
@@ -99,7 +92,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
             </div>
           </>
         )}
-      </div>}
+      </div>
     </>
   );
 }

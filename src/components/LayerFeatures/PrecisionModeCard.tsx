@@ -33,7 +33,7 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
         <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
       </div>
 
-      <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <div className="setting-row">
           <div className="setting-row__text">
             <span className="setting-row__label">精密モードになるレイヤー</span>

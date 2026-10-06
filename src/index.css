@@ -3207,7 +3207,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-card__body {
   flex: 1;
   min-height: 0;
-  padding: 10px 14px 12px;
+  padding: 10px 14px 10px;
   /* 画面の高さに合わせた時、想定より中身が多い場合（マクロの記録中など）だけ
      カードの中で縦にスクロールできるようにする保険 */
   overflow-y: auto;
@@ -3219,7 +3219,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-card .settings-desc { margin-bottom: 4px; line-height: 1.5; }
 .board-card .tapping-term-row { margin-top: 4px; gap: 10px; }
 .board-card .tapping-term-value { font-size: 14px; min-width: 48px; }
-.board-card .tapping-term-hints { margin-top: 2px; font-size: 10.5px; gap: 6px; }
+.board-card .tapping-term-hints { margin-top: 2px; font-size: 10.5px; gap: 6px; line-height: 1.35; }
 .board-card .setting-row { padding: 7px 0; gap: 10px; }
 .board-card .setting-row__label { font-size: 13px; }
 .board-card .gesture-grid { gap: 6px; margin: 6px 0; }
@@ -3279,4 +3279,19 @@ body { background: var(--bg); overflow-x: hidden; }
     align-items: stretch;
   }
   .settings-board--fit > .board-card { grid-area: var(--area); }
+}
+
+/* ボール動作カード（横長）: 左に CPI・加速度・スクロール方向・反転、右に速度カーブ。
+   1画面に収める配置の時だけ（縦並びの小さい画面では元の縦1列のまま） */
+@media (min-width: 1100px) and (min-height: 760px) {
+  .board-card--ball .trackball-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-rows: min-content;
+    align-items: center;
+    gap: 10px 16px;
+  }
+  .board-card--ball .trackball-bar__title { display: none; }
+  .board-card--ball .trackball-bar > :not(.trackball-bar__dpicurve) { grid-column: 1; }
+  .board-card--ball .trackball-bar__dpicurve { grid-column: 2; grid-row: 1 / span 5; align-self: start; }
 }

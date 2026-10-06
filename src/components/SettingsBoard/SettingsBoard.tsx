@@ -13,6 +13,7 @@ export interface BoardCard {
   title: string;
   note?: string;          // タイトル横の補足（狭い時は省略される）
   panes?: string[];       // カード内タブの見出し。2つ以上ある時だけタブを表示する
+  className?: string;     // カードごとに中身の並べ方を変えたい時のクラス名
   render: (pane: number) => React.ReactNode;
 }
 
@@ -24,10 +25,10 @@ interface SettingsBoardProps {
 }
 
 // areasのうち、cardsに無い名前（ファームが非対応・未接続などでカードが出ない時）を
-// 埋めて、格子に穴が空かないようにする。まずfallbackで指定した名前（の連鎖）を使い、
-// 無ければ同じ行の隣、それも無ければ上の行の名前で埋める。
-// ※ grid-template-areasは各名前が長方形でないと無効になるため、fallbackは
-//   「置き換えても長方形のままになる相手」を指定すること。
+// 1マスずつ埋めて、格子に穴が空かないようにする。候補の優先順は
+// fallbackで指定した名前（の連鎖）→ 下のマス → 上のマス → 左のマス → 右のマス。
+// ※ grid-template-areasは各名前が長方形でないと無効になるため、配置を決める時は
+//   この順で埋めても長方形のままになるようにする（必要ならfallbackで指定する）。
 function fillAreas(areas: string[], present: Set<string>, fallback: Record<string, string>): string[] {
   const rows = areas.map(r => r.trim().split(/\s+/));
   const resolve = (name: string): string | undefined => {
@@ -39,22 +40,15 @@ function fillAreas(areas: string[], present: Set<string>, fallback: Record<strin
     }
     return n && present.has(n) ? n : undefined;
   };
-  for (let y = 0; y < rows.length; y++) {
-    const row = rows[y];
-    for (let x = 0; x < row.length; x++) {
-      if (present.has(row[x])) continue;
-      const missing = row[x];
-      let repl = resolve(missing);
-      for (let d = 1; d < row.length && !repl; d++) {
-        if (x - d >= 0 && present.has(row[x - d])) repl = row[x - d];
-        else if (x + d < row.length && present.has(row[x + d])) repl = row[x + d];
-      }
-      if (!repl && y > 0) repl = rows[y - 1][x];
-      if (!repl) repl = '.';
-      for (let i = x; i < row.length && row[i] === missing; i++) row[i] = repl;
-    }
-  }
-  return rows.map(r => r.join(' '));
+  const at = (x: number, y: number) => {
+    const n = rows[y]?.[x];
+    return n && present.has(n) ? n : undefined;
+  };
+  const out = rows.map((row, y) => row.map((name, x) => {
+    if (present.has(name)) return name;
+    return resolve(name) ?? at(x, y + 1) ?? at(x, y - 1) ?? at(x - 1, y) ?? at(x + 1, y) ?? '.';
+  }));
+  return out.map(r => r.join(' '));
 }
 
 export function SettingsBoard({ cards, areas, columns, fallback = {} }: SettingsBoardProps) {
@@ -75,7 +69,7 @@ function BoardCardView({ card }: { card: BoardCard }) {
   const [pane, setPane] = useState(0);
   const panes = card.panes && card.panes.length > 1 ? card.panes : null;
   return (
-    <section className="board-card" style={{ '--area': card.key } as React.CSSProperties}>
+    <section className={`board-card ${card.className ?? ''}`} style={{ '--area': card.key } as React.CSSProperties}>
       <header className="board-card__head">
         <span className="board-card__title">{card.title}</span>
         {card.note && !panes && <span className="board-card__note">{card.note}</span>}

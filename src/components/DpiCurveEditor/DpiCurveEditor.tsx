@@ -17,6 +17,8 @@ interface DpiCurveEditorProps {
 // SVGのviewBoxを0-100の正方形にして、pointerの座標をそのまま%換算で扱えるようにする
 // （preserveAspectRatio="none"でCSS側の縦横比にぴったり引き伸ばす）。
 const VB = 100;
+// 端（0や最大値）にある点・線が枠で半分切れないよう、描画領域の外側に持たせる余白（viewBox単位）
+const PAD = 4;
 
 function xToPercent(x: number): number {
   return (x / DPI_CURVE_X[DPI_CURVE_X.length - 1]) * VB;
@@ -45,7 +47,7 @@ export function DpiCurveEditor({ points, disabled, onCommit, interactive = true,
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const py = ((e.clientY - rect.top) / rect.height) * VB;
+    const py = ((e.clientY - rect.top) / rect.height) * (VB + PAD * 2) - PAD;
     const next = [...local];
     next[idx] = percentToY(py, yMax);
     setLocal(next);
@@ -88,7 +90,7 @@ export function DpiCurveEditor({ points, disabled, onCommit, interactive = true,
       <div className="dpi-curve__graph">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${VB} ${VB}`}
+          viewBox={`${-PAD} ${-PAD} ${VB + PAD * 2} ${VB + PAD * 2}`}
           preserveAspectRatio="none"
           className="dpi-curve__svg"
         >

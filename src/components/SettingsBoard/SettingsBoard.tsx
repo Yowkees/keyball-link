@@ -14,6 +14,7 @@ export interface BoardCard {
   note?: string;          // タイトル横の補足（狭い時は省略される）
   panes?: string[];       // カード内タブの見出し。2つ以上ある時だけタブを表示する
   className?: string;     // カードごとに中身の並べ方を変えたい時のクラス名
+  headerRight?: React.ReactNode;  // タイトルの右端に置く部品（機能のON/OFFなど）
   render: (pane: number) => React.ReactNode;
 }
 
@@ -74,6 +75,7 @@ function BoardCardView({ card }: { card: BoardCard }) {
       <header className="board-card__head">
         <span className="board-card__title">{card.title}</span>
         {card.note && !panes && <span className="board-card__note">{card.note}</span>}
+        {card.headerRight && <div className="board-card__head-right">{card.headerRight}</div>}
         {panes && (
           <div className="board-card__tabs" role="tablist">
             {panes.map((p, i) => (

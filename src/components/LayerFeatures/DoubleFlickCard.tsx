@@ -3,7 +3,7 @@ import type { DFlickConfig } from '../../lib/protocol';
 import { DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_WINDOW_MS_DEFAULT, DFLICK_WINDOW_MS_STEP, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_FLICK_THRESHOLD_DEFAULT, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, DFLICK_MAX_DURATION_MS_DEFAULT, DFLICK_MAX_DURATION_MS_STEP } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
-import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { SliderControl } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 interface DoubleFlickCardProps {
@@ -22,13 +22,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
 
   return (
     <>
-      <ToggleRow
-        label="ダブルフリックを有効化"
-        desc=""
-        checked={dflick.enable} disabled={disabled}
-        onChange={v => onDFlickChange({ ...dflick, enable: v })}
-      />
-      <div className="gesture-grid" style={{ marginTop: 12 }}>
+      <div className="gesture-grid" style={{ marginTop: 0 }}>
         {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
           <div key={dir} className="gesture-row">
             <span className="gesture-dir">{label}</span>

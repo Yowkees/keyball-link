@@ -11,11 +11,9 @@ interface ShakeCardProps {
   onShakeChange: (s: ShakeConfig) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
-  // 設定ボードのカード内タブ用（未指定なら全部表示）。'basic'=ON/OFF・キー・感度、'detail'=反転回数・時間
-  part?: 'basic' | 'detail';
 }
 
-export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: ShakeCardProps) {
+export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCardProps) {
   const [editKey, setEditKey] = useState(false);
 
   if (!shake) {
@@ -24,7 +22,6 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: S
 
   return (
     <>
-      {part !== 'detail' && <>
       <ToggleRow
         label="シェイクを有効化"
         desc=""
@@ -38,7 +35,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: S
         </button>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>感度</p>
         <SliderControl
           value={shake.threshold} min={SHAKE_THRESHOLD_MIN} max={SHAKE_THRESHOLD_MAX} step={5}
@@ -52,10 +49,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: S
         </div>
       </div>
 
-      </>}
-
-      {part !== 'basic' && <>
-      <div style={part ? undefined : { marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>反転回数</p>
         <SliderControl
           value={shake.reversals} min={SHAKE_REVERSALS_MIN} max={SHAKE_REVERSALS_MAX} step={1}
@@ -69,7 +63,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: S
         </div>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>振り切る時間の上限</p>
         <SliderControl
           value={shake.runMaxMs} min={SHAKE_RUN_MAX_MS_MIN} max={SHAKE_RUN_MAX_MS_MAX} step={SHAKE_RUN_MAX_MS_STEP}
@@ -82,7 +76,6 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout, part }: S
           <span>{SHAKE_RUN_MAX_MS_MAX}ms（緩い）</span>
         </div>
       </div>
-      </>}
 
       {editKey && (
         <KeyConfigModal

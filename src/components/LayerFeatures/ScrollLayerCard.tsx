@@ -62,7 +62,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           <>
             <ToggleRow
               label="慣性スクロール"
-              desc="弾いた後もしばらく滑ります。"
+              desc=""
               checked={scrollInertia.enable}
               disabled={disabled}
               onChange={v => onScrollInertiaChange({ ...scrollInertia, enable: v })}

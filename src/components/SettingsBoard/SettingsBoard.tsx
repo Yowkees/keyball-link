@@ -22,6 +22,7 @@ interface SettingsBoardProps {
   areas: string[];        // grid-template-areasの各行（例: 'ball scroll gesture aml'）
   columns: string;        // grid-template-columns（例: '1fr 1fr 1.25fr 1fr'）
   fallback?: Record<string, string>;  // カードが無い時に代わりに広げるカード（fillAreas参照）
+  rows?: string;          // grid-template-rows（省略時は全段同じ高さ）
 }
 
 // areasのうち、cardsに無い名前（ファームが非対応・未接続などでカードが出ない時）を
@@ -51,12 +52,12 @@ function fillAreas(areas: string[], present: Set<string>, fallback: Record<strin
   return out.map(r => r.join(' '));
 }
 
-export function SettingsBoard({ cards, areas, columns, fallback = {} }: SettingsBoardProps) {
+export function SettingsBoard({ cards, areas, columns, fallback = {}, rows }: SettingsBoardProps) {
   const filled = fillAreas(areas, new Set(cards.map(c => c.key)), fallback);
   const style = {
     '--board-areas': filled.map(r => `"${r}"`).join(' '),
     '--board-cols': columns,
-    '--board-rows': `repeat(${filled.length}, minmax(0, 1fr))`,
+    '--board-rows': rows ?? `repeat(${filled.length}, minmax(0, 1fr))`,
   } as React.CSSProperties;
   return (
     <div className="settings-board settings-board--fit" style={style}>

@@ -18,10 +18,7 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
   }
   return (
     <>
-      <p className="settings-desc">
-        パレットの<strong>「精密モード」キー</strong>を押している間だけ感度が下がります。
-      </p>
-      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>減速の強さ</p>
+      <p className="settings-desc" style={{ fontWeight: 600 }}>減速の強さ</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
         disabled={disabled} unit="分の1"

@@ -3,7 +3,7 @@ import { getKeyDisplayLabel } from '../../lib/keycodes';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, MacroStep } from '../../lib/protocol';
 import { MACRO_SLOT_COUNT, MACRO_BUFFER_SIZE } from '../../lib/protocol';
-import { browserEventToKeycode } from '../../lib/browserKeymap';
+import { browserEventToKeycode, modifierEventToKeycode } from '../../lib/browserKeymap';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // 1レコーディングセッションの上限（バッファの約1/3を目安）
@@ -100,10 +100,11 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
   const [saving, setSaving] = useState(false);
   const lastKeyTimeRef = useRef<number | null>(null);
 
-  const handleRecordKey = useCallback((e: KeyboardEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    const kc = browserEventToKeycode(e);
-    if (kc === null) return;
+  // 修飾キー（Ctrl等）を押してから、他のキーを押さずに離した時だけ修飾キー単体として記録する。
+  // 他のキーと同時に押した場合は、そのキーと合わせて「Ctrl+A」のような1ステップになる。
+  const pendingModRef = useRef<{ code: string; kc: number } | null>(null);
+
+  const addRecordedStep = useCallback((kc: number) => {
     setDraft(prev => {
       if (!prev || prev.steps.length >= MAX_RECORD_STEPS) return prev;
       const now = Date.now();
@@ -115,15 +116,48 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
     });
   }, []);
 
+  const handleRecordKey = useCallback((e: KeyboardEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat) return;
+    const mod = modifierEventToKeycode(e);
+    if (mod !== null) {
+      pendingModRef.current = { code: e.code, kc: mod };
+      return;
+    }
+    pendingModRef.current = null;  // 他のキーと組み合わせたので単体では記録しない
+    const kc = browserEventToKeycode(e);
+    if (kc === null) return;
+    addRecordedStep(kc);
+  }, [addRecordedStep]);
+
+  // keyupも横取りする。以前はkeydownだけを止めていたため、記録開始ボタンにフォーカスが
+  // 残ったままSpaceを押すと、keyupでボタンが押されて記録が止まり「Spaceが反応しない」
+  // ように見えていた（2026-10-06、本人報告）。
+  const handleRecordKeyUp = useCallback((e: KeyboardEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const pending = pendingModRef.current;
+    if (pending && pending.code === e.code) {
+      pendingModRef.current = null;
+      addRecordedStep(pending.kc);
+    }
+  }, [addRecordedStep]);
+
   useEffect(() => {
     if (editorState === 'recording') {
       window.addEventListener('keydown', handleRecordKey, { capture: true });
-      return () => window.removeEventListener('keydown', handleRecordKey, { capture: true });
+      window.addEventListener('keyup', handleRecordKeyUp, { capture: true });
+      return () => {
+        window.removeEventListener('keydown', handleRecordKey, { capture: true });
+        window.removeEventListener('keyup', handleRecordKeyUp, { capture: true });
+      };
     }
-  }, [editorState, handleRecordKey]);
+  }, [editorState, handleRecordKey, handleRecordKeyUp]);
 
   const startRecording = () => {
     lastKeyTimeRef.current = null;
+    pendingModRef.current = null;
+    // ボタンにフォーカスが残っているとSpace/Enterでボタンが押されてしまうので外す
+    (document.activeElement as HTMLElement | null)?.blur();
     setDraft({ steps: [] });
     setEditorState('recording');
   };

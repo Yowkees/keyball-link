@@ -3269,14 +3269,11 @@ body { background: var(--bg); overflow-x: hidden; }
   .settings-board--fit .macro-edit-panel { min-width: 0; padding: 12px; }
 
   /* .app-main（縦スクロール領域）の残りの高さいっぱいにボードを広げる */
-  .app-main:has(.settings-board--fit),
-  .app-main:has(.board-sidebar-layout) {
+  .app-main:has(.settings-board--fit) {
     display: flex;
     flex-direction: column;
   }
-  .app-main:has(.settings-board--fit) > .tabs,
-  .app-main:has(.board-sidebar-layout) > .tabs { flex: none; margin-bottom: 14px; }
-  .settings-tab:has(> .board-sidebar-layout) { flex: 1; min-height: 0; }
+  .app-main:has(.settings-board--fit) > .tabs { flex: none; margin-bottom: 14px; }
   .settings-tab:has(> .settings-board--fit) > .settings-notice { flex: none; padding: 8px 14px; }
   .settings-tab:has(> .settings-board--fit) { flex: 1; min-height: 0; }
   .settings-board--fit {
@@ -3389,13 +3386,23 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 .board-sidebar__item:hover { border-color: var(--accent); }
 .board-sidebar__item--active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-@media (min-width: 1100px) and (min-height: 760px) {
-  .board-sidebar-layout { flex: 1; min-height: 0; align-items: stretch; }
-  .board-sidebar-layout > .board-card { min-height: 0; }
-}
+/* 右のパネルは画面いっぱいに広げず、中身の高さ・読みやすい幅（最大960px）で表示する
+   （2026-10-06、本人より「幅と高さいっぱいだと見た目が良くない」） */
+.board-sidebar-layout > .board-card { max-width: 960px; }
+.board-sidebar-layout .board-card__head { padding: 12px 20px; }
+.board-sidebar-layout .board-card__title { font-size: 15px; }
+.board-sidebar-layout .board-card__body { padding: 16px 20px 18px; overflow: visible; }
+.board-sidebar-layout .board-card .settings-desc { margin-bottom: 6px; }
+.board-sidebar-layout .board-card .tapping-term-row { margin-top: 6px; }
+.board-sidebar-layout .board-card .tapping-term-hints { margin-top: 3px; font-size: 10.5px; }
+.board-sidebar-layout .board-card .setting-row { padding: 10px 0; }
+.board-sidebar-layout .board-card .gesture-grid { gap: 8px; margin: 8px 0; }
+.board-sidebar-layout .board-card .gesture-key-btn { padding: 7px 12px; }
+.board-sidebar-layout .card-sep,
+.board-sidebar-layout .scroll-card__inertia { margin-top: 14px; padding-top: 12px; }
 @media (max-width: 760px) {
   .board-sidebar-layout { grid-template-columns: minmax(0, 1fr); }
   .board-sidebar { flex-direction: row; flex-wrap: wrap; }
 }
 /* タブ表示では1枚を大きく出せるので、速度カーブのグラフも大きくする */
-.board-sidebar-layout .dpi-curve__svg { height: clamp(140px, calc(100vh - 560px), 320px); }
+.board-sidebar-layout .dpi-curve__svg { height: 200px; }

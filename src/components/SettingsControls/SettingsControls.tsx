@@ -63,3 +63,19 @@ export function ToggleRow({ label, desc, checked, disabled, onChange, tip }: Tog
     </div>
   );
 }
+
+// カード見出しの右端に置く機能のON/OFF（2026-10-06〜。以前はカード内の
+// 「〜を使う」「〜を有効化」の行だったが、本人希望で見出しの右に移した）
+export function HeaderToggle({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      className={`toggle-btn ${checked ? 'toggle-btn--on' : ''}`}
+      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      aria-pressed={checked}
+    >
+      {checked ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+

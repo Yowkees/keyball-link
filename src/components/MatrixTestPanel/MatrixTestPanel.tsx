@@ -100,12 +100,6 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
         )}
       </div>
 
-      {!active && (
-        <p className="led-test-desc">
-          「テスト開始」を押してキーを押すと、押しているキーが緑色でハイライトされます。一度でも押したキーは薄い緑で履歴として残ります。
-        </p>
-      )}
-
       {/* wrapRef でコンテナ幅を計測し、内側を transform: scale で拡大 */}
       <div ref={wrapRef} className="matrix-layout-wrap" style={{ height: naturalHeight * scale }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: naturalWidth, height: naturalHeight, position: 'absolute' }}>

@@ -9,6 +9,7 @@ import { UsageGuide } from '../UsageGuide/UsageGuide';
 import { KeyDisplaySection, MacOSSetupSection, isMacOSPlatform } from '../KeyLayoutCards/KeyLayoutCards';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import type { ModelKey } from '../../layouts';
+import { TIPS } from '../../lib/tips';
 
 interface SettingsTabProps {
   settings: KbSettings;
@@ -46,33 +47,28 @@ export function SettingsTab({
 
   const cards: BoardCard[] = [
     {
-      key: 'keyopt', title: 'キー動作オプション', note: '長押し判定・Auto Shift・Permissive Hold',
+      key: 'keyopt', title: 'キー動作オプション', className: 'board-card--narrow', tip: TIPS.keyopt,
       render: () => (
         <div>
-          <p className="settings-desc">タップとホールドを区別する時間です。</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.tappingTerm}>長押し判定時間</p>
           <SliderControl
             value={settings.tappingTerm} min={50} max={500} step={10}
             disabled={disabled} unit="ms"
             onCommit={v => apply({ tappingTerm: v })}
           />
-          <div className="tapping-term-hints">
-            <span>50ms（素早く）</span>
-            <span>デフォルト: 200ms</span>
-            <span>500ms（ゆっくり）</span>
-          </div>
 
           <div className="setting-rows" style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             {fwFeatures.autoShift && (
               <ToggleRow
                 label="Auto Shift"
-                desc="長押しでShift文字を入力（例: aの長押し→A）。"
+                desc="" tip={TIPS.autoShift}
                 checked={settings.autoShift} disabled={disabled}
                 onChange={v => apply({ autoShift: v })}
               />
             )}
             <ToggleRow
               label="Permissive Hold"
-              desc="Mod-Tapのホールド判定を厳密にします。"
+              desc="" tip={TIPS.permissiveHold}
               checked={settings.permissiveHold} disabled={disabled}
               onChange={v => apply({ permissiveHold: v })}
             />
@@ -82,12 +78,12 @@ export function SettingsTab({
       ),
     },
     ...(fwFeatures.osDetection ? [{
-      key: 'os', title: 'OS自動判別', note: '接続先のOSを判定してキーを切り替え',
+      key: 'os', title: 'OS自動判別', className: 'board-card--narrow', tip: TIPS.osdetect,
       render: () => (
         <>
           <div className="setting-row">
             <div className="setting-row__text">
-              <span className="setting-row__label">現在の判定結果</span>
+              <span className="setting-row__label" data-tip={TIPS.osResult}>現在の判定結果</span>
             </div>
             <span style={{ fontWeight: 600, fontSize: '1.05em' }}>
               {detectedOs == null
@@ -98,7 +94,7 @@ export function SettingsTab({
           <div className="setting-rows">
             <ToggleRow
               label="OSに合わせて ⌘(Cmd) と Ctrl を自動で入れ替える"
-              desc="macOS/iOSでは入れ替え、Windows/Linuxではそのまま。"
+              desc="" tip={TIPS.osSwap}
               checked={settings.osAutoSwap} disabled={disabled}
               onChange={v => apply({ osAutoSwap: v })}
             />
@@ -108,20 +104,17 @@ export function SettingsTab({
       ),
     }] : []),
     {
-      key: 'layout', title: 'キー表示の配列設定', note: '表示のみ・入力文字は変わりません',
+      key: 'layout', title: 'キー表示の配列設定', className: 'board-card--narrow', tip: TIPS.keydisplay,
       render: () => <KeyDisplaySection keyLayout={keyLayout} onKeyLayoutChange={onKeyLayoutChange} />,
     },
     ...(isMacOSPlatform() ? [{
-      key: 'macos', title: 'macOS キーボードタイプ設定',
+      key: 'macos', title: 'macOS キーボードタイプ設定', tip: TIPS.macos,
       render: () => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} />,
     }] : []),
     ...(onTestLed ? [{
-      key: 'led', title: 'LED位置実測（開発用）',
+      key: 'led', title: 'LED位置実測（開発用）', className: 'board-card--narrow', tip: TIPS.ledtest,
       render: () => (
         <>
-          <p className="settings-desc">
-            LEDを1個ずつ点灯させて配線順を確認します。「終了」で通常表示に戻ります。
-          </p>
           <div className="tapping-term-row" style={{ gap: 8, alignItems: 'center' }}>
             <button
               className="btn btn--small"
@@ -165,11 +158,11 @@ export function SettingsTab({
       ),
     }] : []),
     ...(children ? [{
-      key: 'matrix', title: 'テストマトリクス', note: 'キーが正しく反応するか確認',
+      key: 'matrix', title: 'テストマトリクス', tip: TIPS.matrix,
       render: () => children,
     }] : []),
     {
-      key: 'guide', title: '使い方ガイド',
+      key: 'guide', title: '使い方ガイド', tip: TIPS.guide,
       render: () => <UsageGuide />,
     },
   ];

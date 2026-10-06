@@ -5,6 +5,7 @@ import type { MacroSlot, MacroStep } from '../../lib/protocol';
 import { MACRO_SLOT_COUNT, MACRO_BUFFER_SIZE } from '../../lib/protocol';
 import { browserEventToKeycode, modifierEventToKeycode } from '../../lib/browserKeymap';
 import { textToMacro, keycodeToChar, romajiToKana } from '../../lib/textToMacro';
+import { TIPS } from '../../lib/tips';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // 1レコーディングセッションの上限（バッファの約1/3を目安）
@@ -392,7 +393,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
 
       {/* バッファ使用量 */}
       <div className="macro-buffer-bar">
-        <span className="macro-buffer-label">バッファ使用量</span>
+        <span className="macro-buffer-label" data-tip={TIPS.macroBuffer}>バッファ使用量</span>
         <div className="macro-buffer-track">
           <div className="macro-buffer-fill" style={{ width: `${bufferPct}%`, background: bufferPct > 90 ? 'var(--red)' : 'var(--accent)' }} />
         </div>
@@ -556,15 +557,6 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
             </div>
           )}
 
-          {editorState === 'idle' && (
-            <p className="macro-edit-desc">
-              スロットを選択して「記録開始」を押し、入力したいキーを順番に押してください。<br />
-              「文を登録」で、入力した文をそのままマクロにすることもできます。<br />
-              記録後に遅延の調整・キーの追加・削除ができます。<br />
-              保存後、キーマップで「Macro 0〜9」に割り当てると実行できます。<br />
-              ※ バッファ（{bufferSize}バイト）を全スロットで共有しています。
-            </p>
-          )}
         </div>
       </div>
     </div>

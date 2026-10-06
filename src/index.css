@@ -3510,3 +3510,6 @@ body { background: var(--bg); overflow-x: hidden; }
 p[data-tip] { width: fit-content; }
 /* ジェスチャー1〜4の切り替え部分は下線を付けない（ボタンなので） */
 .gesture-mode-tabs[data-tip] { text-decoration: none; cursor: default; width: fit-content; }
+
+/* 接続前の案内欄: 「キーボードに接続」と「初めての方はこちら」を横に並べる */
+.placeholder-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }

@@ -761,14 +761,17 @@ export default function App() {
               {state.connectionState === 'error' && (
                 <span className="status status--error">{state.errorMessage}</span>
               )}
-              <button
-                className="btn btn--primary"
-                data-guide="connect-btn"
-                onClick={connect}
-                disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
-              >
-                {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
-              </button>
+              {/* キーマップタブでは接続前の案内欄（「初めての方はこちら」の隣）に置くため、
+                  ヘッダーには他のタブを開いている時だけ出す（2026-10-06、本人希望） */}
+              {activeTab !== 'keymap' && (
+                <button
+                  className="btn btn--primary"
+                  onClick={connect}
+                  disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
+                >
+                  {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -776,7 +779,7 @@ export default function App() {
 
       {showGuide && (() => {
         // 対象がキーマップタブ内にあるステップで別タブにいるときは、タブへ戻る誘導を出す
-        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
+        const needsKeymapTab = ['connect', 'click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
         const displayStep = needsKeymapTab && activeTab !== 'keymap' ? 'backToKeymap' as const : guideStep;
         return (
           <WelcomeGuide
@@ -809,14 +812,24 @@ export default function App() {
                 <div className="placeholder">
                   <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
                   <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
-                  {!showGuide && (
+                  <div className="placeholder-actions">
                     <button
                       className="btn btn--primary"
-                      onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
+                      data-guide="connect-btn"
+                      onClick={connect}
+                      disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                     >
-                      初めての方はこちら
+                      {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
                     </button>
-                  )}
+                    {!showGuide && (
+                      <button
+                        className="btn btn--primary"
+                        onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
+                      >
+                        初めての方はこちら
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             )}

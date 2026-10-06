@@ -35,7 +35,10 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
         )}
       </div>
 
-      <p className="settings-desc" style={{ marginTop: 16, fontWeight: 600 }}>自動で戻るまでの時間</p>
+      {/* 2つのスライダー。横長カードでは左右に並べる（index.css） */}
+      <div className="aml-card__sliders">
+      <div>
+      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>自動で戻るまでの時間</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseTimeout} min={100} max={2000} step={50}
@@ -48,8 +51,10 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
         <span>デフォルト: 650ms</span>
         <span>2000ms（長く維持）</span>
       </div>
+      </div>
 
-      <p className="settings-desc" style={{ marginTop: 16, fontWeight: 600 }}>感度</p>
+      <div>
+      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>感度</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseThreshold} min={1} max={40} step={1}
@@ -61,6 +66,8 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
         <span>1（とても敏感）</span>
         <span>デフォルト: 10</span>
         <span>40（鈍感）</span>
+      </div>
+      </div>
       </div>
     </>
   );

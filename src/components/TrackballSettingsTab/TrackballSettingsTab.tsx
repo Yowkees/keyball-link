@@ -106,9 +106,10 @@ export function TrackballSettingsTab({
 
   const cards: BoardCard[] = [
     ...(trackball ? [{
-      // 横2列分の横長カードにして、左に設定・右に速度カーブを並べる（タブで分けない）
-      key: 'ball', title: 'ボール動作', className: 'board-card--ball',
+      // 横2列分の横長カードにして、左に設定・右に速度カーブを並べ、その下に精密モードを1行で置く
+      key: 'ball', title: 'ボール動作・精密モード', className: 'board-card--ball',
       render: () => (
+        <>
         <TrackballSettings
           config={trackball}
           onChange={onTrackballChange}
@@ -119,27 +120,26 @@ export function TrackballSettingsTab({
           dpiCurve={dpiCurve}
           onDpiCurveChange={onDpiCurveChange}
         />
+        <div className="ball-precision">
+          <span className="ball-precision__title">精密モード</span>
+          <PrecisionModeCard
+            precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
+            changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
+          />
+        </div>
+        </>
       ),
     }] : []),
     {
       // スクロール設定と精密モードは1枚にまとめ、縦2段分を使う（タブで分けない）
-      key: 'scroll', title: 'スクロール設定・精密モード',
+      key: 'scroll', title: 'スクロール設定', className: 'board-card--scroll',
       render: () => (
-        <>
-          <ScrollLayerCard
-            settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
-            changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
-            scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
-            trackball={trackball} onTrackballChange={onTrackballChange}
-          />
-          <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-            <p className="settings-desc" style={{ fontWeight: 600 }}>精密モード</p>
-            <PrecisionModeCard
-              precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
-              changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
-            />
-          </div>
-        </>
+        <ScrollLayerCard
+          settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
+          changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
+          scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
+          trackball={trackball} onTrackballChange={onTrackballChange}
+        />
       ),
     },
     {
@@ -161,7 +161,7 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'aml', title: '自動マウスレイヤー',
+      key: 'aml', title: '自動マウスレイヤー', className: 'board-card--aml',
       headerRight: <HeaderToggle checked={settings.autoMouseEnable} disabled={disabled} onChange={changeAmlEnable} />,
       render: () => (
         <AutoMouseLayerCard
@@ -172,30 +172,42 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'shake', title: 'シェイク',
-      headerRight: shake ? <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} /> : undefined,
-      render: () => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />,
-    },
-    {
-      key: 'dflick', title: 'ダブルフリック',
-      headerRight: dflick ? <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} /> : undefined,
-      render: () => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />,
+      // シェイクとダブルフリックは1枚にまとめ、中を左右2列にする（ON/OFFは各小見出しの右）
+      key: 'motion', title: 'シェイク・ダブルフリック', className: 'board-card--motion',
+      render: () => (
+        <div className="motion-cols">
+          <section className="motion-col">
+            <div className="motion-col__head">
+              <span className="motion-col__title">シェイク</span>
+              {shake && <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} />}
+            </div>
+            <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />
+          </section>
+          <section className="motion-col">
+            <div className="motion-col__head">
+              <span className="motion-col__title">ダブルフリック</span>
+              {dflick && <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} />}
+            </div>
+            <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />
+          </section>
+        </div>
+      ),
     },
   ];
 
-  // 13〜14インチのノートPCで1画面に収まる配置（6列×2段、カード内のタブは使わず全部表示）。
-  // ボール動作は横2列分、ジェスチャーは横2列×縦2段、スクロール設定（精密モード込み）と
-  // ダブルフリックは縦2段、自動マウスレイヤーとシェイクはボール動作の下に1マスずつ。
-  // 上段の高さはボール動作の中身に合わせ、残りを下段に回す。
+  // 13〜14インチのノートPCで1画面に収まる配置（カード内のタブは使わず全部表示）。
+  // 3本の縦の列にカードを積む: 左=ボール動作・精密モード＋スクロール設定、
+  // 中=ジェスチャー、右=シェイク・ダブルフリック＋自動マウスレイヤー。
+  // 列ごとにカードの高さが違うので格子（areas）ではなくstacksを使う。
   return (
     <div className="settings-tab">
       <SettingsBoard
         cards={cards}
-        columns="repeat(6, minmax(0, 1fr))"
-        rows="auto minmax(0, 1fr)"
-        areas={[
-          'ball ball gesture gesture scroll dflick',
-          'aml shake gesture gesture scroll dflick',
+        columns="repeat(3, minmax(0, 1fr))"
+        stacks={[
+          ['ball', 'scroll'],
+          ['gesture'],
+          ['motion', 'aml'],
         ]}
       />
     </div>

@@ -22,10 +22,10 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
 
   return (
     <>
-      <div className="gesture-grid" style={{ marginTop: 0 }}>
+      <div className="gesture-grid dflick-keys" style={{ marginTop: 0 }}>
         {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
           <div key={dir} className="gesture-row">
-            <span className="gesture-dir">{label}</span>
+            <span className="gesture-dir"><span className="gesture-dir__word">{label.slice(0, 1)}</span>{label.slice(1)}</span>
             <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
               {dflick[dir] ? getKeyDisplayLabel(dflick[dir], keyLayout) : '未設定'}
             </button>

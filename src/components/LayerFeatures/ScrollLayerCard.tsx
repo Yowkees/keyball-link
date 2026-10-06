@@ -18,8 +18,10 @@ interface ScrollLayerCardProps {
 }
 
 export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange }: ScrollLayerCardProps) {
+  // 「レイヤー・速度」と「慣性スクロール」の2ブロック。横長カードでは左右に並べる（index.css）
   return (
-    <>
+    <div className="scroll-card">
+      <div className="scroll-card__basic">
       <div className="setting-row">
         <div className="setting-row__text">
           <span className="setting-row__label">スクロールになるレイヤー</span>
@@ -41,7 +43,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
       )}
 
       {trackball && (
-        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <div className="card-sep">
           <p className="settings-desc" style={{ fontWeight: 600 }}>スクロール速度</p>
           <SliderControl
             value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}
@@ -54,8 +56,9 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           </div>
         </div>
       )}
+      </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+      <div className="scroll-card__inertia">
         {scrollInertia === null ? (
           <p className="settings-desc">このファームは非対応です。</p>
         ) : (
@@ -93,6 +96,6 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

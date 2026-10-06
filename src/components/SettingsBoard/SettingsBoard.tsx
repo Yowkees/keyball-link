@@ -20,7 +20,10 @@ export interface BoardCard {
 
 interface SettingsBoardProps {
   cards: BoardCard[];
-  areas: string[];        // grid-template-areasの各行（例: 'ball scroll gesture aml'）
+  areas?: string[];       // grid-template-areasの各行（例: 'ball scroll gesture aml'）
+  // areasの代わりに「縦の列」ごとにカードを上から積む配置（各列の最後のカードが残りの高さを使う）。
+  // 列ごとにカードの高さを自由に変えられるので、格子では高さが揃わない時に使う。
+  stacks?: string[][];
   columns: string;        // grid-template-columns（例: '1fr 1fr 1.25fr 1fr'）
   fallback?: Record<string, string>;  // カードが無い時に代わりに広げるカード（fillAreas参照）
   rows?: string;          // grid-template-rows（省略時は全段同じ高さ）
@@ -53,7 +56,23 @@ function fillAreas(areas: string[], present: Set<string>, fallback: Record<strin
   return out.map(r => r.join(' '));
 }
 
-export function SettingsBoard({ cards, areas, columns, fallback = {}, rows }: SettingsBoardProps) {
+export function SettingsBoard({ cards, areas = [], stacks, columns, fallback = {}, rows }: SettingsBoardProps) {
+  if (stacks) {
+    const byKey = new Map(cards.map(c => [c.key, c]));
+    return (
+      <div className="settings-board settings-board--fit settings-board--stacks" style={{ '--board-cols': columns } as React.CSSProperties}>
+        {stacks.map((keys, i) => {
+          const list = keys.map(k => byKey.get(k)).filter((c): c is BoardCard => !!c);
+          if (list.length === 0) return null;
+          return (
+            <div key={i} className="board-stack">
+              {list.map(c => <BoardCardView key={c.key} card={c} />)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   const filled = fillAreas(areas, new Set(cards.map(c => c.key)), fallback);
   const style = {
     '--board-areas': filled.map(r => `"${r}"`).join(' '),

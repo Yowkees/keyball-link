@@ -106,31 +106,27 @@ export function TrackballSettingsTab({
 
   const cards: BoardCard[] = [
     ...(trackball ? [{
-      // 横2列分の横長カードにして、左に設定・右に速度カーブを並べ、その下に精密モードを1行で置く
+      // 左にCPI・加速度・精密モード、右に速度カーブ
       key: 'ball', title: 'ボール動作・精密モード', className: 'board-card--ball',
       render: () => (
         <>
         <TrackballSettings
           config={trackball}
           onChange={onTrackballChange}
-          scrollInvertV={settings.scrollInvertV}
-          scrollInvertH={settings.scrollInvertH}
-          onScrollInvertChange={(v, h) => apply({ scrollInvertV: v, scrollInvertH: h })}
           accelAvailable={accelAvailable}
           dpiCurve={dpiCurve}
           onDpiCurveChange={onDpiCurveChange}
-        />
-        <div className="ball-precision">
+        >
           <PrecisionModeCard
             precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
             changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
           />
-        </div>
+        </TrackballSettings>
         </>
       ),
     }] : []),
     {
-      // スクロール設定と精密モードは1枚にまとめ、縦2段分を使う（タブで分けない）
+      // スクロール方向・反転もここに置く（2026-10-06、ボール動作から移動）
       key: 'scroll', title: 'スクロール設定', className: 'board-card--scroll',
       render: () => (
         <ScrollLayerCard
@@ -138,6 +134,7 @@ export function TrackballSettingsTab({
           changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
           scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
           trackball={trackball} onTrackballChange={onTrackballChange}
+          onScrollInvertChange={(v, h) => apply({ scrollInvertV: v, scrollInvertH: h })}
         />
       ),
     },

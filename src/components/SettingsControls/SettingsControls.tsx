@@ -1,11 +1,15 @@
 import { useState } from 'react';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
-export function SliderControl({ value, min, max, step, disabled, unit, onCommit, onChange, format }: {
+export function SliderControl({ value, min, max, step, disabled, unit, onCommit, onChange, format, invert }: {
   value: number; min: number; max: number; step: number;
   disabled: boolean; unit: string; onCommit: (v: number) => void;
   onChange?: (v: number) => void;  // ドラッグ中の値をリアルタイムに受け取りたい場合（色相バーの追従表示など）
   format?: (v: number) => string;  // 表示用の値の整形（例: ×10保持の値を1桁小数で表示）
+  // true時: ファームの値とは逆向きに表示する（スライダーを右へ・表示の数値を大きくするほど
+  // ファームへ送る値は小さくなる）。「感度」など、数値を上げるほど敏感・速いと感じる向きに
+  // 揃えるため（2026-10-06、本人希望）。表示値は min+max-実際の値。
+  invert?: boolean;
 }) {
   const [local, setLocal] = useState(value);
   // 親から新しい値が来たらローカル値を追従させる（レンダー中の比較更新）
@@ -16,17 +20,18 @@ export function SliderControl({ value, min, max, step, disabled, unit, onCommit,
   }
 
   const commit = () => { if (local !== value) onCommit(local); };
+  const flip = (v: number) => (invert ? min + max - v : v);
 
   return (
     <div className="tapping-term-row">
       <input
-        type="range" min={min} max={max} step={step} value={local} disabled={disabled}
-        onChange={e => { const v = Number(e.target.value); setLocal(v); onChange?.(v); }}
+        type="range" min={min} max={max} step={step} value={flip(local)} disabled={disabled}
+        onChange={e => { const v = flip(Number(e.target.value)); setLocal(v); onChange?.(v); }}
         onPointerUp={commit}
         onKeyUp={commit}
         className="tapping-term-slider"
       />
-      <span className="tapping-term-value">{format ? format(local) : `${local} ${unit}`}</span>
+      <span className="tapping-term-value">{format ? format(flip(local)) : `${flip(local)} ${unit}`}</span>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
   return (
     <>
       <div className="setting-rows">
-        <div className={`setting-row ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
+        <div className={`setting-row setting-row--compact ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
           <div className="setting-row__text">
             <span className="setting-row__label">切り替わるレイヤー</span>
           </div>
@@ -46,11 +46,6 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
           onCommit={v => apply({ autoMouseTimeout: v })}
         />
       </div>
-      <div className="tapping-term-hints">
-        <span>100ms（すぐ戻る）</span>
-        <span>デフォルト: 650ms</span>
-        <span>2000ms（長く維持）</span>
-      </div>
       </div>
 
       <div>
@@ -58,14 +53,9 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseThreshold} min={1} max={40} step={1}
-          disabled={disabled || !settings.autoMouseEnable} unit=""
+          disabled={disabled || !settings.autoMouseEnable} unit="" invert
           onCommit={v => apply({ autoMouseThreshold: v })}
         />
-      </div>
-      <div className="tapping-term-hints">
-        <span>1（とても敏感）</span>
-        <span>デフォルト: 10</span>
-        <span>40（鈍感）</span>
       </div>
       </div>
       </div>

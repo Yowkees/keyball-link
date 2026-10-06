@@ -1,5 +1,5 @@
 import type { PrecisionConfig } from '../../lib/protocol';
-import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, PRECISION_DIV_DEFAULT } from '../../lib/protocol';
+import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl } from '../SettingsControls/SettingsControls';
 
@@ -26,11 +26,6 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
         disabled={disabled} unit="分の1"
         onCommit={div => onPrecisionChange({ ...precision, div })}
       />
-      <div className="tapping-term-hints">
-        <span>{PRECISION_DIV_MIN}（少し遅い）</span>
-        <span>デフォルト: {PRECISION_DIV_DEFAULT}</span>
-        <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
-      </div>
       </div>
 
       <div className="precision-card__layer">

@@ -823,10 +823,10 @@ export default function App() {
                     </button>
                     {!showGuide && (
                       <button
-                        className="btn btn--primary"
+                        className="placeholder-guide-link"
                         onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
                       >
-                        初めての方はこちら
+                        初めての方はこちら →
                       </button>
                     )}
                   </div>

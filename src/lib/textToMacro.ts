@@ -126,3 +126,45 @@ export function textToMacro(text: string, layout: KeyLayout): TextToMacroResult 
   }
   return { steps, romaji, unsupported, hasJapanese };
 }
+
+// ── 逆変換（マクロのステップ → 文。後から文として編集するため。2026-10-06〜）──
+// キーコードからその配列で入力される1文字を返す。文字にならないキー（Ctrl+Aなど）はnull。
+export function keycodeToChar(kc: number, layout: KeyLayout): string | null {
+  const table = layout === 'JIS' ? JIS_SYMBOLS : US_SYMBOLS;
+  for (const [ch, v] of Object.entries(table)) if (v === kc) return ch;
+  for (const ch of TYPABLE_BASE) if (baseKey(ch) === kc) return ch;
+  return null;
+}
+const TYPABLE_BASE = [
+  ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+  ' ', '\n', '\t', ',', '.', '/', '<', '>', '?', '!', '#', '$', '%',
+];
+
+// ローマ字 → ひらがな（「文」を編集する時に、ローマ字で保存されている日本語を読みやすく
+// 戻すため。英単語もかなにしてしまうので、ボタンを押した時だけ使う）
+const ROMAJI_TO_KANA: [string, string][] = (() => {
+  const pairs: [string, string][] = [];
+  for (const [kana, ro] of Object.entries(KANA)) if (/^[a-z]+$/.test(ro)) pairs.push([ro, kana]);
+  for (const [head, c] of Object.entries(YOON_HEAD)) for (const [small, y] of Object.entries(YOON)) pairs.push([c + y, head + small]);
+  // よく使う別表記
+  pairs.push(['shi', 'し'], ['chi', 'ち'], ['tsu', 'つ'], ['fu', 'ふ'], ['ji', 'じ'],
+    ['sha', 'しゃ'], ['shu', 'しゅ'], ['sho', 'しょ'], ['cha', 'ちゃ'], ['chu', 'ちゅ'], ['cho', 'ちょ'],
+    ['ja', 'じゃ'], ['ju', 'じゅ'], ['jo', 'じょ'], ['n\'', 'ん']);
+  return pairs.sort((a, b) => b[0].length - a[0].length);  // 長い綴りを優先
+})();
+
+export function romajiToKana(src: string): string {
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    const rest = src.slice(i);
+    // 促音: 同じ子音が2つ続いたら「っ」（nnは「ん」なので除く）
+    if (/^([bcdfghjkmpqrstvwxyz])\1/.test(rest)) { out += 'っ'; i += 1; continue; }
+    if (rest[0] === '-') { out += 'ー'; i += 1; continue; }
+    const hit = ROMAJI_TO_KANA.find(([ro]) => rest.startsWith(ro));
+    if (hit) { out += hit[1]; i += hit[0].length; continue; }
+    out += rest[0];
+    i += 1;
+  }
+  return out.replace(/,/g, '、').replace(/\./g, '。');
+}

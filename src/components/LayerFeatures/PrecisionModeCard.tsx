@@ -16,8 +16,10 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
   if (precision === null) {
     return <p className="settings-desc">このファームは非対応です。</p>;
   }
+  // 「減速の強さ」と「レイヤー」の2ブロック。ボール動作カード内では横に並べる（index.css）
   return (
-    <>
+    <div className="precision-card">
+      <div className="precision-card__div">
       <p className="settings-desc" style={{ fontWeight: 600 }}>減速の強さ</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
@@ -29,11 +31,12 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
         <span>デフォルト: {PRECISION_DIV_DEFAULT}</span>
         <span>{PRECISION_DIV_MAX}（かなり遅い）</span>
       </div>
+      </div>
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+      <div className="precision-card__layer">
         <div className="setting-row">
           <div className="setting-row__text">
-            <span className="setting-row__label">精密モードになるレイヤー</span>
+            <span className="setting-row__label">連動レイヤー</span>
           </div>
           <select
             className="trackball-bar__select"
@@ -51,6 +54,6 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
           <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
         )}
       </div>
-    </>
+    </div>
   );
 }

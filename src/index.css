@@ -3311,3 +3311,62 @@ body { background: var(--bg); overflow-x: hidden; }
     gap: 0 16px;
   }
 }
+
+/* シェイク・ダブルフリックのカード: 中を左右2列にし、各列の小見出しの右にON/OFFを置く */
+.motion-col__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.motion-col__title { font-weight: 700; font-size: 13px; color: var(--text); }
+.motion-col__head .toggle-btn { padding-block: 3px; }
+.motion-col + .motion-col { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+@media (min-width: 1100px) and (min-height: 760px) {
+  .board-card--motion .motion-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 16px;
+  }
+  .board-card--motion .motion-col + .motion-col { margin-top: 0; border-top: none; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--border); }
+  /* ダブルフリックの割り当てキーは2×2に並べて高さを抑える */
+  .board-card--motion .dflick-keys { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; }
+  .board-card--motion .dflick-keys .gesture-dir { min-width: 0; }
+}
+
+/* ボール動作カード下部の精密モード（見出し｜減速の強さ｜レイヤーを横1行に） */
+.ball-precision { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.ball-precision__title { display: block; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.precision-card__layer { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+@media (min-width: 1100px) and (min-height: 760px) {
+  .ball-precision { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 14px; }
+  .ball-precision__title { margin-bottom: 0; }
+  .ball-precision .precision-card { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: center; gap: 0 16px; }
+  .ball-precision .precision-card__layer { margin-top: 0; border-top: none; padding-top: 0; }
+  .ball-precision .setting-row { padding: 0; }
+  .ball-precision .setting-row__label { white-space: nowrap; }
+}
+
+/* カード内の区切り線（各カードのブロック間） */
+.card-sep { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.scroll-card__inertia { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+/* 縦の列にカードを積む配置（SettingsBoardのstacks）。小さい画面では列を解いて普通に並べる */
+.board-stack { display: contents; }
+@media (min-width: 1100px) and (min-height: 760px) {
+  .settings-board--stacks { grid-template-rows: minmax(0, 1fr); }
+  .board-stack { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+  .board-stack > .board-card { flex: none; }
+  .board-stack > .board-card:last-child { flex: 1 1 auto; }
+
+  /* 横長カードのスクロール設定: 左に「レイヤー・速度」、右に「慣性スクロール」 */
+  .board-card--scroll .scroll-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
+  .board-card--scroll .scroll-card__inertia { margin-top: 0; border-top: none; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--border); }
+
+  /* 横長カードの自動マウスレイヤー: 2つのスライダーを左右に */
+  .board-card--aml .aml-card__sliders { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
+
+  /* ダブルフリックの割り当てキー（2×2）は方向の文字を省いて矢印だけにし、キー名の幅を確保する */
+  .board-card--motion .dflick-keys .gesture-dir__word { display: none; }
+}

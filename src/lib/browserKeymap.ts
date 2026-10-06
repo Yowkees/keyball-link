@@ -35,6 +35,25 @@ const BASE_MAP: Record<string, number> = {
   ArrowRight: 0x004F, ArrowLeft: 0x0050,
   ArrowDown:  0x0051, ArrowUp:   0x0052,
 
+  // 日本語キー（2026-10-06追加。以前は記録できなかった）
+  Lang1: 0x0090,       // かな（Mac）
+  Lang2: 0x0091,       // 英数（Mac）
+  KanaMode: 0x0088,    // カタカナひらがな
+  Convert: 0x008A,     // 変換
+  NonConvert: 0x008B,  // 無変換
+  IntlRo: 0x0087,      // ろ（\ _）
+  IntlYen: 0x0089,     // ¥
+
+  F13: 0x0068, F14: 0x0069, F15: 0x006A, F16: 0x006B, F17: 0x006C, F18: 0x006D,
+  F19: 0x006E, F20: 0x006F, F21: 0x0070, F22: 0x0071, F23: 0x0072, F24: 0x0073,
+  PrintScreen: 0x0046, ScrollLock: 0x0047, Pause: 0x0048, ContextMenu: 0x0065,
+
+  // テンキー
+  NumLock: 0x0053, NumpadDivide: 0x0054, NumpadMultiply: 0x0055, NumpadSubtract: 0x0056,
+  NumpadAdd: 0x0057, NumpadEnter: 0x0058, Numpad1: 0x0059, Numpad2: 0x005A, Numpad3: 0x005B,
+  Numpad4: 0x005C, Numpad5: 0x005D, Numpad6: 0x005E, Numpad7: 0x005F, Numpad8: 0x0060,
+  Numpad9: 0x0061, Numpad0: 0x0062, NumpadDecimal: 0x0063, NumpadEqual: 0x0067, NumpadComma: 0x0085,
+
   ControlLeft: 0x00E0, ShiftLeft:  0x00E1, AltLeft:  0x00E2, MetaLeft:  0x00E3,
   ControlRight:0x00E4, ShiftRight: 0x00E5, AltRight: 0x00E6, MetaRight: 0x00E7,
 };
@@ -91,6 +110,10 @@ export function browserEventToKeycode(e: KeyboardEvent): number | null {
 
   if (e.shiftKey && SHIFT_MAP[e.code] !== undefined) {
     return SHIFT_MAP[e.code];
+  }
+  // Shift+英字なども「Shift付き」で記録する（以前は記号以外のShiftが落ちて小文字になっていた）
+  if (e.shiftKey) {
+    return makeModsKeycode(0x02, base);
   }
 
   return base;

@@ -211,6 +211,9 @@ export interface MacroStep {
   keycode: number;   // QMKキーコード
   delayMs: number;   // このキーを押す前に待機するms（0=即座）
   hold:    boolean;  // true=押し続ける（ホールド）, false=タップ
+  // 画面上だけの印（キーボードには保存しない）。「＋ キー追加」で1つずつ足したキーで、
+  // 隣の「文」のまとまりに含めずに単独のステップとして表示する（2026-10-06〜）。
+  single?: boolean;
 }
 
 export interface MacroSlot {

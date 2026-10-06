@@ -109,7 +109,7 @@ function groupSteps(steps: MacroStep[], layout: KeyLayout): StepItem[] {
     let text = '';
     while (j < steps.length) {
       const st = steps[j];
-      const ch = st.hold ? null : keycodeToChar(st.keycode, layout);
+      const ch = st.hold || st.single ? null : keycodeToChar(st.keycode, layout);
       if (ch === null || (j > i && st.delayMs > 0)) break;
       text += ch;
       j++;
@@ -349,9 +349,14 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
     setDraft({ steps: draft.steps.filter((_, idx) => idx !== i) });
   };
 
-  const addStep = () => {
-    if (!draft) return;
-    setDraft({ steps: [...draft.steps, { keycode: 0x002C, delayMs: 0, hold: false }] });
+  // 「＋ キー追加」: キー選択画面を開き、選んだキーを1ステップとして末尾に足す。
+  // 以前は仮のキー（Space）を足していたため、直前の「文」にくっついて文字数が増えて見えていた。
+  const [addPicker, setAddPicker] = useState(false);
+  const addStep = () => { if (draft) setAddPicker(true); };
+  const addPickedKey = (kc: number) => {
+    setAddPicker(false);
+    if (!draft || !kc) return;
+    setDraft({ steps: [...draft.steps, { keycode: kc, delayMs: 0, hold: false, single: true }] });
   };
 
   const removeAllDelays = () => {
@@ -453,6 +458,18 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
                 <span className="macro-rec-count">{draft.steps.length}ステップ記録済み（上限 {MAX_RECORD_STEPS}）</span>
               )}
             </div>
+          )}
+
+          {addPicker && (
+            <KeyConfigModal
+              keyIndex={-1}
+              currentCode={0}
+              keyLayout={keyLayout}
+              hideHold
+              allowedGroups={MACRO_ALLOWED_GROUPS}
+              onSelect={addPickedKey}
+              onClose={() => setAddPicker(false)}
+            />
           )}
 
           {editorState === 'editing' && textOpen && (

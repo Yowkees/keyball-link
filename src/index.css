@@ -3513,7 +3513,25 @@ p[data-tip] { width: fit-content; }
 .gesture-mode-tabs[data-tip] { text-decoration: none; cursor: default; width: fit-content; }
 
 /* 接続前の案内欄: 「キーボードに接続」と「初めての方はこちら」を縦に並べる（同じ幅） */
-.placeholder-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
-/* 接続前の案内欄の「キーボードに接続」は主な操作なので大きめに */
-.placeholder-actions { min-width: 260px; }
-.placeholder-connect { padding: 14px 32px; font-size: 16px; }
+/* 接続前の案内欄（2026-10-06）: 主操作の「キーボードに接続」は大きく塗りつぶし、
+   「初めての方はこちら」は控えめな文字リンクにして、大きさと強さに差を付ける */
+.placeholder-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 28px; }
+.placeholder-connect {
+  padding: 16px 48px;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--key-sel-fg, #fff);
+}
+.placeholder-connect:hover:not(:disabled) { background: var(--accent-h, var(--accent)); }
+.placeholder-guide-link {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.placeholder-guide-link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }

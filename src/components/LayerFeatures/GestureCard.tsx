@@ -44,14 +44,20 @@ interface GestureCardProps {
   layerWarn: LayerWarn | null;
   changeGestureLayer: (v: number) => void;
   changeGestureModeLayer: (mode: number, v: number) => void;
+  // 設定ボードのカード内タブ用（未指定なら全部表示）。
+  // 'keys'=割り当てキー・連動レイヤー、'sensitivity'=感度、'wave'=ジェスチャーウェーブ
+  part?: 'keys' | 'sensitivity' | 'wave';
 }
 
 export function GestureCard({
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
-  disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
+  disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer, part,
 }: GestureCardProps) {
+  const showKeys = !part || part === 'keys';
+  const showSens = !part || part === 'sensitivity';
+  const showWave = !part || part === 'wave';
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
@@ -69,11 +75,8 @@ export function GestureCard({
       ['left', '左 ←', 'continuousLeft'],
       ['right', '右 →', 'continuousRight'],
     ] as const;
-    return (
-      <>
-        <p className="settings-desc">
-          「ジェスチャー1〜4」キーを押しながらボールを上下左右に振ると操作できます。
-        </p>
+    // モード切替ボタンは、モードごとの設定（割り当てキー・ウェーブ）があるタブで出す
+    const modeTabs = (showKeys || showWave) && (
         <div className="led-effect-selector" style={{ marginTop: 8 }}>
           {[0, 1, 2, 3].map(m => (
             <button
@@ -85,8 +88,17 @@ export function GestureCard({
             </button>
           ))}
         </div>
+    );
+    return (
+      <>
+        {showKeys && (
+          <p className="settings-desc">
+            「ジェスチャー1〜4」キーを押しながらボールを上下左右に振ると操作できます。
+          </p>
+        )}
+        {modeTabs}
 
-        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+        {showKeys && <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
           <div className="gesture-grid">
             {dirs.map(([dir, label, contKey]) => (
               <div key={dir} className="gesture-row">
@@ -131,9 +143,9 @@ export function GestureCard({
               <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
             )}
           </div>
-        </div>
+        </div>}
 
-        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+        {showSens && <div style={part ? undefined : { marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
           <p className="settings-desc" style={{ fontWeight: 600 }}>感度（4モード共通）</p>
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
           <SliderControl
@@ -152,9 +164,12 @@ export function GestureCard({
             <span>デフォルト: 50</span>
             <span>200（鈍感）</span>
           </div>
-        </div>
+        </div>}
 
-        {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
+        {showWave && part && (gestureWaveSpeed === null || gestureWaveEnable === null) && (
+          <p className="settings-desc" style={{ marginTop: 12 }}>このファームはジェスチャーウェーブに非対応です。</p>
+        )}
+        {showWave && gestureWaveSpeed !== null && gestureWaveEnable !== null && (
           <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             <ToggleRow
               label="ジェスチャーウェーブ"
@@ -253,6 +268,7 @@ export function GestureCard({
 
   return (
     <>
+      {showKeys && <>
       <p className="settings-desc">
         「ジェスチャー」キーを押しながらボールを上下左右に振ると操作できます。
       </p>
@@ -303,8 +319,9 @@ export function GestureCard({
           <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
         )}
       </div>
+      </>}
 
-      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      {showSens && <div style={part ? undefined : { marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>感度</p>
         <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
         <SliderControl
@@ -323,7 +340,7 @@ export function GestureCard({
           <span>デフォルト: 50</span>
           <span>200（鈍感）</span>
         </div>
-      </div>
+      </div>}
 
       {editDir && (
         <KeyConfigModal

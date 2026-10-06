@@ -1174,10 +1174,16 @@ body { background: var(--bg); overflow-x: hidden; }
 
 /* ===== ファームウェア書き込み ===== */
 .firmware-flasher {
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.fw-card .board-card__body { display: flex; flex-direction: column; gap: 12px; overflow: visible; }
+.fw-card .flash-step-num { width: 22px; height: 22px; font-size: 12px; }
+.fw-card .flash-alert { margin: 0; }
+@media (max-width: 1099px) {
+  .firmware-flasher { grid-template-columns: minmax(0, 1fr); }
 }
 
 .flash-step {
@@ -1632,13 +1638,19 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 
 /* ===== ご意見・要望タブ ===== */
+/* 2026-10-06〜: 2つのカードを横に並べて画面の幅いっぱいを使う（以前は幅640pxの縦1列を中央寄せ）。
+   狭い画面では縦1列に戻る。 */
 .feedback-tab {
-  max-width: 640px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: stretch;
   padding: 4px 0;
+}
+.feedback-tab > .feedback-intro,
+.feedback-tab > .feedback-note { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .feedback-tab { grid-template-columns: minmax(0, 1fr); }
 }
 
 .feedback-intro {
@@ -1700,7 +1712,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .feedback-card__btn {
   align-self: flex-start;
   text-decoration: none;
-  margin-top: 4px;
+  margin-top: auto;
 }
 
 .feedback-note {
@@ -1870,67 +1882,6 @@ body { background: var(--bg); overflow-x: hidden; }
   flex-direction: column;
   gap: 16px;
 }
-
-.settings-sidebar-layout {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.settings-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.settings-sidebar__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  padding: 9px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  cursor: pointer;
-}
-.settings-sidebar__item:hover { border-color: var(--accent); }
-.settings-sidebar__item--active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.settings-sidebar__title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 12.5px;
-  color: var(--text);
-}
-.settings-sidebar__item--active .settings-sidebar__title { color: var(--accent); }
-.settings-sidebar__note { font-size: 10px; color: var(--text-dim); }
-
-.settings-detail {
-  min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg2);
-  display: flex;
-  flex-direction: column;
-}
-.settings-detail__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.settings-detail__title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--text);
-}
-.settings-detail__note { font-size: 11px; color: var(--text-dim); }
-.settings-detail__body { padding: 14px 16px; max-width: 640px; }
 
 .settings-notice {
   background: var(--bg3);
@@ -3178,3 +3129,154 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 .btn--layer[draggable="true"] { cursor: grab; }
 .btn--layer-dragging { opacity: 0.45; }
+
+/* ===== 設定ボード（全項目をカードで画面いっぱいに並べる。SettingsBoard.tsx） ===== */
+/* 2026-10-06: トラックボール設定・マクロ拡張・詳細設定を「左に項目一覧・右に詳細」から
+   「全項目をカードで並べる」形に変更。13〜14インチのノートPC（およそ1440×800）で
+   スクロールせずに収まることが目標。画面が十分大きい時（下の@media）だけ、
+   grid-template-areasで配置を固定し、カードの高さを画面の高さに合わせる。
+   （高さ760px未満で固定すると、カードの中にスクロールが出て使いにくいため）
+   それより小さい画面では配置指定を外し、カードを自然な高さで並べてページを
+   スクロールさせる（レスポンシブ）。 */
+.settings-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.board-card {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg2);
+}
+.board-card__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.board-card__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.board-card__note {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.board-card__tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg3);
+}
+.board-card__tab {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.board-card__tab:hover { color: var(--text); }
+.board-card__tab--active {
+  background: var(--bg2);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.board-card__body {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  /* 画面の高さに合わせた時、想定より中身が多い場合（マクロの記録中など）だけ
+     カードの中で縦にスクロールできるようにする保険 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+/* カード内では各部品の余白を詰める（元はサイドバー形式の広い詳細欄向けの余白） */
+.board-card .settings-desc { margin-bottom: 4px; line-height: 1.5; }
+.board-card .tapping-term-row { margin-top: 4px; gap: 10px; }
+.board-card .tapping-term-value { font-size: 14px; min-width: 48px; }
+.board-card .tapping-term-hints { margin-top: 2px; font-size: 10.5px; gap: 6px; }
+.board-card .setting-row { padding: 7px 0; gap: 10px; }
+.board-card .setting-row__label { font-size: 13px; }
+.board-card .gesture-grid { gap: 6px; margin: 6px 0; }
+.board-card .gesture-row { gap: 8px; }
+.board-card .gesture-dir { width: auto; min-width: 40px; font-size: 13px; }
+.board-card .gesture-key-btn { padding: 6px 10px; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-card .trackball-bar { border: none; background: none; padding: 0; border-radius: 0; gap: 10px 16px; }
+.board-card .trackball-bar__item { min-width: 0; flex-basis: 100%; }
+.board-card .trackball-bar__dpicurve { margin-top: 0; padding-top: 0; border-top: none; gap: 6px; }
+/* 速度カーブのグラフは画面の高さに合わせて縮める（1440×800で120px、高い画面ほど大きく） */
+.board-card .dpi-curve__svg { height: clamp(100px, calc(50vh - 280px), 220px); }
+
+/* 詳細設定のカード内（テストマトリクス・macOS設定・LED位置実測）の余白を詰める */
+.board-card .led-test-panel { gap: 8px; }
+.board-card .led-test-desc { font-size: 12px; line-height: 1.5; }
+.board-card .macos-layout-toggle { margin-bottom: 8px; }
+.board-card .macos-steps { gap: 2px; margin-bottom: 6px; }
+.board-card .macos-step { font-size: 12px; }
+.board-card .macos-command-text { padding: 6px 10px; line-height: 1.4; }
+.board-card .macos-setup-note { margin-top: 4px; line-height: 1.5; }
+.settings-guide-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+/* タップダンスの表（TapDanceSection.tsx） */
+.td-grid {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  gap: 6px 8px;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.td-grid__head { font-size: 11px; color: var(--text-dim); text-align: center; }
+.td-grid__label { margin-left: 0; white-space: nowrap; }
+.td-grid__key { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+
+@media (min-width: 1100px) and (min-height: 760px) {
+  /* マクロのスロット一覧と編集欄は、カードの中で折り返さず横に並べる */
+  .settings-board--fit .macro-layout { flex-wrap: nowrap; gap: 12px; }
+  .settings-board--fit .macro-slot-list { min-width: 0; width: 36%; }
+  .settings-board--fit .macro-edit-panel { min-width: 0; padding: 12px; }
+
+  /* .app-main（縦スクロール領域）の残りの高さいっぱいにボードを広げる */
+  .app-main:has(.settings-board--fit) {
+    display: flex;
+    flex-direction: column;
+  }
+  .app-main:has(.settings-board--fit) > .tabs { flex: none; margin-bottom: 14px; }
+  .settings-tab:has(> .settings-board--fit) > .settings-notice { flex: none; padding: 8px 14px; }
+  .settings-tab:has(> .settings-board--fit) { flex: 1; min-height: 0; }
+  .settings-board--fit {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: var(--board-cols);
+    grid-template-rows: var(--board-rows);
+    grid-template-areas: var(--board-areas);
+    align-items: stretch;
+  }
+  .settings-board--fit > .board-card { grid-area: var(--area); }
+}

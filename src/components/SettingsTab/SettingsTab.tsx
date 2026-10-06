@@ -7,6 +7,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { UsageGuide } from '../UsageGuide/UsageGuide';
 import { KeyDisplaySection, MacOSSetupSection, isMacOSPlatform } from '../KeyLayoutCards/KeyLayoutCards';
+import { SettingsBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import type { ModelKey } from '../../layouts';
 
 interface SettingsTabProps {
@@ -23,14 +24,13 @@ interface SettingsTabProps {
   children?: React.ReactNode;  // テストマトリクス（MatrixTestPanel）をApp.tsx側から差し込む
 }
 
-type SectionKey = 'keyopt' | 'osdetect' | 'keydisplay' | 'macos' | 'ledtest' | 'matrix' | 'guide';
-
 export function SettingsTab({
   settings, isConnected, onChange, detectedOs,
   keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
 }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
+  const [showGuide, setShowGuide] = useState(false);  // 使い方ガイドのポップアップ表示中か
   const chip = productId != null ? chipForProductId(productId) : undefined;
   const fwFeatures = firmwareFeaturesForChip(chip);
 
@@ -45,7 +45,7 @@ export function SettingsTab({
 
   const disabled = !isConnected || saving;
 
-  const sections: { key: SectionKey; title: string; note: string; render: () => React.ReactNode }[] = [
+  const cards: BoardCard[] = [
     {
       key: 'keyopt', title: 'キー動作オプション', note: '長押し判定・Auto Shift・Permissive Hold',
       render: () => (
@@ -83,7 +83,7 @@ export function SettingsTab({
       ),
     },
     ...(fwFeatures.osDetection ? [{
-      key: 'osdetect' as const, title: 'OS自動判別', note: '接続先のOSを判定してキーを切り替え',
+      key: 'os', title: 'OS自動判別', note: '接続先のOSを判定してキーを切り替え',
       render: () => (
         <>
           <div className="setting-row">
@@ -109,20 +109,19 @@ export function SettingsTab({
       ),
     }] : []),
     {
-      key: 'keydisplay', title: 'キー表示の配列設定', note: '表示のみ・入力文字は変わりません',
+      key: 'layout', title: 'キー表示の配列設定', note: '表示のみ・入力文字は変わりません',
       render: () => <KeyDisplaySection keyLayout={keyLayout} onKeyLayoutChange={onKeyLayoutChange} />,
     },
     ...(isMacOSPlatform() ? [{
-      key: 'macos' as const, title: 'macOS キーボードタイプ設定', note: '初回のみ必要',
-      render: () => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} />,
+      key: 'macos', title: 'macOS キーボードタイプ設定', panes: ['配列の選択', 'コマンド'],
+      render: (pane: number) => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} part={pane === 0 ? 'select' : 'command'} />,
     }] : []),
     ...(onTestLed ? [{
-      key: 'ledtest' as const, title: 'LED位置実測（開発用）', note: '波紋演出のための配線順序調査',
+      key: 'led', title: 'LED位置実測（開発用）',
       render: () => (
         <>
           <p className="settings-desc">
-            LEDを1個ずつ点灯させ、実際にどこが光るかを目で確認するための機能です。<br />
-            「次へ」「戻る」でインデックスを進め、光った位置をメモしてください。「終了」を押すと通常表示に戻ります。
+            LEDを1個ずつ点灯させて配線順を確認します。「終了」で通常表示に戻ります。
           </p>
           <div className="tapping-term-row" style={{ gap: 8, alignItems: 'center' }}>
             <button
@@ -167,18 +166,25 @@ export function SettingsTab({
       ),
     }] : []),
     ...(children ? [{
-      key: 'matrix' as const, title: 'テストマトリクス', note: 'キーが正しく反応するか確認',
+      key: 'matrix', title: 'テストマトリクス', note: 'キーが正しく反応するか確認',
       render: () => children,
     }] : []),
     {
-      key: 'guide', title: '使い方ガイド', note: '',
-      render: () => <UsageGuide />,
+      // ガイドは文章量が多く1画面に収まらないため、カードにはボタンだけ置いてポップアップで開く
+      key: 'guide', title: '使い方ガイド',
+      render: () => (
+        <div className="settings-guide-card">
+          <p className="settings-desc">各機能の概要と、レイヤーの重複設定についての注意です。</p>
+          <button className="btn btn--small" onClick={() => setShowGuide(true)}>ガイドを開く</button>
+        </div>
+      ),
     },
   ];
 
-  const [section, setSection] = useState<SectionKey>('keyopt');
-  const active = sections.find(s => s.key === section) ?? sections[0];
-
+  // 13〜14インチのノートPCで1画面に収まる配置（縦4段の格子）。
+  // OS自動判別が無い（AVR版）時はキー動作オプションが、macOS設定が無い（Mac以外）時や
+  // テストマトリクスが無い（未接続）時はもう一方が、LED位置実測が無い（本番）時は
+  // 使い方ガイドが広がる。
   return (
     <div className="settings-tab">
       {!isConnected && (
@@ -187,30 +193,31 @@ export function SettingsTab({
         </div>
       )}
 
-      <div className="settings-sidebar-layout">
-        <div className="settings-sidebar">
-          {sections.map(s => (
-            <button
-              key={s.key}
-              className={`settings-sidebar__item ${active.key === s.key ? 'settings-sidebar__item--active' : ''}`}
-              onClick={() => setSection(s.key)}
-            >
-              <span className="settings-sidebar__title">{s.title}</span>
-              {s.note && <span className="settings-sidebar__note">{s.note}</span>}
-            </button>
-          ))}
-        </div>
+      <SettingsBoard
+        cards={cards}
+        columns="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
+        areas={[
+          'keyopt os matrix matrix',
+          'keyopt os matrix matrix',
+          'layout guide macos macos',
+          'layout led macos macos',
+        ]}
+        fallback={{ os: 'keyopt', led: 'guide', macos: 'matrix', matrix: 'macos' }}
+      />
 
-        <div className="settings-detail">
-          <div className="settings-detail__head">
-            <span className="settings-detail__title">{active.title}</span>
-            {active.note && <span className="settings-detail__note">{active.note}</span>}
-          </div>
-          <div className="settings-detail__body">
-            {active.render()}
+      {showGuide && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowGuide(false); }}>
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <span className="modal-title">使い方ガイド</span>
+              <button className="modal-close" onClick={() => setShowGuide(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <UsageGuide />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,9 @@ interface TrackballSettingsProps {
   accelAvailable?: boolean;  // LED版の44/61では加速度が無効 → グレーアウト
   dpiCurve: DpiCurveConfig | null;  // 非対応ファーム(AVR版等)ではnull
   onDpiCurveChange: (c: DpiCurveConfig) => Promise<void>;
+  // 設定ボードのカード内タブで表示を分ける時に指定する（未指定なら全部表示）。
+  // 'basic'=CPI・加速度・スクロール方向・反転、'curve'=加速度の速度カーブ
+  part?: 'basic' | 'curve';
 }
 
 const MAX_CPI_INDEX = 17;
@@ -67,7 +70,7 @@ function TrackballSlider({
   );
 }
 
-export function TrackballSettings({ config, onChange, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurve, onDpiCurveChange }: TrackballSettingsProps) {
+export function TrackballSettings({ config, onChange, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurve, onDpiCurveChange, part }: TrackballSettingsProps) {
   // カーブの自由編集機能はUIから廃止し、常に加速度スライダーの内容をそのまま
   // 使う設計にした。以前のセッションでDPIカーブを有効化したまま残っている
   // 実機がある場合、そのままだとスライダーを動かしても実際の動作には反映
@@ -81,11 +84,14 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
     }
   }, [dpiCurve, onDpiCurveChange]);
 
+  const showBasic = part !== 'curve';
+  const showCurve = part !== 'basic';
+
   return (
     <div className="trackball-bar">
-      <span className="trackball-bar__title">トラックボール</span>
+      {!part && <span className="trackball-bar__title">トラックボール</span>}
 
-      <TrackballSlider
+      {showBasic && <TrackballSlider
         label="CPI"
         value={config.cpiIndex}
         min={0}
@@ -93,8 +99,9 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         renderLabel={i => String(cpiIndexToValue(i))}
         scale="100〜1800"
         onCommit={v => onChange({ ...config, cpiIndex: v })}
-      />
+      />}
 
+      {/* 加速度はカーブのグラフと見比べられるよう、どちらのタブにも出す */}
       <TrackballSlider
         label="加速度"
         value={config.accel}
@@ -110,7 +117,7 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
           加速度の計算式自体はAVR・RP2040で共通（lib/keyball/keyball.c）のため、
           以前のように dpiCurve（RP2040限定の内部状態）の有無では出し分けない。
           AVR接続時にも表示し、ボール動作タブの見た目をRP2040版と統一する。 */}
-      <div className="trackball-bar__dpicurve">
+      {showCurve && <div className="trackball-bar__dpicurve">
         <p className="settings-desc">
           上の「加速度」が実際にどんな速度カーブになるかをグラフで確認できます（見るだけで編集はできません）。
         </p>
@@ -120,8 +127,9 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
           interactive={false}
           yMax={127}
         />
-      </div>
+      </div>}
 
+      {showBasic && <>
       <div className="trackball-bar__item">
         <span className="trackball-bar__label">スクロール方向</span>
         <select
@@ -152,6 +160,7 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
           横 {scrollInvertH ? 'ON' : 'OFF'}
         </button>
       </div>
+      </>}
     </div>
   );
 }

@@ -10,11 +10,14 @@ interface AutoMouseLayerCardProps {
   changeAmlEnable: (v: boolean) => void;
   changeAmlLayer: (v: number) => void;
   apply: (patch: Partial<KbSettings>) => Promise<void>;
+  // 設定ボードのカード内タブ用（未指定なら全部表示）。'basic'=ON/OFF・レイヤー、'detail'=時間・感度
+  part?: 'basic' | 'detail';
 }
 
-export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layerWarn, changeAmlEnable, changeAmlLayer, apply }: AutoMouseLayerCardProps) {
+export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layerWarn, changeAmlEnable, changeAmlLayer, apply, part }: AutoMouseLayerCardProps) {
   return (
     <>
+      {part !== 'detail' && <>
       <div className="setting-rows">
         <ToggleRow
           label="自動マウスレイヤーを使う"
@@ -42,8 +45,10 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
           <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
         )}
       </div>
+      </>}
 
-      <p className="settings-desc" style={{ marginTop: 16, fontWeight: 600 }}>自動で戻るまでの時間</p>
+      {part !== 'basic' && <>
+      <p className="settings-desc" style={{ marginTop: part ? 0 : 16, fontWeight: 600 }}>自動で戻るまでの時間</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseTimeout} min={100} max={2000} step={50}
@@ -70,6 +75,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
         <span>デフォルト: 10</span>
         <span>40（鈍感）</span>
       </div>
+      </>}
     </>
   );
 }

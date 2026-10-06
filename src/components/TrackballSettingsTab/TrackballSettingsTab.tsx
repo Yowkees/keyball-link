@@ -12,7 +12,7 @@ import { ShakeCard } from '../LayerFeatures/ShakeCard';
 import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
-import { SettingsBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 
 // カード見出しの右端に置く機能のON/OFF（2026-10-06〜。以前はカード内の
 // 「〜を使う」「〜を有効化」の行だったが、本人希望で見出しの右に移した）
@@ -195,21 +195,13 @@ export function TrackballSettingsTab({
     },
   ];
 
-  // 13〜14インチのノートPCで1画面に収まる配置（カード内のタブは使わず全部表示）。
-  // 3本の縦の列にカードを積む: 左=ボール動作・精密モード＋スクロール設定、
-  // 中=ジェスチャー、右=シェイク・ダブルフリック＋自動マウスレイヤー。
-  // 列ごとにカードの高さが違うので格子（areas）ではなくstacksを使う。
+  // 左に5つのカードのタブ、右に選んだカードを大きく表示する（2026-10-06〜、本人希望）。
+  // 並び順: ボール動作・精密モード → スクロール設定 → ジェスチャー → 自動マウスレイヤー → シェイク・ダブルフリック
+  const order = ['ball', 'scroll', 'gesture', 'aml', 'motion'];
+  const ordered = order.map(k => cards.find(c => c.key === k)).filter((c): c is BoardCard => !!c);
   return (
     <div className="settings-tab">
-      <SettingsBoard
-        cards={cards}
-        columns="repeat(3, minmax(0, 1fr))"
-        stacks={[
-          ['ball', 'scroll'],
-          ['gesture'],
-          ['motion', 'aml'],
-        ]}
-      />
+      <SettingsSidebarBoard cards={ordered} />
     </div>
   );
 }

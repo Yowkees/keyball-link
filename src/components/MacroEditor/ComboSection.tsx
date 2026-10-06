@@ -4,31 +4,24 @@ import { COMBO_SLOT_COUNT, COMBO_MAX_KEYS, emptyComboSlot } from '../../lib/prot
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
-import { ToggleRow } from '../SettingsControls/SettingsControls';
+import { TIPS } from '../../lib/tips';
 
 interface ComboSectionProps {
   comboSlots: ComboSlot[] | null;   // null = 非対応ファーム
-  comboEnabled: boolean;
-  onComboEnabledChange: (v: boolean) => Promise<void>;
   onComboSlotChange: (idx: number, slot: ComboSlot) => Promise<void>;
   keyLayout: KeyLayout;
   disabled: boolean;
 }
 
-export function ComboSection({ comboSlots, comboEnabled, onComboEnabledChange, onComboSlotChange, keyLayout, disabled }: ComboSectionProps) {
+export function ComboSection({ comboSlots, onComboSlotChange, keyLayout, disabled }: ComboSectionProps) {
   const [editCombo, setEditCombo] = useState<{ idx: number; field: number | 'output' } | null>(null);
 
   return (
     <>
-      <ToggleRow
-        label="コンボを有効化"
-        desc=""
-        checked={comboEnabled} disabled={disabled}
-        onChange={onComboEnabledChange}
-      />
+      {/* ON/OFFはカード見出しの右（MacroTab）。説明はホバー（2026-10-06〜） */}
       {comboSlots ? (
-        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-          <p className="settings-desc">同時押しするキー（2〜4個）と発動するキーを設定します。</p>
+        <div>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.comboKeys}>同時押しするキー → 発動するキー</p>
           {Array.from({ length: COMBO_SLOT_COUNT }, (_, idx) => {
             const slot = comboSlots[idx] ?? emptyComboSlot();
             return (

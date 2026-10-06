@@ -14,22 +14,8 @@ import { DoubleFlickCard } from '../LayerFeatures/DoubleFlickCard';
 import { PrecisionModeCard } from '../LayerFeatures/PrecisionModeCard';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { HeaderToggle } from '../SettingsControls/SettingsControls';
 import { TIPS } from '../../lib/tips';
-
-// カード見出しの右端に置く機能のON/OFF（2026-10-06〜。以前はカード内の
-// 「〜を使う」「〜を有効化」の行だったが、本人希望で見出しの右に移した）
-function HeaderToggle({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      className={`toggle-btn ${checked ? 'toggle-btn--on' : ''}`}
-      onClick={() => onChange(!checked)}
-      disabled={disabled}
-      aria-pressed={checked}
-    >
-      {checked ? 'ON' : 'OFF'}
-    </button>
-  );
-}
 
 interface TrackballSettingsTabProps {
   isConnected: boolean;

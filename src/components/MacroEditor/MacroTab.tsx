@@ -4,6 +4,8 @@ import { MacroEditor } from './MacroEditor';
 import { TapDanceSection } from './TapDanceSection';
 import { ComboSection } from './ComboSection';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { HeaderToggle } from '../SettingsControls/SettingsControls';
+import { TIPS } from '../../lib/tips';
 
 interface MacroTabProps {
   macroAvailable: boolean;   // マクロ機能自体が使えるファームか（LED版はメディアキーと引き換えに廃止）
@@ -31,7 +33,7 @@ export function MacroTab({
 }: MacroTabProps) {
   const cards: BoardCard[] = [
     {
-      key: 'macro', title: 'マクロ', note: '複数キー入力をまとめて1キーで実行',
+      key: 'macro', title: 'マクロ', tip: TIPS.macro,
       render: () => (
         macroAvailable ? (
           <MacroEditor slots={macroSlots} keyLayout={keyLayout} isConnected={isConnected} onSave={onMacroSave} bufferSize={macroBufferSize} />
@@ -44,15 +46,16 @@ export function MacroTab({
       ),
     },
     ...(tapDanceAvailable ? [{
-      key: 'td', title: 'タップダンス', note: '叩く回数・長押しで動作を変える',
+      key: 'td', title: 'タップダンス', tip: TIPS.tapdance,
       render: () => <TapDanceSection tdSlots={tdSlots} onTdSlotChange={onTdSlotChange} keyLayout={keyLayout} disabled={!isConnected} />,
     }] : []),
     ...(comboAvailable ? [{
-      key: 'combo', title: 'コンボ', note: '複数キー同時押しで別の動作を実行',
+      key: 'combo', title: 'コンボ', tip: TIPS.combo,
+      headerRight: <HeaderToggle checked={comboEnabled} disabled={!isConnected} onChange={onComboEnabledChange} />,
       render: () => (
         <ComboSection
-          comboSlots={comboSlots} comboEnabled={comboEnabled}
-          onComboEnabledChange={onComboEnabledChange} onComboSlotChange={onComboSlotChange}
+          comboSlots={comboSlots}
+          onComboSlotChange={onComboSlotChange}
           keyLayout={keyLayout} disabled={!isConnected}
         />
       ),

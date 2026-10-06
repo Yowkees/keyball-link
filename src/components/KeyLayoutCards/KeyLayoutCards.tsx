@@ -29,10 +29,6 @@ interface KeyDisplaySectionProps {
 export function KeyDisplaySection({ keyLayout, onKeyLayoutChange }: KeyDisplaySectionProps) {
   return (
     <div>
-      <p className="settings-desc">
-        キーマップ画面のキーに表示される文字を切り替えます。<br />
-        実際にキーボードから入力される文字は変わりません。入力文字を変えるには「macOS キーボードタイプ設定」をご利用ください。
-      </p>
       <div className="layout-toggle-row">
         <button
           className={`layout-toggle-btn ${keyLayout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
@@ -47,10 +43,6 @@ export function KeyDisplaySection({ keyLayout, onKeyLayoutChange }: KeyDisplaySe
           US配列<span className="layout-toggle-example">Shift+2 = @</span>
         </button>
       </div>
-      <p className="layout-toggle-note">
-        現在: <strong>{keyLayout === 'JIS' ? 'JIS配列（日本語キーボード）' : 'US配列（英語キーボード）'}</strong>
-        {'　'}→ キーマップ画面の表示に反映されます
-      </p>
     </div>
   );
 }
@@ -80,10 +72,6 @@ export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetu
 
   return (
     <div>
-      <p className="settings-desc">
-        macOSはKeyballの配列（JIS/US）を自動判定できない場合があります。<br />
-        以下のコマンドを一度実行することで、@キーなどの記号が正しく入力できるようになります。
-      </p>
 
       <div className="macos-layout-toggle">
         <span className="macos-layout-label">使用する配列：</span>

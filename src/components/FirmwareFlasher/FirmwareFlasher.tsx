@@ -6,6 +6,8 @@ import { fetchFlashCounts, flashCountKey, reportFlash } from '../../lib/flashCou
 import { chipForProductId } from '../../lib/deviceIds';
 import type { Chip } from '../../lib/deviceIds';
 import type { ModelKey } from '../../layouts';
+import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { TIPS } from '../../lib/tips';
 
 // 2026-09-18、Keyball+のAVR版LEDがフラッシュ容量超過のため一時非公開にしていたが、
 // 2026-09-25、原因（診断用コードの残存）を解消しビルド対象に復帰させたため再度公開。
@@ -239,15 +241,13 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   const canFlash = supported && !isWorking &&
     (source === 'builtin' || customFile !== null);
 
-  return (
-    // 2026-10-06〜: 「書き込む前に」「①選択」「②書き込む」の3枚のカードを横に並べ、
-    // 画面の幅いっぱいを使う（以前は幅560pxの縦1列）。狭い画面では縦1列に戻る（index.css）。
-    <div className="firmware-flasher">
-      <section className="board-card fw-card">
-        <header className="board-card__head">
-          <span className="board-card__title">書き込む前に</span>
-        </header>
-        <div className="board-card__body fw-card__body">
+  // 2026-10-06〜: 他の設定タブと同じく、左に項目のタブ・右に選んだ項目を表示する。
+  // 書き込みの手順（①選択→②書き込む）は1つのパネルにまとめ、注意書きは別の項目に分けた。
+  const cards: BoardCard[] = [
+    {
+      key: 'flash', title: 'ファームウェア書き込み', tip: TIPS.fwFlash,
+      render: () => (
+        <div className="fw-panel">
       {!supported && (
         <div className="flash-alert flash-alert--warn">
           {chip === 'rp2040'
@@ -256,45 +256,8 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
         </div>
       )}
 
-      {supported && !isHIDConnected && (
-        <details className="flash-alert flash-alert--warn flash-alert--collapsible">
-          <summary>書き込みがうまくいかない場合（QMK Toolboxの利用）</summary>
-          <p>
-            ブラウザからの書き込みは環境によって失敗することがあります。<br />
-            うまくいかない場合は <strong>QMK Toolbox</strong> で初回書き込みを行ってください。<br />
-            初回書き込み後は「キーボードに接続」→「書き込む」で自動的にブートローダーに切り替わります。
-          </p>
-        </details>
-      )}
-
-      <details className="flash-alert flash-alert--warn flash-alert--collapsible">
-        <summary>公式ファームウェアからの乗り換えの方へ（書き込み前にお読みください）</summary>
-        <p>
-          書き込むと今のキー設定は引き継がれません。<br />
-          <strong>Remap</strong> などで現在のキーマップを保存（バックアップ）してから書き込んでください。
-        </p>
-      </details>
-
-      <details className="flash-alert flash-alert--warn flash-alert--collapsible">
-        <summary>正規ファームウェアなど他のファームウェアに戻す方へ（書き込み前にお読みください）</summary>
-        <p>
-          Keyball Linkから正規ファームウェアなど別のファームウェアに書き戻す場合は、
-          <strong>先に画面上部の「初期化」▾ から「すべての設定を初期化する」を選んでKeyball Link独自の設定を消してから</strong>
-          書き込んでください（「キーマップをRemap版の初期設定にする」ではKeyball Link独自の設定は消えないのでご注意ください）。<br />
-          設定を消さずに書き込むと、Keyball Link独自の設定がEEPROMに残ったまま新しいファームウェアが動き出し、
-          レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
-        </p>
-      </details>
-        </div>
-      </section>
-
-      {/* Step 1 */}
-      <section className="board-card fw-card">
-        <header className="board-card__head">
-          <span className="flash-step-num">1</span>
-          <span className="board-card__title">ファームウェアを選択</span>
-        </header>
-        <div className="board-card__body fw-card__body">
+          <div className="fw-step">
+            <p className="fw-step__title"><span className="flash-step-num">1</span>ファームウェアを選択</p>
           <div className="fw-source-tabs">
             <button className={`fw-source-tab ${source === 'builtin' ? 'fw-source-tab--active' : ''}`}
               onClick={() => setSource('builtin')} disabled={isWorking}>
@@ -391,16 +354,9 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
               {customFile && <p className="flash-file-name">✓ {customFile.name}</p>}
             </>
           )}
-        </div>
-      </section>
-
-      {/* Step 2 */}
-      <section className="board-card fw-card">
-        <header className="board-card__head">
-          <span className="flash-step-num">2</span>
-          <span className="board-card__title">書き込む</span>
-        </header>
-        <div className="board-card__body fw-card__body">
+          </div>
+          <div className="fw-step">
+            <p className="fw-step__title"><span className="flash-step-num">2</span>書き込む</p>
           {chip === 'avr' ? (
             isHIDConnected ? (
               <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わります。</p>
@@ -445,8 +401,46 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           <span className="flash-progress-label">{progress}%</span>
         </div>
       )}
+          </div>
         </div>
-      </section>
+      ),
+    },
+    ...(supported && !isHIDConnected ? [{
+      key: 'trouble', title: 'うまくいかない場合', tip: TIPS.fwTrouble,
+      render: () => (
+        <p className="fw-note">
+          ブラウザからの書き込みは環境によって失敗することがあります。<br />
+          うまくいかない場合は <strong>QMK Toolbox</strong> で初回書き込みを行ってください。<br />
+          初回書き込み後は「キーボードに接続」→「書き込む」で自動的にブートローダーに切り替わります。
+        </p>
+      ),
+    }] : []),
+    {
+      key: 'switch', title: '公式ファームからの乗り換え', tip: TIPS.fwSwitch,
+      render: () => (
+        <p className="fw-note">
+          書き込むと今のキー設定は引き継がれません。<br />
+          <strong>Remap</strong> などで現在のキーマップを保存（バックアップ）してから書き込んでください。
+        </p>
+      ),
+    },
+    {
+      key: 'revert', title: '他のファームに戻す', tip: TIPS.fwRevert,
+      render: () => (
+        <p className="fw-note">
+          Keyball Linkから正規ファームウェアなど別のファームウェアに書き戻す場合は、
+          <strong>先に画面上部の「初期化」▾ から「すべての設定を初期化する」を選んでKeyball Link独自の設定を消してから</strong>
+          書き込んでください（「キーマップをRemap版の初期設定にする」ではKeyball Link独自の設定は消えないのでご注意ください）。<br /><br />
+          設定を消さずに書き込むと、Keyball Link独自の設定がEEPROMに残ったまま新しいファームウェアが動き出し、
+          レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
+        </p>
+      ),
+    },
+  ];
+
+  return (
+    <div className="settings-tab">
+      <SettingsSidebarBoard cards={cards} />
     </div>
   );
 }

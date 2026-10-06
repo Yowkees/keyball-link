@@ -1173,18 +1173,7 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 
 /* ===== ファームウェア書き込み ===== */
-.firmware-flasher {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 12px;
-  align-items: stretch;
-}
-.fw-card .board-card__body { display: flex; flex-direction: column; gap: 12px; overflow: visible; }
-.fw-card .flash-step-num { width: 22px; height: 22px; font-size: 12px; }
-.fw-card .flash-alert { margin: 0; }
-@media (max-width: 1099px) {
-  .firmware-flasher { grid-template-columns: minmax(0, 1fr); }
-}
+/* （2026-10-06〜 ファームウェアタブはタブ表示。.fw-panel 以降を参照） */
 
 .flash-step {
   display: flex;
@@ -3554,3 +3543,19 @@ p[data-tip] { width: fit-content; }
 /* マクロ: 「文」のまとまり */
 .mstep-text-badge { flex: none; font-size: 10.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 6px; }
 .mstep-text { font-family: var(--font-mono, ui-monospace, monospace); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ファームウェア・ご意見タブ（タブ表示、2026-10-06〜） */
+.fw-panel { display: flex; flex-direction: column; gap: 22px; }
+.fw-step { display: flex; flex-direction: column; gap: 12px; }
+.fw-step + .fw-step { border-top: 1px solid var(--border); padding-top: 20px; }
+.fw-step__title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; color: var(--text); margin: 0; }
+.fw-step__title .flash-step-num { width: 24px; height: 24px; font-size: 12px; }
+.fw-panel .flash-alert { margin: 0; }
+.fw-note { font-size: 13px; line-height: 1.8; color: var(--text); margin: 0; }
+.feedback-panel { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.feedback-panel .feedback-card__btn { margin-top: 4px; }
+.board-sidebar-layout > .board-card:has(.feedback-panel) { max-width: 720px; }
+/* 項目が少ないパネルは細くしてバーが長くなりすぎないようにする（スクロール設定と同じ考え方） */
+.board-sidebar-layout > .board-card--narrow { max-width: 560px; }
+/* ファームウェアの「書き込む」ボタンは横いっぱいに伸ばさない */
+.fw-step > .btn--primary { align-self: flex-start; padding: 10px 40px; }

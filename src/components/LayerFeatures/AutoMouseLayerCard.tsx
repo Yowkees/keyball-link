@@ -1,4 +1,5 @@
 import type { KbSettings } from '../../lib/protocol';
+import { LAYER_NONE } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl } from '../SettingsControls/SettingsControls';
 
@@ -15,16 +16,17 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
   return (
     <>
       <div className="setting-rows">
-        <div className={`setting-row setting-row--compact ${disabled || !settings.autoMouseEnable ? 'setting-row--disabled' : ''}`}>
+        <div className={`setting-row setting-row--compact ${disabled ? 'setting-row--disabled' : ''}`}>
           <div className="setting-row__text">
             <span className="setting-row__label">切り替わるレイヤー</span>
           </div>
           <select
             className="trackball-bar__select"
-            value={settings.autoMouseLayer}
-            disabled={disabled || !settings.autoMouseEnable}
+            value={settings.autoMouseEnable ? settings.autoMouseLayer : LAYER_NONE}
+            disabled={disabled}
             onChange={e => changeAmlLayer(Number(e.target.value))}
           >
+            <option value={LAYER_NONE}>なし</option>
             {switchableLayers.map(l => (
               <option key={l} value={l}>Layer {l}</option>
             ))}

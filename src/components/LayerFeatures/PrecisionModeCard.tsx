@@ -16,39 +16,32 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
   if (precision === null) {
     return <p className="settings-desc">このファームは非対応です。</p>;
   }
-  // 「減速の強さ」と「レイヤー」の2ブロック。ボール動作カード内では横に並べる（index.css）
+  // 1行目に「精密モード」の見出しと連動レイヤーの選択欄、その下に減速レベル（2026-10-06、本人希望）
   return (
     <div className="precision-card">
-      <div className="precision-card__div">
-      <p className="settings-desc" style={{ fontWeight: 600 }}>減速の強さ</p>
+      <div className="precision-card__head">
+        <span className="precision-card__title">精密モード</span>
+        <select
+          className="trackball-bar__select"
+          value={precision.layer}
+          disabled={disabled}
+          onChange={e => changePrecisionLayer(Number(e.target.value))}
+        >
+          <option value={LAYER_NONE}>なし</option>
+          {layersInclBase.map(l => (
+            <option key={l} value={l}>Layer {l}</option>
+          ))}
+        </select>
+      </div>
+      {layerWarn?.target === 'precision' && (
+        <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
+      )}
+      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>減速レベル</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
         disabled={disabled} unit="分の1"
         onCommit={div => onPrecisionChange({ ...precision, div })}
       />
-      </div>
-
-      <div className="precision-card__layer">
-        <div className="setting-row">
-          <div className="setting-row__text">
-            <span className="setting-row__label">連動レイヤー</span>
-          </div>
-          <select
-            className="trackball-bar__select"
-            value={precision.layer}
-            disabled={disabled}
-            onChange={e => changePrecisionLayer(Number(e.target.value))}
-          >
-            <option value={LAYER_NONE}>なし</option>
-            {layersInclBase.map(l => (
-              <option key={l} value={l}>Layer {l}</option>
-            ))}
-          </select>
-        </div>
-        {layerWarn?.target === 'precision' && (
-          <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
-        )}
-      </div>
     </div>
   );
 }

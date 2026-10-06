@@ -39,7 +39,7 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>反転回数</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }}>シェイク回数</p>
         <SliderControl
           value={shake.reversals} min={SHAKE_REVERSALS_MIN} max={SHAKE_REVERSALS_MAX} step={1}
           disabled={disabled || !shake.key} unit="回"

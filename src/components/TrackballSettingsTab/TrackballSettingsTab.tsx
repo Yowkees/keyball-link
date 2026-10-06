@@ -3,6 +3,7 @@ import type {
   KbSettings, TrackballConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor,
   PrecisionConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, DpiCurveConfig,
 } from '../../lib/protocol';
+import { LAYER_NONE } from '../../lib/protocol';
 import { useLayerConflict } from '../../hooks/useLayerConflict';
 import { TrackballSettings } from '../TrackballSettings/TrackballSettings';
 import { AutoMouseLayerCard } from '../LayerFeatures/AutoMouseLayerCard';
@@ -90,18 +91,17 @@ export function TrackballSettingsTab({
     }
   };
 
-  const { layerWarn, setLayerWarn, conflictName, changeLayer } = useLayerConflict(settings, gesture, gestureModes, precision);
+  const { layerWarn, setLayerWarn, changeLayer } = useLayerConflict(settings, gesture, gestureModes, precision);
 
-  const changeAmlEnable = (v: boolean) => {
-    if (v) {
-      const c = conflictName('aml', settings.autoMouseLayer);
-      if (c) {
-        setLayerWarn({ target: 'aml', msg: `${c}と同じレイヤーのため有効にできません。先に「切り替わるレイヤー」を別のレイヤーに変更してください。` });
-        return;
-      }
+  // オートマウスレイヤーはON/OFFを持たず、「切り替わるレイヤー」の「なし」で無効にする
+  // （2026-10-06、本人希望）。ファームへはautoMouseEnable/autoMouseLayerの組で保存する。
+  const changeAmlLayer = (v: number) => {
+    if (v === LAYER_NONE) {
+      setLayerWarn(null);
+      apply({ autoMouseEnable: false });
+      return;
     }
-    setLayerWarn(null);
-    apply({ autoMouseEnable: v });
+    changeLayer('aml', v, () => apply({ autoMouseEnable: true, autoMouseLayer: v }));
   };
 
   const cards: BoardCard[] = [
@@ -121,7 +121,6 @@ export function TrackballSettingsTab({
           onDpiCurveChange={onDpiCurveChange}
         />
         <div className="ball-precision">
-          <span className="ball-precision__title">精密モード</span>
           <PrecisionModeCard
             precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
             changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
@@ -162,11 +161,10 @@ export function TrackballSettingsTab({
     },
     {
       key: 'aml', title: 'オートマウスレイヤー', className: 'board-card--aml',
-      headerRight: <HeaderToggle checked={settings.autoMouseEnable} disabled={disabled} onChange={changeAmlEnable} />,
       render: () => (
         <AutoMouseLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
-          changeAmlLayer={v => changeLayer('aml', v, () => apply({ autoMouseLayer: v }))}
+          changeAmlLayer={changeAmlLayer}
           apply={apply}
         />
       ),

@@ -4,6 +4,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, MacroStep } from '../../lib/protocol';
 import { MACRO_SLOT_COUNT, MACRO_BUFFER_SIZE } from '../../lib/protocol';
 import { browserEventToKeycode, modifierEventToKeycode } from '../../lib/browserKeymap';
+import { textToMacro } from '../../lib/textToMacro';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // 1レコーディングセッションの上限（バッファの約1/3を目安）
@@ -98,6 +99,9 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
   const [editorState, setEditorState] = useState<EditorState>('idle');
   const [draft, setDraft] = useState<MacroSlot | null>(null);
   const [saving, setSaving] = useState(false);
+  // 「文を登録」の入力欄（2026-10-06〜）。開いている間だけ表示する
+  const [textOpen, setTextOpen] = useState(false);
+  const [text, setText] = useState('');
   const lastKeyTimeRef = useRef<number | null>(null);
 
   // 修飾キー（Ctrl等）を押してから、他のキーを押さずに離した時だけ修飾キー単体として記録する。
@@ -178,7 +182,19 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
     setDraft(null);
   };
 
-  const cancelEdit = () => { setEditorState('idle'); setDraft(null); };
+  const cancelEdit = () => { setEditorState('idle'); setDraft(null); setTextOpen(false); };
+
+  const textResult = text ? textToMacro(text, keyLayout) : null;
+  const addText = () => {
+    if (!draft || !textResult || textResult.steps.length === 0) return;
+    setDraft({ steps: [...draft.steps, ...textResult.steps] });
+    setText('');
+    setTextOpen(false);
+  };
+  const openTextFromIdle = () => {
+    selectSlot(selected);
+    setTextOpen(true);
+  };
 
   const updateStep = (i: number, patch: Partial<MacroStep>) => {
     if (!draft) return;
@@ -266,6 +282,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
                 <>
                   <button className="btn btn--primary" onClick={startRecording} disabled={!isConnected}>● 記録開始</button>
                   <button className="btn btn--ghost" onClick={() => selectSlot(selected)} disabled={!isConnected}>✎ 手動編集</button>
+                  <button className="btn btn--ghost" onClick={openTextFromIdle} disabled={!isConnected}>Aa 文を登録</button>
                 </>
               )}
               {editorState === 'recording' && (
@@ -274,6 +291,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
               {editorState === 'editing' && (
                 <>
                   <button className="btn btn--ghost btn--small" onClick={addStep}>＋ キー追加</button>
+                  <button className="btn btn--ghost btn--small" onClick={() => setTextOpen(o => !o)}>＋ 文を追加</button>
                   <button className="btn btn--ghost btn--small" onClick={removeAllDelays} disabled={!draft}>遅延を全削除</button>
                   <button className="btn btn--ghost btn--small" onClick={() => setDraft({ steps: [] })}>全クリア</button>
                 </>
@@ -288,6 +306,35 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
               {draft && draft.steps.length > 0 && (
                 <span className="macro-rec-count">{draft.steps.length}ステップ記録済み（上限 {MAX_RECORD_STEPS}）</span>
               )}
+            </div>
+          )}
+
+          {editorState === 'editing' && textOpen && (
+            <div className="macro-text-panel">
+              <textarea
+                className="macro-text-input"
+                rows={3}
+                autoFocus
+                placeholder="登録したい文を入力（例: Thank you! / よろしくおねがいします）"
+                value={text}
+                onChange={e => setText(e.target.value)}
+              />
+              {textResult && (
+                <div className="macro-text-info">
+                  {textResult.hasJapanese && (
+                    <p>日本語はローマ字で送ります: <code>{textResult.romaji}</code><br />
+                      送る側のPCで日本語入力をONにしておくと、ひらがなで入力されます（漢字には変換されません）。</p>
+                  )}
+                  {textResult.unsupported.length > 0 && (
+                    <p style={{ color: 'var(--red)' }}>送れない文字があります（漢字など）: {textResult.unsupported.join(' ')}</p>
+                  )}
+                  <p>{textResult.steps.length}ステップ（約{textResult.steps.length * 3}バイト）を追加します。</p>
+                </div>
+              )}
+              <div className="macro-text-actions">
+                <button className="btn btn--primary btn--small" onClick={addText} disabled={!textResult || textResult.steps.length === 0}>ステップに追加</button>
+                <button className="btn btn--ghost btn--small" onClick={() => { setTextOpen(false); setText(''); }}>閉じる</button>
+              </div>
             </div>
           )}
 
@@ -332,6 +379,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
           {editorState === 'idle' && (
             <p className="macro-edit-desc">
               スロットを選択して「記録開始」を押し、入力したいキーを順番に押してください。<br />
+              「文を登録」で、入力した文をそのままマクロにすることもできます。<br />
               記録後に遅延の調整・キーの追加・削除ができます。<br />
               保存後、キーマップで「Macro 0〜9」に割り当てると実行できます。<br />
               ※ バッファ（{bufferSize}バイト）を全スロットで共有しています。

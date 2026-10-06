@@ -508,7 +508,7 @@ body { background: var(--bg); overflow-x: hidden; }
   border-radius: 2px;
   flex-shrink: 0;
 }
-/* このレイヤーに何らかの連動機能（自動マウス/スクロール/ジェスチャー/精密モード/LED連動）が
+/* このレイヤーに何らかの連動機能（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）が
    割り当てられていることを示す小さなバッジ。詳細はtitle属性のツールチップと下の連動機能表示で確認できる */
 .layer-tab__badge {
   position: absolute;
@@ -3357,8 +3357,6 @@ body { background: var(--bg); overflow-x: hidden; }
   .board-card--scroll .scroll-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
   .board-card--scroll .scroll-card__inertia { margin-top: 0; border-top: none; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--border); }
 
-  /* 横長カードの自動マウスレイヤー: 2つのスライダーを左右に */
-  .board-card--aml .aml-card__sliders { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
 
   /* ダブルフリックの割り当てキー（2×2）は方向の文字を省いて矢印だけにし、キー名の幅を確保する */
   .board-card--motion .dflick-keys .gesture-dir__word { display: none; }
@@ -3422,5 +3420,32 @@ body { background: var(--bg); overflow-x: hidden; }
   .board-sidebar-layout .board-card--gesture .gesture-card__cols { gap: 0 40px; }
 }
 
-/* 項目名と選択欄を離さず並べる行（自動マウスレイヤーの「切り替わるレイヤー」など） */
+/* 項目名と選択欄を離さず並べる行（オートマウスレイヤーの「切り替わるレイヤー」など） */
 .setting-row--compact .setting-row__text { flex: none; }
+
+/* トラックボール設定（タブ表示）全体: 詰まって見えないよう余白を広めに取る（2026-10-06、本人希望）。
+   以前はジェスチャーパネルだけ広げていたのを全パネルに適用 */
+.board-sidebar-layout .board-card__body { padding: 20px 24px 24px; }
+.board-sidebar-layout .board-card .card-sep,
+.board-sidebar-layout .board-card .scroll-card__inertia,
+.board-sidebar-layout .board-card .precision-card__layer,
+.board-sidebar-layout .ball-precision { margin-top: 18px; padding-top: 16px; }
+.board-sidebar-layout .board-card .settings-desc { margin-bottom: 8px; }
+.board-sidebar-layout .board-card .tapping-term-row { margin-top: 4px; margin-bottom: 14px; }
+.board-sidebar-layout .board-card .setting-row { padding: 8px 0; }
+.board-sidebar-layout .board-card .gesture-grid { gap: 12px; margin: 4px 0; }
+.board-sidebar-layout .board-card .gesture-row { gap: 12px; }
+.board-sidebar-layout .board-card .gesture-key-btn { padding: 8px 12px; }
+.board-sidebar-layout .board-card .trackball-bar { gap: 16px 24px; }
+.board-sidebar-layout .board-card .motion-col__head { margin-bottom: 14px; }
+.board-sidebar-layout .aml-card__sliders { margin-top: 10px; }
+@media (min-width: 1100px) and (min-height: 760px) {
+  .board-sidebar-layout .board-card .gesture-card__cols,
+  .board-sidebar-layout .board-card--scroll .scroll-card,
+  .board-sidebar-layout .board-card--motion .motion-cols { gap: 0 40px; }
+  .board-sidebar-layout .board-card--scroll .scroll-card__inertia,
+  .board-sidebar-layout .board-card--motion .motion-col + .motion-col { margin-top: 0; padding-top: 0; padding-left: 40px; }
+  .board-sidebar-layout .board-card--ball .trackball-bar { gap: 16px 40px; }
+  .board-sidebar-layout .ball-precision .precision-card__layer { margin-top: 0; padding-top: 0; }
+  .board-sidebar-layout .ball-precision .precision-card { gap: 0 32px; }
+}

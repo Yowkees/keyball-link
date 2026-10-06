@@ -252,7 +252,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7829, 'Speed+',       'UG_SPDU', 'RGB'),
   K(0x782A, 'Speed-',       'UG_SPDD', 'RGB'),
 
-  // Keyball 拡張（自動マウスレイヤー・スクロールスナップ）
+  // Keyball 拡張（オートマウスレイヤー・スクロールスナップ）
   K(0x7E0A, 'AML ON/OFF', 'AML_TO',  'Keyball'),
   K(0x7E0B, 'AML +50ms',  'AML_I50', 'Keyball'),
   K(0x7E0C, 'AML -50ms',  'AML_D50', 'Keyball'),
@@ -261,7 +261,7 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
   K(0x7E10, 'ジェスチャー1', 'GST_HOLD', 'Keyball'),  // 押している間ジェスチャーモード1に切り替え（RP2040版）。振るとモード1の割当キー送出
   K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて精密モードにする（RP2040版など対応FWのみ）
-  K(0x7E12, 'AML解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たず自動マウスレイヤーを即座に解除
+  K(0x7E12, 'AML解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たずオートマウスレイヤーを即座に解除
   K(0x7E13, 'ジェスチャー2', 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
   K(0x7E14, 'ジェスチャー3', 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
   K(0x7E15, 'ジェスチャー4', 'GST_HOLD4', 'Keyball'),  // 押している間ジェスチャーモード4に切り替え（RP2040版限定）
@@ -622,14 +622,14 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E07) return '押している間だけスクロールモードになります';
   if (code === 0x7E08) return 'スクロール速度を上げます（分周値を大きく）';
   if (code === 0x7E09) return 'スクロール速度を下げます（分周値を小さく）';
-  if (code === 0x7E0A) return '自動マウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます';
-  if (code === 0x7E0B) return '自動マウスレイヤーが切れるまでの時間を50ms延ばします';
-  if (code === 0x7E0C) return '自動マウスレイヤーが切れるまでの時間を50ms縮めます';
+  if (code === 0x7E0A) return 'オートマウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます';
+  if (code === 0x7E0B) return 'オートマウスレイヤーが切れるまでの時間を50ms延ばします';
+  if (code === 0x7E0C) return 'オートマウスレイヤーが切れるまでの時間を50ms縮めます';
   if (code === 0x7E0D) return 'スクロール方向を縦のみに固定します';
   if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
   if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
   if (code === 0x7E10) return '押している間ジェスチャーモード1に切り替わり、トラックボールを上下左右に振るとそのモードの割当キーが発動します（設定タブで各モードの操作を変更できます）';
-  if (code === 0x7E12) return '自動マウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
+  if (code === 0x7E12) return 'オートマウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
   if (code === 0x7E13) return '押している間ジェスチャーモード2に切り替わります（RP2040版限定）';
   if (code === 0x7E14) return '押している間ジェスチャーモード3に切り替わります（RP2040版限定）';
   if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';

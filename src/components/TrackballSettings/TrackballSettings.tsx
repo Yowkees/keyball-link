@@ -24,7 +24,6 @@ function TrackballSlider({
   min,
   max,
   renderLabel,
-  scale,
   onCommit,
   dimmed = false,
   dimmedReason,
@@ -34,7 +33,6 @@ function TrackballSlider({
   min: number;
   max: number;
   renderLabel: (v: number) => string;
-  scale: string;
   onCommit: (v: number) => void;
   dimmed?: boolean;
   dimmedReason?: string;
@@ -62,7 +60,7 @@ function TrackballSlider({
         onKeyUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
         className="slider"
       />
-      <span className="trackball-bar__scale">{dimmed ? 'この版では無効' : scale}</span>
+      {dimmed && <span className="trackball-bar__scale">この版では無効</span>}
     </div>
   );
 }
@@ -91,7 +89,6 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         min={0}
         max={MAX_CPI_INDEX}
         renderLabel={i => String(cpiIndexToValue(i))}
-        scale="100〜1800"
         onCommit={v => onChange({ ...config, cpiIndex: v })}
       />
 
@@ -101,7 +98,6 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         min={0}
         max={MAX_ACCEL}
         renderLabel={v => v === 0 ? 'オフ' : String(v)}
-        scale="オフ〜強"
         onCommit={v => onChange({ ...config, accel: v })}
         dimmed={!accelAvailable}
       />

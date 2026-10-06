@@ -1,5 +1,5 @@
 import type { KbSettings, ScrollInertiaConfig, TrackballConfig } from '../../lib/protocol';
-import { LAYER_NONE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_STRENGTH_DEFAULT, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT } from '../../lib/protocol';
+import { LAYER_NONE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
@@ -47,13 +47,9 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           <p className="settings-desc" style={{ fontWeight: 600 }}>スクロール速度</p>
           <SliderControl
             value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}
-            disabled={disabled} unit=""
+            disabled={disabled} unit="" invert
             onCommit={v => onTrackballChange({ ...trackball, scrollDiv: v })}
           />
-          <div className="tapping-term-hints">
-            <span>0（速い）</span>
-            <span>{SCROLL_DIV_MAX}（遅い）</span>
-          </div>
         </div>
       )}
       </div>
@@ -70,29 +66,18 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
               disabled={disabled}
               onChange={v => onScrollInertiaChange({ ...scrollInertia, enable: v })}
             />
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>強さ</p>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>慣性レベル</p>
             <SliderControl
               value={scrollInertia.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
               disabled={disabled || !scrollInertia.enable} unit=""
               onCommit={v => onScrollInertiaChange({ ...scrollInertia, strength: v })}
             />
-            <div className="tapping-term-hints">
-              <span>0（すぐ止まる）</span>
-              <span>デフォルト: {SCROLL_INERTIA_STRENGTH_DEFAULT}</span>
-              <span>{SCROLL_INERTIA_STRENGTH_MAX}（長く滑る）</span>
-            </div>
             <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>発動しやすさ</p>
             <SliderControl
               value={scrollInertia.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
-              disabled={disabled || !scrollInertia.enable} unit=""
-              format={v => `${(v / 10).toFixed(1)}倍`}
+              disabled={disabled || !scrollInertia.enable} unit="" invert
               onCommit={v => onScrollInertiaChange({ ...scrollInertia, flickMult: v })}
             />
-            <div className="tapping-term-hints">
-              <span>{(SCROLL_INERTIA_FLICK_MULT_MIN / 10).toFixed(1)}倍（発動しやすい）</span>
-              <span>デフォルト: {(SCROLL_INERTIA_FLICK_MULT_DEFAULT / 10).toFixed(1)}倍</span>
-              <span>{(SCROLL_INERTIA_FLICK_MULT_MAX / 10).toFixed(1)}倍（よほど速くないと発動しない）</span>
-            </div>
           </>
         )}
       </div>

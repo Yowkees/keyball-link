@@ -115,22 +115,23 @@ export function DpiCurveEditor({ points, disabled, onCommit, interactive = true,
             />
           ))}
         </svg>
-        <div className="dpi-curve__axis-y">
+        {interactive && <div className="dpi-curve__axis-y">
           <span>速い</span>
           <span>出力の速さ</span>
           <span>遅い</span>
-        </div>
+        </div>}
       </div>
-      <div className="dpi-curve__axis-x">
+      {/* 見るだけのプレビュー（加速度のグラフ）では軸の説明・数値を出さない（2026-10-06、本人希望） */}
+      {interactive && <div className="dpi-curve__axis-x">
         <span>遅い</span>
         <span>動きの速さ（入力）</span>
         <span>速い</span>
-      </div>
-      <div className="dpi-curve__values">
+      </div>}
+      {interactive && <div className="dpi-curve__values">
         {DPI_CURVE_X.map((x, i) => (
           <span key={x} className={dragIndex === i ? 'dpi-curve__value--active' : undefined}>{local[i]}</span>
         ))}
-      </div>
+      </div>}
       {interactive && (
         <button className="btn btn--ghost btn--small" onClick={handleReset} disabled={disabled} style={{ marginTop: 8 }}>
           直線にリセット

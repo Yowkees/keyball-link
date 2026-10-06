@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { DFlickConfig } from '../../lib/protocol';
-import { DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_WINDOW_MS_DEFAULT, DFLICK_WINDOW_MS_STEP, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_FLICK_THRESHOLD_DEFAULT, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, DFLICK_MAX_DURATION_MS_DEFAULT, DFLICK_MAX_DURATION_MS_STEP } from '../../lib/protocol';
+import { DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_WINDOW_MS_STEP, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, DFLICK_MAX_DURATION_MS_STEP } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { SliderControl } from '../SettingsControls/SettingsControls';
@@ -37,28 +37,18 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
         <p className="settings-desc" style={{ fontWeight: 600 }}>フリック判定の感度</p>
         <SliderControl
           value={dflick.flickThreshold} min={DFLICK_FLICK_THRESHOLD_MIN} max={DFLICK_FLICK_THRESHOLD_MAX} step={5}
-          disabled={disabled} unit=""
+          disabled={disabled} unit="" invert
           onCommit={v => onDFlickChange({ ...dflick, flickThreshold: v })}
         />
-        <div className="tapping-term-hints">
-          <span>{DFLICK_FLICK_THRESHOLD_MIN}（敏感）</span>
-          <span>デフォルト: {DFLICK_FLICK_THRESHOLD_DEFAULT}</span>
-          <span>{DFLICK_FLICK_THRESHOLD_MAX}（鈍感）</span>
-        </div>
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>フリックとみなす動作時間の上限</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }}>フリック受付動作時間</p>
         <SliderControl
           value={dflick.maxDurationMs} min={DFLICK_MAX_DURATION_MS_MIN} max={DFLICK_MAX_DURATION_MS_MAX} step={DFLICK_MAX_DURATION_MS_STEP}
           disabled={disabled} unit="ms"
           onCommit={v => onDFlickChange({ ...dflick, maxDurationMs: v })}
         />
-        <div className="tapping-term-hints">
-          <span>{DFLICK_MAX_DURATION_MS_MIN}ms（短い動きだけ）</span>
-          <span>デフォルト: {DFLICK_MAX_DURATION_MS_DEFAULT}ms</span>
-          <span>{DFLICK_MAX_DURATION_MS_MAX}ms（長い動きも許容）</span>
-        </div>
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
@@ -68,11 +58,6 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
           disabled={disabled} unit="ms"
           onCommit={v => onDFlickChange({ ...dflick, windowMs: v })}
         />
-        <div className="tapping-term-hints">
-          <span>{DFLICK_WINDOW_MS_MIN}ms（素早く）</span>
-          <span>デフォルト: {DFLICK_WINDOW_MS_DEFAULT}ms</span>
-          <span>{DFLICK_WINDOW_MS_MAX}ms（ゆっくり）</span>
-        </div>
       </div>
 
       {editDir && (

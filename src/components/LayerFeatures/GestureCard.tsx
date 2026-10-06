@@ -136,20 +136,15 @@ export function GestureCard({
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
           <SliderControl
             value={gestureThreshold.h} min={10} max={200} step={5}
-            disabled={disabled} unit=""
+            disabled={disabled} unit="" invert
             onCommit={v => onGestureThresholdChange({ ...gestureThreshold, h: v })}
           />
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
           <SliderControl
             value={gestureThreshold.v} min={10} max={200} step={5}
-            disabled={disabled} unit=""
+            disabled={disabled} unit="" invert
             onCommit={v => onGestureThresholdChange({ ...gestureThreshold, v: v })}
           />
-          <div className="tapping-term-hints">
-            <span>10（敏感）</span>
-            <span>デフォルト: 50</span>
-            <span>200（鈍感）</span>
-          </div>
         </div>
         </div>
 
@@ -157,18 +152,14 @@ export function GestureCard({
         {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
           <div className="card-sep">
             <ToggleRow
-              label="ジェスチャーウェーブ（4モード共通）"
+              label="ジェスチャーウェーブ"
               desc=""
               checked={gestureWaveEnable}
               disabled={disabled}
               onChange={onGestureWaveEnableChange}
             />
-            <p className="settings-desc" style={{ marginTop: 6, fontWeight: 600 }}>
-              ジェスチャー{gestureModeTab + 1}の光り方
-            </p>
             {gestureWaveStyle !== null && (
               <>
-                <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>見た目</p>
                 <select
                   className="trackball-bar__select"
                   value={gestureWaveStyle[gestureModeTab]}
@@ -186,11 +177,6 @@ export function GestureCard({
               disabled={disabled || !gestureWaveEnable} unit=""
               onCommit={v => onGestureWaveSpeedChange(gestureModeTab, v)}
             />
-            <div className="tapping-term-hints">
-              <span>1（ゆっくり）</span>
-              <span>デフォルト: 200</span>
-              <span>255（速い）</span>
-            </div>
             {gestureWaveColor !== null && (() => {
               const color = gestureWaveColor[gestureModeTab];
               const barColor = liveColor ?? color;
@@ -302,20 +288,15 @@ export function GestureCard({
         <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
         <SliderControl
           value={gesture.thresholdH} min={10} max={200} step={5}
-          disabled={disabled} unit=""
+          disabled={disabled} unit="" invert
           onCommit={v => onGestureChange({ ...gesture, thresholdH: v })}
         />
         <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
         <SliderControl
           value={gesture.thresholdV} min={10} max={200} step={5}
-          disabled={disabled} unit=""
+          disabled={disabled} unit="" invert
           onCommit={v => onGestureChange({ ...gesture, thresholdV: v })}
         />
-        <div className="tapping-term-hints">
-          <span>10（敏感）</span>
-          <span>デフォルト: 50</span>
-          <span>200（鈍感）</span>
-        </div>
       </div>
 
       {editDir && (

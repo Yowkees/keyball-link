@@ -11,11 +11,9 @@ interface DoubleFlickCardProps {
   onDFlickChange: (d: DFlickConfig) => Promise<void>;
   disabled: boolean;
   keyLayout: KeyLayout;
-  // 設定ボードのカード内タブ用（未指定なら全部表示）。'keys'=ON/OFF・割り当てキー、'detail'=判定の調整
-  part?: 'keys' | 'detail';
 }
 
-export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, part }: DoubleFlickCardProps) {
+export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }: DoubleFlickCardProps) {
   const [editDir, setEditDir] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
 
   if (!dflick) {
@@ -24,7 +22,6 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
 
   return (
     <>
-      {part !== 'detail' && <>
       <ToggleRow
         label="ダブルフリックを有効化"
         desc=""
@@ -41,10 +38,8 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
           </div>
         ))}
       </div>
-      </>}
 
-      {part !== 'keys' && <>
-      <div style={part ? undefined : { marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+      <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
         <p className="settings-desc" style={{ fontWeight: 600 }}>フリック判定の感度</p>
         <SliderControl
           value={dflick.flickThreshold} min={DFLICK_FLICK_THRESHOLD_MIN} max={DFLICK_FLICK_THRESHOLD_MAX} step={5}
@@ -85,7 +80,6 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout, p
           <span>{DFLICK_WINDOW_MS_MAX}ms（ゆっくり）</span>
         </div>
       </div>
-      </>}
 
       {editDir && (
         <KeyConfigModal

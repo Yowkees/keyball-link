@@ -89,8 +89,6 @@ export function TrackballSettingsTab({
     apply({ autoMouseEnable: v });
   };
 
-  const hasWave = gestureModes !== null && gestureWaveSpeed !== null && gestureWaveEnable !== null;
-
   const cards: BoardCard[] = [
     ...(trackball ? [{
       // 横2列分の横長カードにして、左に設定・右に速度カーブを並べる（タブで分けない）
@@ -130,9 +128,9 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'gesture', title: 'ジェスチャー',
-      panes: hasWave ? ['キー', '感度', 'ウェーブ'] : ['キー', '感度'],
-      render: pane => (
+      // 横2列分を使い、中を左右2列（割り当て・感度｜ウェーブ）に分ける
+      key: 'gesture', title: 'ジェスチャー', className: 'board-card--gesture',
+      render: () => (
         <GestureCard
           gesture={gesture} onGestureChange={onGestureChange}
           gestureModes={gestureModes} onGestureModeChange={onGestureModeChange}
@@ -144,7 +142,6 @@ export function TrackballSettingsTab({
           disabled={disabled} keyLayout={keyLayout} avail={avail} layersInclBase={layersInclBase} layerWarn={layerWarn}
           changeGestureLayer={v => changeLayer('gesture', v, () => onGestureChange({ ...gesture!, layer: v }))}
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}
-          part={(['keys', 'sensitivity', 'wave'] as const)[pane]}
         />
       ),
     },
@@ -160,26 +157,28 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'shake', title: 'シェイク', panes: shake ? ['基本', '詳細'] : undefined,
-      render: pane => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'basic' : 'detail'} />,
+      key: 'shake', title: 'シェイク',
+      render: () => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />,
     },
     {
-      key: 'dflick', title: 'ダブルフリック', panes: dflick ? ['キー', '詳細'] : undefined,
-      render: pane => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'keys' : 'detail'} />,
+      key: 'dflick', title: 'ダブルフリック',
+      render: () => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />,
     },
   ];
 
-  // 13〜14インチのノートPCで1画面に収まる配置（5列×2段）。ボール動作は横2列分、
-  // ジェスチャー・スクロール設定（精密モード込み）・自動マウスレイヤーは縦2段分を使う。
-  // ボール動作が無い（未接続）時は下のシェイク・ダブルフリックが上まで広がる。
+  // 13〜14インチのノートPCで1画面に収まる配置（6列×2段、カード内のタブは使わず全部表示）。
+  // ボール動作は横2列分、ジェスチャーは横2列×縦2段、スクロール設定（精密モード込み）と
+  // ダブルフリックは縦2段、自動マウスレイヤーとシェイクはボール動作の下に1マスずつ。
+  // 上段の高さはボール動作の中身に合わせ、残りを下段に回す。
   return (
     <div className="settings-tab">
       <SettingsBoard
         cards={cards}
-        columns="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.35fr) minmax(0, 0.95fr)"
+        columns="repeat(6, minmax(0, 1fr))"
+        rows="auto minmax(0, 1fr)"
         areas={[
-          'ball ball gesture scroll aml',
-          'shake dflick gesture scroll aml',
+          'ball ball gesture gesture scroll dflick',
+          'aml shake gesture gesture scroll dflick',
         ]}
       />
     </div>

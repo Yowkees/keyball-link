@@ -111,9 +111,6 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
           以前のように dpiCurve（RP2040限定の内部状態）の有無では出し分けない。
           AVR接続時にも表示し、ボール動作タブの見た目をRP2040版と統一する。 */}
       <div className="trackball-bar__dpicurve">
-        <p className="settings-desc">
-          上の「加速度」が実際にどんな速度カーブになるかをグラフで確認できます（見るだけで編集はできません）。
-        </p>
         <DpiCurveEditor
           points={computeAccelCurvePoints(config.accel)}
           disabled={!accelAvailable}

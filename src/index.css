@@ -3489,8 +3489,8 @@ body { background: var(--bg); overflow-x: hidden; }
   max-width: 300px;
   padding: 8px 11px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--text) 82%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in srgb, var(--text) 68%, transparent);
+  backdrop-filter: blur(4px);
   color: var(--bg2);
   font-size: 12px;
   font-weight: 500;

@@ -3299,7 +3299,7 @@ body { background: var(--bg); overflow-x: hidden; }
   }
   .board-card--ball .trackball-bar__title { display: none; }
   .board-card--ball .trackball-bar > :not(.trackball-bar__dpicurve) { grid-column: 1; }
-  .board-card--ball .trackball-bar__dpicurve { grid-column: 2; grid-row: 1 / span 5; align-self: start; }
+  .board-card--ball .trackball-bar__dpicurve { grid-column: 2; grid-row: 1 / span 3; align-self: start; }
 }
 
 /* ジェスチャーカード: モード切替の下を左右2列（割り当て・感度｜ウェーブ）にする。
@@ -3466,3 +3466,12 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-sidebar-layout .board-card--ball .trackball-bar__item .slider { flex: 1; min-width: 0; }
 .board-sidebar-layout .board-card--ball .trackball-bar__item--invert .btn { min-width: 64px; }
 .board-sidebar-layout .board-card--ball .precision-card .tapping-term-row { margin-top: 8px; }
+
+/* ボール動作: CPI・加速度・精密モードの文字を「減速レベル」と同じ大きさ・太さに（2026-10-06） */
+.board-card--ball .trackball-bar__label,
+.board-card--ball .precision-card__title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.board-sidebar-layout .board-card--ball .trackball-bar__label { font-size: 12px; }
+.trackball-bar__extra { flex-basis: 100%; }
+/* スクロール設定: スクロール方向・反転の行 */
+.scroll-card__row { border-bottom: none; padding: 6px 0; gap: 10px; }
+.board-card .scroll-card__label { margin: 0; font-weight: 600; min-width: 84px; }

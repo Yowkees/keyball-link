@@ -1,5 +1,5 @@
 import type { KbSettings, ScrollInertiaConfig, TrackballConfig } from '../../lib/protocol';
-import { LAYER_NONE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX } from '../../lib/protocol';
+import { LAYER_NONE, SCROLL_MODE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
@@ -15,9 +15,10 @@ interface ScrollLayerCardProps {
   onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
   trackball: TrackballConfig | null;  // スクロール速度(scrollDiv)はトラックボール設定の一部として保存される
   onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
+  onScrollInvertChange: (v: boolean, h: boolean) => void;
 }
 
-export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange }: ScrollLayerCardProps) {
+export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWarn, changeScrollLayer, scrollInertia, onScrollInertiaChange, trackball, onTrackballChange, onScrollInvertChange }: ScrollLayerCardProps) {
   // 「レイヤー・速度」と「慣性スクロール」の2ブロック。横長カードでは左右に並べる（index.css）
   return (
     <div className="scroll-card">
@@ -50,6 +51,36 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
             disabled={disabled} unit="" invert
             onCommit={v => onTrackballChange({ ...trackball, scrollDiv: v })}
           />
+          <div className="setting-row scroll-card__row">
+            <span className="settings-desc scroll-card__label">スクロール方向</span>
+            <select
+              className="trackball-bar__select"
+              value={trackball.scrollMode}
+              disabled={disabled}
+              onChange={e => onTrackballChange({ ...trackball, scrollMode: Number(e.target.value) })}
+            >
+              <option value={SCROLL_MODE.VERTICAL}>縦のみ</option>
+              <option value={SCROLL_MODE.HORIZONTAL}>横のみ</option>
+              <option value={SCROLL_MODE.FREE}>自由（縦横）</option>
+            </select>
+          </div>
+          <div className="setting-row scroll-card__row">
+            <span className="settings-desc scroll-card__label">反転</span>
+            <button
+              className={`btn btn--small btn--layer ${settings.scrollInvertV ? 'btn--layer-active' : ''}`}
+              disabled={disabled}
+              onClick={() => onScrollInvertChange(!settings.scrollInvertV, settings.scrollInvertH)}
+            >
+              縦 {settings.scrollInvertV ? 'ON' : 'OFF'}
+            </button>
+            <button
+              className={`btn btn--small btn--layer ${settings.scrollInvertH ? 'btn--layer-active' : ''}`}
+              disabled={disabled}
+              onClick={() => onScrollInvertChange(settings.scrollInvertV, !settings.scrollInvertH)}
+            >
+              横 {settings.scrollInvertH ? 'ON' : 'OFF'}
+            </button>
+          </div>
         </div>
       )}
       </div>

@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TrackballConfig, DpiCurveConfig } from '../../lib/protocol';
-import { cpiIndexToValue, SCROLL_MODE, computeAccelCurvePoints } from '../../lib/protocol';
+import { cpiIndexToValue, computeAccelCurvePoints } from '../../lib/protocol';
 import { DpiCurveEditor } from '../DpiCurveEditor/DpiCurveEditor';
 
 interface TrackballSettingsProps {
   config: TrackballConfig;
   onChange: (cfg: TrackballConfig) => void;
-  scrollInvertV: boolean;
-  scrollInvertH: boolean;
-  onScrollInvertChange: (v: boolean, h: boolean) => void;
   accelAvailable?: boolean;  // LED版の44/61では加速度が無効 → グレーアウト
   dpiCurve: DpiCurveConfig | null;  // 非対応ファーム(AVR版等)ではnull
   onDpiCurveChange: (c: DpiCurveConfig) => Promise<void>;
+  children?: React.ReactNode;
 }
 
 const MAX_CPI_INDEX = 17;
@@ -67,7 +65,7 @@ function TrackballSlider({
   );
 }
 
-export function TrackballSettings({ config, onChange, scrollInvertV, scrollInvertH, onScrollInvertChange, accelAvailable = true, dpiCurve, onDpiCurveChange }: TrackballSettingsProps) {
+export function TrackballSettings({ config, onChange, accelAvailable = true, dpiCurve, onDpiCurveChange, children }: TrackballSettingsProps) {
   // カーブの自由編集機能はUIから廃止し、常に加速度スライダーの内容をそのまま
   // 使う設計にした。以前のセッションでDPIカーブを有効化したまま残っている
   // 実機がある場合、そのままだとスライダーを動かしても実際の動作には反映
@@ -104,6 +102,9 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         dimmed={!accelAvailable}
       />
 
+      {/* 加速度の下に置く追加項目（精密モード）。スクロール方向・反転はスクロール設定へ移した（2026-10-06） */}
+      {children && <div className="trackball-bar__extra">{children}</div>}
+
       {/* 2026-09-25: このプレビューはconfig.accelのみから計算する純粋なグラフ表示で、
           加速度の計算式自体はAVR・RP2040で共通（lib/keyball/keyball.c）のため、
           以前のように dpiCurve（RP2040限定の内部状態）の有無では出し分けない。
@@ -117,36 +118,6 @@ export function TrackballSettings({ config, onChange, scrollInvertV, scrollInver
         />
       </div>
 
-      <div className="trackball-bar__item">
-        <span className="trackball-bar__label">スクロール方向</span>
-        <select
-          className="trackball-bar__select"
-          value={config.scrollMode}
-          onChange={e => onChange({ ...config, scrollMode: Number(e.target.value) })}
-        >
-          <option value={SCROLL_MODE.VERTICAL}>縦のみ</option>
-          <option value={SCROLL_MODE.HORIZONTAL}>横のみ</option>
-          <option value={SCROLL_MODE.FREE}>自由（縦横）</option>
-        </select>
-      </div>
-
-      <div className="trackball-bar__item trackball-bar__item--invert">
-        <span className="trackball-bar__label">反転</span>
-        <button
-          className={`btn btn--small btn--layer ${scrollInvertV ? 'btn--layer-active' : ''}`}
-          onClick={() => onScrollInvertChange(!scrollInvertV, scrollInvertH)}
-          title="縦スクロールの向きを逆にする"
-        >
-          縦 {scrollInvertV ? 'ON' : 'OFF'}
-        </button>
-        <button
-          className={`btn btn--small btn--layer ${scrollInvertH ? 'btn--layer-active' : ''}`}
-          onClick={() => onScrollInvertChange(scrollInvertV, !scrollInvertH)}
-          title="横スクロールの向きを逆にする"
-        >
-          横 {scrollInvertH ? 'ON' : 'OFF'}
-        </button>
-      </div>
     </div>
   );
 }

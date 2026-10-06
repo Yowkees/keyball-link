@@ -5,7 +5,6 @@ import { firmwareFeaturesForChip } from '../../lib/firmwareFeatures';
 import { chipForProductId } from '../../lib/deviceIds';
 import type { KeyLayout } from '../../lib/keycodes';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
-import { UsageGuide } from '../UsageGuide/UsageGuide';
 import { KeyDisplaySection, MacOSSetupSection, isMacOSPlatform } from '../KeyLayoutCards/KeyLayoutCards';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import type { ModelKey } from '../../layouts';
@@ -161,10 +160,6 @@ export function SettingsTab({
       key: 'matrix', title: 'テストマトリクス', tip: TIPS.matrix,
       render: () => children,
     }] : []),
-    {
-      key: 'guide', title: '使い方ガイド', tip: TIPS.guide,
-      render: () => <UsageGuide />,
-    },
   ];
 
   // 左にタブ、右に選んだ項目を表示する（トラックボール設定と同じ形。2026-10-06、本人希望）

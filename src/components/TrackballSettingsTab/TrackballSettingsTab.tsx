@@ -93,8 +93,9 @@ export function TrackballSettingsTab({
 
   const cards: BoardCard[] = [
     ...(trackball ? [{
-      key: 'ball', title: 'ボール動作', panes: ['基本', '速度カーブ'],
-      render: (pane: number) => (
+      // 横2列分の横長カードにして、左に設定・右に速度カーブを並べる（タブで分けない）
+      key: 'ball', title: 'ボール動作', className: 'board-card--ball',
+      render: () => (
         <TrackballSettings
           config={trackball}
           onChange={onTrackballChange}
@@ -104,25 +105,33 @@ export function TrackballSettingsTab({
           accelAvailable={accelAvailable}
           dpiCurve={dpiCurve}
           onDpiCurveChange={onDpiCurveChange}
-          part={pane === 0 ? 'basic' : 'curve'}
         />
       ),
     }] : []),
     {
-      key: 'scroll', title: 'スクロール設定', panes: ['基本', '慣性'],
-      render: pane => (
-        <ScrollLayerCard
-          settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
-          changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
-          scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
-          trackball={trackball} onTrackballChange={onTrackballChange}
-          part={pane === 0 ? 'basic' : 'inertia'}
-        />
+      // スクロール設定と精密モードは1枚にまとめ、縦2段分を使う（タブで分けない）
+      key: 'scroll', title: 'スクロール設定・精密モード',
+      render: () => (
+        <>
+          <ScrollLayerCard
+            settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
+            changeScrollLayer={v => changeLayer('scroll', v, () => apply({ scrollLayer: v }))}
+            scrollInertia={scrollInertia} onScrollInertiaChange={onScrollInertiaChange}
+            trackball={trackball} onTrackballChange={onTrackballChange}
+          />
+          <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+            <p className="settings-desc" style={{ fontWeight: 600 }}>精密モード</p>
+            <PrecisionModeCard
+              precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
+              changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
+            />
+          </div>
+        </>
       ),
     },
     {
       key: 'gesture', title: 'ジェスチャー',
-      panes: hasWave ? ['キー割り当て', '感度', 'ウェーブ'] : ['キー割り当て', '感度'],
+      panes: hasWave ? ['キー', '感度', 'ウェーブ'] : ['キー', '感度'],
       render: pane => (
         <GestureCard
           gesture={gesture} onGestureChange={onGestureChange}
@@ -140,23 +149,13 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'aml', title: '自動マウスレイヤー', panes: ['基本', '詳細'],
-      render: pane => (
+      key: 'aml', title: '自動マウスレイヤー',
+      render: () => (
         <AutoMouseLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
           changeAmlEnable={changeAmlEnable}
           changeAmlLayer={v => changeLayer('aml', v, () => apply({ autoMouseLayer: v }))}
           apply={apply}
-          part={pane === 0 ? 'basic' : 'detail'}
-        />
-      ),
-    },
-    {
-      key: 'precision', title: '精密モード', note: '押している間だけ感度を下げる',
-      render: () => (
-        <PrecisionModeCard
-          precision={precision} onPrecisionChange={onPrecisionChange} disabled={disabled} layersInclBase={layersInclBase} layerWarn={layerWarn}
-          changePrecisionLayer={v => changeLayer('precision', v, () => onPrecisionChange({ ...precision!, layer: v }))}
         />
       ),
     },
@@ -165,21 +164,22 @@ export function TrackballSettingsTab({
       render: pane => <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'basic' : 'detail'} />,
     },
     {
-      key: 'dflick', title: 'ダブルフリック', panes: dflick ? ['キー割り当て', '詳細'] : undefined,
+      key: 'dflick', title: 'ダブルフリック', panes: dflick ? ['キー', '詳細'] : undefined,
       render: pane => <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} part={pane === 0 ? 'keys' : 'detail'} />,
     },
   ];
 
-  // 13〜14インチのノートPCで1画面に収まる配置。ジェスチャーは中身が多いので
-  // 縦2段分を使い、他は1段ずつ。ボール動作が無い（未接続）時は隣のカードが広がる。
+  // 13〜14インチのノートPCで1画面に収まる配置（5列×2段）。ボール動作は横2列分、
+  // ジェスチャー・スクロール設定（精密モード込み）・自動マウスレイヤーは縦2段分を使う。
+  // ボール動作が無い（未接続）時は下のシェイク・ダブルフリックが上まで広がる。
   return (
     <div className="settings-tab">
       <SettingsBoard
         cards={cards}
-        columns="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr)"
+        columns="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.35fr) minmax(0, 0.95fr)"
         areas={[
-          'ball scroll gesture aml',
-          'precision shake gesture dflick',
+          'ball ball gesture scroll aml',
+          'shake dflick gesture scroll aml',
         ]}
       />
     </div>

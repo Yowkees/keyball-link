@@ -4,7 +4,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, MacroStep } from '../../lib/protocol';
 import { MACRO_SLOT_COUNT, MACRO_BUFFER_SIZE } from '../../lib/protocol';
 import { browserEventToKeycode, modifierEventToKeycode } from '../../lib/browserKeymap';
-import { textToMacro } from '../../lib/textToMacro';
+import { textToMacro, keycodeToChar, romajiToKana } from '../../lib/textToMacro';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 
 // 1レコーディングセッションの上限（バッファの約1/3を目安）
@@ -27,16 +27,29 @@ interface MacroEditorProps {
 
 type EditorState = 'idle' | 'recording' | 'editing';
 
-function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDelay, onChangeKey, onToggleHold }: {
-  step: MacroStep; index: number; keyLayout: KeyLayout;
+function StepRow({ step, index, num, count, keyLayout, onDelete, onToggleDelay, onChangeDelay, onChangeKey, onToggleHold, onMove, dragState, setDragState }: {
+  step: MacroStep; index: number; num: number; count: number; keyLayout: KeyLayout;
   onDelete: () => void; onToggleDelay: () => void;
   onChangeDelay: (ms: number) => void; onChangeKey: (kc: number) => void;
   onToggleHold: () => void;
+  // ステップの並べ替え（2026-10-06〜）。▲▼ボタン、または行をドラッグして入れ替える
+  onMove: (from: number, to: number) => void;
+  dragState: { from: number; over: number } | null;
+  setDragState: (s: { from: number; over: number } | null) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const label = step.keycode ? getKeyDisplayLabel(step.keycode, keyLayout) : '（キーなし）';
+  const dragging = dragState?.from === index;
+  const dropTarget = dragState && dragState.over === index && dragState.from !== index;
   return (
-    <div className="mstep">
+    <div
+      className={`mstep ${dragging ? 'mstep--dragging' : ''} ${dropTarget ? 'mstep--drop' : ''}`}
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDragState({ from: index, over: index }); }}
+      onDragOver={e => { if (!dragState) return; e.preventDefault(); if (dragState.over !== index) setDragState({ ...dragState, over: index }); }}
+      onDrop={e => { e.preventDefault(); if (dragState) onMove(dragState.from, index); setDragState(null); }}
+      onDragEnd={() => setDragState(null)}
+    >
       {index > 0 && (
         <div className="mstep-delay">
           {step.delayMs > 0 ? (
@@ -53,7 +66,8 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
         </div>
       )}
       <div className="mstep-key">
-        <span className="mstep-num">{index + 1}</span>
+        <span className="mstep-grip" title="ドラッグで並べ替え">⋮⋮</span>
+        <span className="mstep-num">{num}</span>
         <button className="mstep-key-btn" onClick={() => setShowPicker(true)}>
           {label.replace('\n', ' / ')}
         </button>
@@ -64,6 +78,8 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
         >
           {step.hold ? '🔒 ホールド' : 'タップ'}
         </button>
+        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title="1つ上へ">▲</button>
+        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title="1つ下へ">▼</button>
         <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
       </div>
       {showPicker && (
@@ -75,6 +91,102 @@ function StepRow({ step, index, keyLayout, onDelete, onToggleDelay, onChangeDela
           onSelect={kc => onChangeKey(kc)}
           onClose={() => setShowPicker(false)}
         />
+      )}
+    </div>
+  );
+}
+
+// 「文を追加」で入れた文字の並び（文字になるキーが遅延なしで2つ以上続く部分）を
+// 1つのブロックにまとめて表示し、後から文として編集できるようにする（2026-10-06〜）。
+// 保存されるのはキーの並びだけなので、読み込み直した後もキーから文を復元してまとめる。
+type StepItem = { kind: 'step'; start: number } | { kind: 'text'; start: number; end: number; text: string };
+
+function groupSteps(steps: MacroStep[], layout: KeyLayout): StepItem[] {
+  const items: StepItem[] = [];
+  let i = 0;
+  while (i < steps.length) {
+    let j = i;
+    let text = '';
+    while (j < steps.length) {
+      const st = steps[j];
+      const ch = st.hold ? null : keycodeToChar(st.keycode, layout);
+      if (ch === null || (j > i && st.delayMs > 0)) break;
+      text += ch;
+      j++;
+    }
+    if (j - i >= 2) {
+      items.push({ kind: 'text', start: i, end: j, text });
+      i = j;
+    } else {
+      items.push({ kind: 'step', start: i });
+      i++;
+    }
+  }
+  return items;
+}
+
+function TextBlockRow({ item, index, count, firstStep, onMove, dragState, setDragState, onDelete, onToggleDelay, onChangeDelay, onReplace, onSplit }: {
+  item: Extract<StepItem, { kind: 'text' }>; index: number; count: number; firstStep: MacroStep;
+  onMove: (from: number, to: number) => void;
+  dragState: { from: number; over: number } | null;
+  setDragState: (s: { from: number; over: number } | null) => void;
+  onDelete: () => void; onToggleDelay: () => void; onChangeDelay: (ms: number) => void;
+  onReplace: (text: string) => void;  // 文を書き換える
+  onSplit: () => void;                // 1キーずつのステップとして表示する
+}) {
+  const [editing, setEditing] = useState(false);
+  // ローマ字だけでできている文（かなに直すと英字が残らない）は、日本語として表示・編集する
+  const kana = romajiToKana(item.text);
+  const shown = /[a-zA-Z]/.test(kana) ? item.text : kana;
+  const [value, setValue] = useState(shown);
+  const dragging = dragState?.from === index;
+  const dropTarget = dragState && dragState.over === index && dragState.from !== index;
+  return (
+    <div
+      className={`mstep ${dragging ? 'mstep--dragging' : ''} ${dropTarget ? 'mstep--drop' : ''}`}
+      draggable={!editing}
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDragState({ from: index, over: index }); }}
+      onDragOver={e => { if (!dragState) return; e.preventDefault(); if (dragState.over !== index) setDragState({ ...dragState, over: index }); }}
+      onDrop={e => { e.preventDefault(); if (dragState) onMove(dragState.from, index); setDragState(null); }}
+      onDragEnd={() => setDragState(null)}
+    >
+      {index > 0 && (
+        <div className="mstep-delay">
+          {firstStep.delayMs > 0 ? (
+            <span className="mstep-delay-badge">
+              ⏱ {firstStep.delayMs}ms
+              <input type="number" className="mstep-delay-input"
+                value={firstStep.delayMs} min={0} max={9999} step={50}
+                onChange={e => onChangeDelay(Math.max(0, Math.min(9999, Number(e.target.value))))} />
+              <button className="mstep-delay-rm" onClick={onToggleDelay} title="遅延を削除">×</button>
+            </span>
+          ) : (
+            <button className="mstep-delay-add" onClick={onToggleDelay} title="遅延を追加">＋ 遅延</button>
+          )}
+        </div>
+      )}
+      <div className="mstep-key">
+        <span className="mstep-grip" title="ドラッグで並べ替え">⋮⋮</span>
+        <span className="mstep-num">{item.start + 1}〜{item.end}</span>
+        <span className="mstep-text-badge">文</span>
+        <button className="mstep-key-btn mstep-text" onClick={() => { setValue(shown); setEditing(true); }} title={shown === item.text ? 'クリックして文を編集' : `実際に打つキー: ${item.text}（クリックして文を編集）`}>
+          {shown.replace(/\n/g, '⏎')}
+        </button>
+        <button className="mstep-hold-btn" onClick={onSplit} title="1キーずつのステップに分けて表示">分ける</button>
+        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title="1つ上へ">▲</button>
+        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title="1つ下へ">▼</button>
+        <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
+      </div>
+      {editing && (
+        <div className="macro-text-panel" style={{ marginTop: 8, marginBottom: 0 }}>
+          <textarea className="macro-text-input" rows={2} autoFocus value={value} onChange={e => setValue(e.target.value)} />
+          <div className="macro-text-actions">
+            <button className="btn btn--primary btn--small" onClick={() => { onReplace(value); setEditing(false); }} disabled={!value}>反映</button>
+            <button className="btn btn--ghost btn--small" onClick={() => setValue(romajiToKana(value))}
+              title="ローマ字で保存されている日本語を、かなに戻して表示します（英単語もかなになるので注意）">ローマ字をかなに戻す</button>
+            <button className="btn btn--ghost btn--small" onClick={() => setEditing(false)}>キャンセル</button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -182,7 +294,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
     setDraft(null);
   };
 
-  const cancelEdit = () => { setEditorState('idle'); setDraft(null); setTextOpen(false); };
+  const cancelEdit = () => { setEditorState('idle'); setDraft(null); setTextOpen(false); setSplitAll(false); };
 
   const textResult = text ? textToMacro(text, keyLayout) : null;
   const addText = () => {
@@ -199,6 +311,37 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
   const updateStep = (i: number, patch: Partial<MacroStep>) => {
     if (!draft) return;
     setDraft({ steps: draft.steps.map((s, idx) => idx === i ? { ...s, ...patch } : s) });
+  };
+
+  // 並べ替え（キー1つ、または「文」のまとまり単位）。遅延は「そのキーの前に待つ時間」なので
+  // キーと一緒に動く。先頭になったステップの遅延は表示されない（記録時と同じく0にする）。
+  // 「分ける」を押すと、文のまとまりを解いて全ステップを1キーずつ表示する（並べ替えても維持）。
+  const [dragState, setDragState] = useState<{ from: number; over: number } | null>(null);
+  const [splitAll, setSplitAll] = useState(false);
+  const items: StepItem[] = !draft ? []
+    : splitAll ? draft.steps.map((_, k) => ({ kind: 'step' as const, start: k }))
+    : groupSteps(draft.steps, keyLayout);
+  const itemRange = (it: StepItem): [number, number] => it.kind === 'text' ? [it.start, it.end] : [it.start, it.start + 1];
+  const moveItem = (from: number, to: number) => {
+    if (!draft || from === to || to < 0 || to >= items.length) return;
+    const chunks = items.map(it => { const [a2, b2] = itemRange(it); return draft.steps.slice(a2, b2); });
+    const [moved] = chunks.splice(from, 1);
+    chunks.splice(to, 0, moved);
+    const steps = chunks.flat();
+    if (steps[0].delayMs > 0) steps[0] = { ...steps[0], delayMs: 0 };
+    setDraft({ steps });
+  };
+  const replaceRange = (start: number, end: number, newSteps: MacroStep[]) => {
+    if (!draft) return;
+    const steps = [...draft.steps.slice(0, start), ...newSteps, ...draft.steps.slice(end)];
+    setDraft({ steps });
+  };
+  const replaceText = (it: Extract<StepItem, { kind: 'text' }>, newText: string) => {
+    if (!draft) return;
+    const conv = textToMacro(newText, keyLayout).steps;
+    if (conv.length === 0) return;
+    conv[0] = { ...conv[0], delayMs: draft.steps[it.start].delayMs };  // 文の前の遅延は残す
+    replaceRange(it.start, it.end, conv);
   };
 
   const deleteStep = (i: number) => {
@@ -292,6 +435,9 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
                 <>
                   <button className="btn btn--ghost btn--small" onClick={addStep}>＋ キー追加</button>
                   <button className="btn btn--ghost btn--small" onClick={() => setTextOpen(o => !o)}>＋ 文を追加</button>
+                  {splitAll && (
+                    <button className="btn btn--ghost btn--small" onClick={() => setSplitAll(false)} title="続けて打つ文字を「文」としてまとめて表示します">文をまとめる</button>
+                  )}
                   <button className="btn btn--ghost btn--small" onClick={removeAllDelays} disabled={!draft}>遅延を全削除</button>
                   <button className="btn btn--ghost btn--small" onClick={() => setDraft({ steps: [] })}>全クリア</button>
                 </>
@@ -343,20 +489,37 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
               {draft.steps.length === 0 && editorState === 'editing' && (
                 <p className="macro-empty-hint">キーがありません。「記録開始」または「＋ キー追加」で登録できます。</p>
               )}
-              {draft.steps.map((step, i) =>
-                editorState === 'recording' ? (
-                  <div key={i} className="mstep-recording">
-                    <span className="mstep-num">{i + 1}</span>
-                    <span className="mstep-rec-key">{getKeyDisplayLabel(step.keycode, keyLayout)}</span>
-                    {i > 0 && step.delayMs > 0 && <span className="mstep-rec-delay">⏱ {step.delayMs}ms</span>}
-                  </div>
-                ) : (
-                  <StepRow key={i} step={step} index={i} keyLayout={keyLayout}
+              {editorState === 'editing' && items.map((it, idx) => {
+                if (it.kind === 'text') {
+                  return (
+                    <TextBlockRow key={`t${it.start}-${it.end}`} item={it} index={idx} count={items.length} firstStep={draft.steps[it.start]}
+                      onMove={moveItem} dragState={dragState} setDragState={setDragState}
+                      onDelete={() => replaceRange(it.start, it.end, [])}
+                      onToggleDelay={() => updateStep(it.start, { delayMs: draft.steps[it.start].delayMs > 0 ? 0 : 200 })}
+                      onChangeDelay={ms => updateStep(it.start, { delayMs: ms })}
+                      onReplace={t => replaceText(it, t)}
+                      onSplit={() => setSplitAll(true)} />
+                  );
+                }
+                const i = it.start;
+                const step = draft.steps[i];
+                return (
+                  <StepRow key={i} step={step} index={idx} num={i + 1} count={items.length} keyLayout={keyLayout}
+                    onMove={moveItem} dragState={dragState} setDragState={setDragState}
                     onDelete={() => deleteStep(i)}
                     onToggleDelay={() => updateStep(i, { delayMs: step.delayMs > 0 ? 0 : 200 })}
                     onChangeDelay={ms => updateStep(i, { delayMs: ms })}
                     onChangeKey={kc => updateStep(i, { keycode: kc })}
                     onToggleHold={() => updateStep(i, { hold: !step.hold })} />
+                );
+              })}
+              {editorState === 'recording' && draft.steps.map((step, i) =>
+                (
+                  <div key={i} className="mstep-recording">
+                    <span className="mstep-num">{i + 1}</span>
+                    <span className="mstep-rec-key">{getKeyDisplayLabel(step.keycode, keyLayout)}</span>
+                    {i > 0 && step.delayMs > 0 && <span className="mstep-rec-delay">⏱ {step.delayMs}ms</span>}
+                  </div>
                 )
               )}
             </div>

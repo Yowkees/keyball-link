@@ -40,7 +40,7 @@ export function AutoMouseLayerCard({ settings, disabled, switchableLayers, layer
       {/* 2つのスライダー。横長カードでは左右に並べる（index.css） */}
       <div className="aml-card__sliders">
       <div>
-      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>自動で戻るまでの時間</p>
+      <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>通常レイヤーに戻るまでの時間</p>
       <div style={{ opacity: disabled || !settings.autoMouseEnable ? 0.5 : 1 }}>
         <SliderControl
           value={settings.autoMouseTimeout} min={100} max={2000} step={50}

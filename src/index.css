@@ -3452,9 +3452,17 @@ body { background: var(--bg); overflow-x: hidden; }
 .precision-card__head { display: flex; align-items: center; gap: 12px; }
 .precision-card__title { font-weight: 700; font-size: 13px; color: var(--text); }
 
-/* スクロール設定・オートマウスレイヤーのバーは長くなりすぎないよう幅を抑える */
-.board-card--scroll .tapping-term-row,
-.board-card--aml .tapping-term-row { max-width: 420px; }
-.board-card--scroll .setting-row { max-width: 420px; }
+/* スクロール設定・オートマウスレイヤーは項目が少ないので、パネル自体を細くしてバーが
+   長くなりすぎないようにする（中身だけ細くすると右側に空白が残るため） */
+.board-sidebar-layout > .board-card--scroll,
+.board-sidebar-layout > .board-card--aml { max-width: 560px; }
 
 .board-card--ball .ball-precision .tapping-term-row { max-width: 420px; }
+
+/* ボール動作（タブ表示）: 左側の各項目の間隔を広げ、ラベル幅を揃える */
+.board-sidebar-layout .board-card--ball .trackball-bar { row-gap: 22px; }
+.board-sidebar-layout .board-card--ball .trackball-bar__item { gap: 12px; }
+.board-sidebar-layout .board-card--ball .trackball-bar__label { min-width: 84px; font-size: 12.5px; }
+.board-sidebar-layout .board-card--ball .trackball-bar__item .slider { flex: 1; min-width: 0; }
+.board-sidebar-layout .board-card--ball .trackball-bar__item--invert .btn { min-width: 64px; }
+.board-sidebar-layout .board-card--ball .precision-card .tapping-term-row { margin-top: 8px; }

@@ -48,7 +48,7 @@ function TrackballSlider({
   return (
     <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
       title={dimmed ? (dimmedReason ?? 'このファーム版（LED版）では加速度は使用できません') : undefined}>
-      <span className="trackball-bar__label">{label}: <strong>{dimmed ? '—' : renderLabel(local)}</strong></span>
+      <span className="trackball-bar__label">{label}</span>
       <input
         type="range"
         min={min}
@@ -60,6 +60,8 @@ function TrackballSlider({
         onKeyUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
         className="slider"
       />
+      {/* 数値は他の設定バーと同じくバーの右隣に表示する（2026-10-06、本人希望） */}
+      <span className="tapping-term-value">{dimmed ? '—' : renderLabel(local)}</span>
       {dimmed && <span className="trackball-bar__scale">この版では無効</span>}
     </div>
   );

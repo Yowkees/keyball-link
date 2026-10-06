@@ -29,10 +29,10 @@ export function firmwareFeaturesForChip(chip: Chip | undefined) {
 // 以前はRP2040版接続時もAVR版の値と比べてしまい「最新版 v1.4.1 があります」と誤表示していた）。
 // hex/uf2 を作り直して差し替えるたびにここも更新する。
 export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
-  keyball39: { major: 1, minor: 4, patch: 1 },
-  keyball44: { major: 1, minor: 4, patch: 1 },
-  keyball61: { major: 1, minor: 4, patch: 1 },
-  keyballplus: { major: 1, minor: 1, patch: 0 },
+  keyball39: { major: 1, minor: 4, patch: 2 },
+  keyball44: { major: 1, minor: 4, patch: 2 },
+  keyball61: { major: 1, minor: 4, patch: 2 },
+  keyballplus: { major: 1, minor: 1, patch: 1 },
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。

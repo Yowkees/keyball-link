@@ -3,7 +3,7 @@ import type { MacroSlot, TdSlot, ComboSlot } from '../../lib/protocol';
 import { MacroEditor } from './MacroEditor';
 import { TapDanceSection } from './TapDanceSection';
 import { ComboSection } from './ComboSection';
-import { SettingsBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
+import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 
 interface MacroTabProps {
   macroAvailable: boolean;   // マクロ機能自体が使えるファームか（LED版はメディアキーと引き換えに廃止）
@@ -24,7 +24,7 @@ interface MacroTabProps {
 
 // マクロ・タップダンス・コンボは「1回のキー入力を条件によって複数の動作に振り分ける」という
 // 共通のジャンルなので1つのタブにまとめる。トラックボール設定・詳細設定タブと同じく、
-// 全項目をカードにして画面いっぱいに並べる（2026-10-06〜）。
+// 左にタブ・右に選んだ項目を表示する形（2026-10-06〜）。
 export function MacroTab({
   macroAvailable, tapDanceAvailable, comboAvailable, macroSlots, onMacroSave, macroBufferSize, isConnected, keyLayout,
   tdSlots, onTdSlotChange, comboSlots, comboEnabled, onComboEnabledChange, onComboSlotChange,
@@ -59,15 +59,10 @@ export function MacroTab({
     }] : []),
   ];
 
-  // 3つを横に並べる。マクロ（スロット一覧＋編集欄）とコンボ（キー4つ＋発動キー）は
-  // 横幅が要るので広めに配分する。AVR版でタップダンス・コンボが無い時はマクロが全幅になる。
+  // 左にタブ、右に選んだ項目を表示する（トラックボール設定と同じ形。2026-10-06、本人希望）
   return (
     <div className="settings-tab">
-      <SettingsBoard
-        cards={cards}
-        columns="minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1.35fr)"
-        areas={['macro td combo']}
-      />
+      <SettingsSidebarBoard cards={cards} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
+import { TIPS } from '../../lib/tips';
 
 // 色相スライダーの上に表示する虹色バー。現在の彩度・明度を反映した色で12段階に分けて描画する
 // （LEDSettings.tsxのbuildGradientと同じ考え方）。どの色相がどの色になるか一目で分かるようにする。
@@ -73,7 +74,7 @@ export function GestureCard({
     // （左=割り当てキー・連動レイヤー・感度、右=ジェスチャーウェーブ。画面が狭い時は縦1列。index.css参照）
     return (
       <>
-        <div className="led-effect-selector">
+        <div className="led-effect-selector gesture-mode-tabs" data-tip={TIPS.gestureMode}>
           {[0, 1, 2, 3].map(m => (
             <button
               key={m}
@@ -91,11 +92,11 @@ export function GestureCard({
           <div className="gesture-grid">
             {dirs.map(([dir, label, contKey]) => (
               <div key={dir} className="gesture-row">
-                <span className="gesture-dir">{label}</span>
+                <span className="gesture-dir" data-tip={TIPS.gestureKeys}>{label}</span>
                 <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditModeDir({ mode: gestureModeTab, dir })}>
                   {getKeyDisplayLabel(mode[dir], keyLayout) || '未設定'}
                 </button>
-                <label className="setting-row__desc" style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                <label className="setting-row__desc" data-tip={TIPS.gestureContinuous} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
                   <input
                     type="checkbox"
                     disabled={disabled}
@@ -111,7 +112,7 @@ export function GestureCard({
           <div className="card-sep">
             <div className="setting-row">
               <div className="setting-row__text">
-                <span className="setting-row__label">連動レイヤー</span>
+                <span className="setting-row__label" data-tip={TIPS.gestureLayer}>連動レイヤー</span>
               </div>
               <select
                 className="trackball-bar__select"
@@ -132,7 +133,7 @@ export function GestureCard({
         </div>
 
         <div className="card-sep">
-          <p className="settings-desc" style={{ fontWeight: 600 }}>感度（4モード共通）</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>感度（4モード共通）</p>
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
           <SliderControl
             value={gestureThreshold.h} min={10} max={200} step={5}
@@ -153,6 +154,7 @@ export function GestureCard({
           <div className="card-sep">
             <ToggleRow
               label="ジェスチャーウェーブ"
+              tip={TIPS.gestureWave}
               desc=""
               checked={gestureWaveEnable}
               disabled={disabled}
@@ -162,6 +164,7 @@ export function GestureCard({
               <>
                 <select
                   className="trackball-bar__select gesture-wave-style"
+                  title={TIPS.gestureWaveStyle}
                   value={gestureWaveStyle[gestureModeTab]}
                   disabled={disabled || !gestureWaveEnable}
                   onChange={e => onGestureWaveStyleChange(gestureModeTab, Number(e.target.value))}
@@ -176,7 +179,7 @@ export function GestureCard({
               const barColor = liveColor ?? color;
               return (
                 <>
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>色相</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureHue}>色相</p>
                   {/* 虹色バーそのものをドラッグして色相を選ぶ（2026-10-06、本人希望で下の数値バーを廃止）。
                       バーの上に透明なスライダーを重ね、白い目印を動かす。右に数値を表示 */}
                   <div className="tapping-term-row hue-bar-row">
@@ -196,14 +199,14 @@ export function GestureCard({
                     </div>
                     <span className="tapping-term-value">{barColor.hue}</span>
                   </div>
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>彩度</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSat}>彩度</p>
                   <SliderControl
                     value={color.sat} min={0} max={255} step={1}
                     disabled={disabled || !gestureWaveEnable} unit=""
                     onChange={v => setLiveColor({ ...barColor, sat: v })}
                     onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, sat: v })}
                   />
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>明るさ</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureVal}>明るさ</p>
                   <SliderControl
                     value={color.val} min={0} max={255} step={1}
                     disabled={disabled || !gestureWaveEnable} unit=""
@@ -213,7 +216,7 @@ export function GestureCard({
                 </>
               );
             })()}
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }}>速さ</p>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSpeed}>速さ</p>
             <SliderControl
               value={gestureWaveSpeed[gestureModeTab]} min={1} max={255} step={1}
               disabled={disabled || !gestureWaveEnable} unit=""
@@ -273,7 +276,7 @@ export function GestureCard({
       <div className="card-sep">
         <div className="setting-row">
           <div className="setting-row__text">
-            <span className="setting-row__label">ジェスチャーレイヤー</span>
+            <span className="setting-row__label" data-tip={TIPS.gestureLayer}>ジェスチャーレイヤー</span>
           </div>
           <select
             className="trackball-bar__select"
@@ -293,7 +296,7 @@ export function GestureCard({
       </div>
 
       <div className="card-sep">
-        <p className="settings-desc" style={{ fontWeight: 600 }}>感度</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>感度</p>
         <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
         <SliderControl
           value={gesture.thresholdH} min={10} max={200} step={5}

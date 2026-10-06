@@ -42,13 +42,14 @@ interface ToggleRowProps {
   checked: boolean;
   disabled: boolean;
   onChange: (v: boolean) => void;
+  tip?: string;  // 項目名にマウスを乗せた時の詳細説明
 }
 
-export function ToggleRow({ label, desc, checked, disabled, onChange }: ToggleRowProps) {
+export function ToggleRow({ label, desc, checked, disabled, onChange, tip }: ToggleRowProps) {
   return (
     <div className={`setting-row ${disabled ? 'setting-row--disabled' : ''}`}>
       <div className="setting-row__text">
-        <span className="setting-row__label">{label}</span>
+        <span className="setting-row__label" data-tip={tip}>{label}</span>
         <span className="setting-row__desc">{desc}</span>
       </div>
       <button

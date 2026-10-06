@@ -5,6 +5,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import { SliderControl } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
+import { TIPS } from '../../lib/tips';
 
 interface DoubleFlickCardProps {
   dflick: DFlickConfig | null;
@@ -25,7 +26,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
       <div className="gesture-grid dflick-keys" style={{ marginTop: 0 }}>
         {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
           <div key={dir} className="gesture-row">
-            <span className="gesture-dir"><span className="gesture-dir__word">{label.slice(0, 1)}</span>{label.slice(1)}</span>
+            <span className="gesture-dir" data-tip={TIPS.dflickKeys}><span className="gesture-dir__word">{label.slice(0, 1)}</span>{label.slice(1)}</span>
             <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
               {dflick[dir] ? getKeyDisplayLabel(dflick[dir], keyLayout) : '未設定'}
             </button>
@@ -34,7 +35,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>フリック判定の感度</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.dflickSens}>フリック判定の感度</p>
         <SliderControl
           value={dflick.flickThreshold} min={DFLICK_FLICK_THRESHOLD_MIN} max={DFLICK_FLICK_THRESHOLD_MAX} step={5}
           disabled={disabled} unit="" invert
@@ -43,7 +44,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>フリック受付動作時間</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.dflickDuration}>フリック受付動作時間</p>
         <SliderControl
           value={dflick.maxDurationMs} min={DFLICK_MAX_DURATION_MS_MIN} max={DFLICK_MAX_DURATION_MS_MAX} step={DFLICK_MAX_DURATION_MS_STEP}
           disabled={disabled} unit="ms"
@@ -52,7 +53,7 @@ export function DoubleFlickCard({ dflick, onDFlickChange, disabled, keyLayout }:
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }}>2回目の受付時間</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.dflickWindow}>2回目の受付時間</p>
         <SliderControl
           value={dflick.windowMs} min={DFLICK_WINDOW_MS_MIN} max={DFLICK_WINDOW_MS_MAX} step={DFLICK_WINDOW_MS_STEP}
           disabled={disabled} unit="ms"

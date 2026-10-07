@@ -29,6 +29,8 @@ const MIN_SCALE = 0.5;
 // （本人指摘）。計算に使う「利用可能幅」自体から左右のマージン分を差し引いておく
 // ことで、常にコンテナよりわずかに小さく収まるようにする。
 const SIDE_MARGIN_PX = 16;
+// 縦に収めるために上下の余白を削る時の下限
+const MIN_VPAD = 6;
 
 function isRightSide(k: LayoutDef): boolean {
   return k.id.startsWith('R');
@@ -44,9 +46,12 @@ interface KeyboardLayoutProps {
   onKeyDrop: (index: number, keycode: number) => void;
   showDescBar?: boolean;
   splitGapPx?: number;
+  // キー配列（上下の余白込み）に使ってよい高さの上限。画面の縦が短い時にApp側で測って
+  // 渡す（2026-10-07、本人要望「キーマップタブを縦スクロールなしでウィンドウ内に収める」）
+  maxBoxHeight?: number | null;
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   const maxX = Math.max(...layout.map(k => {
@@ -72,8 +77,16 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
     return () => ro.disconnect();
   }, []);
   const rawScale = availWidth ? availWidth / maxX : 1;
-  const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, rawScale));
-  const extraVPad = showDescBar ? EXTRA_VPAD_BASE * Math.min(PAD_SCALE_CAP, Math.max(1, rawScale)) : 0;
+  let scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, rawScale));
+  let extraVPad = showDescBar ? EXTRA_VPAD_BASE * Math.min(PAD_SCALE_CAP, Math.max(1, rawScale)) : 0;
+  // 縦に収まらない時は、まず上下の余白を削り、それでも足りなければキー配列自体を縮める
+  if (maxBoxHeight != null && height * scale + extraVPad * 2 > maxBoxHeight) {
+    const minPad = Math.min(extraVPad, MIN_VPAD);
+    extraVPad = Math.max(minPad, (maxBoxHeight - height * scale) / 2);
+    if (height * scale + extraVPad * 2 > maxBoxHeight) {
+      scale = Math.max(MIN_SCALE, Math.min(scale, (maxBoxHeight - extraVPad * 2) / height));
+    }
+  }
 
   return (
     <div className="keyboard-layout-wrap" ref={wrapRef}>

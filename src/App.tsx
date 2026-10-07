@@ -126,6 +126,10 @@ export default function App() {
   // これにより、キー一覧が長くなってもLEDパネルの下にはみ出さず、パネル内で縦スクロールする。
   const keymapLeftRef = useRef<HTMLDivElement>(null);
   const [keymapLeftHeight, setKeymapLeftHeight] = useState<number | null>(null);
+  // キーマップタブを縦スクロールなしで画面内に収めるため、キー配列に使える高さを測る
+  // （2026-10-07、本人要望）。画面の残りの高さから、キー配列以外の部分の高さを引いた値。
+  const keymapViewRef = useRef<HTMLDivElement>(null);
+  const [keyboardBoxBudget, setKeyboardBoxBudget] = useState<number | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -149,6 +153,34 @@ export default function App() {
     // 高さ変化を継続的に検知するため、依存はrefの付け外しに関わるタブ・接続状態だけでよい
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, state.connectionState]);
+
+  useEffect(() => {
+    const view = keymapViewRef.current;
+    const main = view?.closest('.app-main') as HTMLElement | null;
+    if (!view || !main) { setKeyboardBoxBudget(null); return; }
+    const oneColumn = window.matchMedia('(max-width: 980px)');
+    const update = () => {
+      const box = view.querySelector('.keymap-keyboard-card .keyboard-layout-scale-box') as HTMLElement | null;
+      // 1カラム表示（キー設定パネルが下に回る幅）は縦に長くなるのが前提なので縮めない
+      if (!box || oneColumn.matches) { setKeyboardBoxBudget(null); return; }
+      const cs = getComputedStyle(box);
+      const boxOuter = box.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+      const mainRect = main.getBoundingClientRect();
+      const viewTop = view.getBoundingClientRect().top - mainRect.top + main.scrollTop;
+      const available = main.clientHeight - parseFloat(getComputedStyle(main).paddingBottom) - viewTop;
+      // キー配列以外の部分の高さはキー配列の大きさに左右されないので、毎回測り直しても値が振動しない
+      const others = view.offsetHeight - boxOuter;
+      const budget = Math.floor(available - others);
+      setKeyboardBoxBudget(prev => (prev !== null && Math.abs(prev - budget) < 2 ? prev : budget));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(main);
+    ro.observe(view);
+    oneColumn.addEventListener('change', update);
+    return () => { ro.disconnect(); oneColumn.removeEventListener('change', update); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, state.connectionState, showAllLayers, state.model]);
 
   // 接続状態の変化でガイド表示を制御（レンダー中の比較更新）
   const [prevConnState, setPrevConnState] = useState(state.connectionState);
@@ -842,7 +874,7 @@ export default function App() {
             )}
 
             {activeTab === 'keymap' && isConnected && layout && (
-              <div className="keymap-view">
+              <div className="keymap-view" ref={keymapViewRef}>
                 {pendingOrder && (
                   <div className="reorder-bar">
                     <span>🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。</span>
@@ -954,6 +986,7 @@ export default function App() {
                           onKeyClick={handleKeyClick}
                           onKeyDrop={handleKeyDrop}
                           splitGapPx={keymapSplitGap}
+                          maxBoxHeight={keyboardBoxBudget}
                         />
                       </div>
                     )}

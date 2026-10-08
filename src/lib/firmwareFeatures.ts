@@ -36,7 +36,7 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
-export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 4, patch: 13 };
+export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 4, patch: 14 };
 
 export function latestFwVersion(model: ModelKey, chip: Chip | undefined): FirmwareVersion {
   return chip === 'rp2040' ? LATEST_FW_VERSION_RP2040 : LATEST_FW_VERSION[model];

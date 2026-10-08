@@ -17,3 +17,10 @@ export const LAYOUTS: Record<ModelKey, KeyLayout[]> = {
   keyball61: keyball61Layout,
   keyballplus: keyball39Layout,
 };
+
+// ボールの位置に合わせたレイアウトを返す。左手ボールの時はxLeftBallがあるキーのX位置を
+// 差し替える（2026-10-08、Keyball44でボールを左にした時のキー位置がずれていたため）。
+export function layoutForBallSide(layout: KeyLayout[], ballSide: 'left' | 'right'): KeyLayout[] {
+  if (ballSide !== 'left' || !layout.some(k => k.xLeftBall !== undefined)) return layout;
+  return layout.map(k => (k.xLeftBall !== undefined ? { ...k, x: k.xLeftBall } : k));
+}

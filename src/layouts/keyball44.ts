@@ -49,14 +49,16 @@ export const keyball44Layout: KeyLayout[] = [
   // R33/R32・L32/L33 は ball 属性付き（ballSide 設定で左右どちらのボールにも対応）
   // R35/R34 は L列側に寄せて配置（R35=x6）。左右の間隔は App.tsx の keymapSplitGap で調整する
   // R33-R31 はボール周辺位置で x9-11
-  { id: 'L31', row: 7, col: 1, x:  2, y: 3 },
-  { id: 'L32', row: 7, col: 2, x:  3, y: 3, ball: 'left' },
-  { id: 'L33', row: 7, col: 3, x:  4, y: 3, ball: 'left' },
+  // xLeftBall: 左手ボール時の位置。右手ボール時の配置を x' = 12 - x で左右反転したもの
+  // （公式keyball44.hのLAYOUT_left_ballと同じく、左はL31・ボール・L34・L35、右はR35〜R31の5キー）
+  { id: 'L31', row: 7, col: 1, x:  2, y: 3, xLeftBall: 1 },
+  { id: 'L32', row: 7, col: 2, x:  3, y: 3, ball: 'left', xLeftBall: 2 },
+  { id: 'L33', row: 7, col: 3, x:  4, y: 3, ball: 'left', xLeftBall: 3 },
   { id: 'L34', row: 7, col: 4, x:  5, y: 3 },
   { id: 'L35', row: 7, col: 5, x:  6, y: 3 },
   { id: 'R35', row: 3, col: 5, x:  6, y: 3 },
   { id: 'R34', row: 3, col: 4, x:  7, y: 3 },
-  { id: 'R33', row: 3, col: 3, x:  9, y: 3, ball: 'right' },
-  { id: 'R32', row: 3, col: 2, x: 10, y: 3, ball: 'right' },
-  { id: 'R31', row: 3, col: 1, x: 11, y: 3 },
+  { id: 'R33', row: 3, col: 3, x:  9, y: 3, ball: 'right', xLeftBall: 8 },
+  { id: 'R32', row: 3, col: 2, x: 10, y: 3, ball: 'right', xLeftBall: 9 },
+  { id: 'R31', row: 3, col: 1, x: 11, y: 3, xLeftBall: 10 },
 ];

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useKeyball } from './hooks/useKeyball';
-import { LAYOUTS } from './layouts';
+import { LAYOUTS, layoutForBallSide } from './layouts';
 import { KeyboardLayout } from './components/KeyboardLayout/KeyboardLayout';
 import { KeyConfigPanel } from './components/KeyConfigModal/KeyConfigModal';
 import { LedPanel } from './components/LEDSettings/LedPanel';
@@ -264,7 +264,10 @@ export default function App() {
     }
   };
 
-  const layout = state.model ? LAYOUTS[state.model] : null;
+  const layout = useMemo(
+    () => (state.model ? layoutForBallSide(LAYOUTS[state.model], ballSide) : null),
+    [state.model, ballSide],
+  );
   // keyball44 はキー配置を保ったまま左右半分の間隔を広げる（各画面で +1キー分）
   const keymapSplitGap = state.model === 'keyball44' ? 112 : 56;   // メイン画面（1キー=56px）
   const matrixSplitGap = state.model === 'keyball44' ? 77 : 36;    // テストマトリクス（1キー=41px）

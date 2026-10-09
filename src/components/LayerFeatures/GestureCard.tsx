@@ -75,7 +75,7 @@ export function GestureCard({
     return (
       <>
         <div className="led-effect-selector gesture-mode-tabs" data-tip={TIPS.gestureMode}>
-          {[0, 1, 2, 3].map(m => (
+          {gestureModes.map((_, m) => (
             <button
               key={m}
               className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}

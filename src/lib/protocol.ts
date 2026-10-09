@@ -518,10 +518,18 @@ export const GESTURE_TH_DEFAULT = 50;
 export const GESTURE_TH_MIN     = 10;
 export const GESTURE_TH_MAX     = 200;
 
-// 複数ジェスチャーモード（RP2040版限定。GST_HOLD〜4キーまたはレイヤー連動で
-// 4つのモードを切り替えて使う）。旧・単一モードのGestureConfigとは互換性がなく、
+// 複数ジェスチャーモード（RP2040版限定。GST_HOLD〜6キーまたはレイヤー連動で
+// モードを切り替えて使う）。旧・単一モードのGestureConfigとは互換性がなく、
 // 対応ファームでは併用せずこちらだけを使う。
-export const GESTURE_MODE_COUNT = 4;
+// 2026-10-09: 本人希望で4→6モードに増設（RP2040版v0.4.18〜）。それより古いファームは
+// 4モードのままなので、接続中のファームのバージョンでモード数を切り替える
+// （古いファームにモード5・6を問い合わせると、モード1の内容が返ってきてしまうため）。
+export const GESTURE_MODE_COUNT = 6;  // 最大値
+export const GESTURE_MODE_COUNT_LEGACY = 4;
+const GESTURE_6MODES_MIN_VERSION: FirmwareVersion = { major: 0, minor: 4, patch: 18 };
+export function gestureModeCountFor(version: FirmwareVersion | null): number {
+  return version && !isOlderVersion(version, GESTURE_6MODES_MIN_VERSION) ? GESTURE_MODE_COUNT : GESTURE_MODE_COUNT_LEGACY;
+}
 
 // ジェスチャーモード1件分の設定。continuous*がtrueの方向は、割当キーを
 // 回転速度に応じた間隔で連続タップする（音量調整・フォントサイズ変更など向け）。

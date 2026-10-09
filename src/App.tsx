@@ -12,7 +12,7 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT } from './lib/protocol';
+import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
 import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
@@ -566,7 +566,7 @@ export default function App() {
             try { await setGestureWaveSpeed(m, data.gestureWaveSpeed[m]); } catch { /* 非対応FW */ }
           }
         } else if (typeof data.gestureWaveSpeed === 'number') {
-          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+          for (let m = 0; m < (state.gestureModes?.length ?? GESTURE_MODE_COUNT_LEGACY); m++) {
             try { await setGestureWaveSpeed(m, data.gestureWaveSpeed); } catch { /* 非対応FW */ }
           }
         }
@@ -579,7 +579,7 @@ export default function App() {
             try { await setGestureWaveStyle(m, data.gestureWaveStyle[m]); } catch { /* 非対応FW */ }
           }
         } else if (typeof data.gestureWaveStyle === 'number') {
-          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+          for (let m = 0; m < (state.gestureModes?.length ?? GESTURE_MODE_COUNT_LEGACY); m++) {
             try { await setGestureWaveStyle(m, data.gestureWaveStyle); } catch { /* 非対応FW */ }
           }
         }
@@ -589,7 +589,7 @@ export default function App() {
             try { await setGestureWaveColor(m, data.gestureWaveColor[m]); } catch { /* 非対応FW */ }
           }
         } else if (data.gestureWaveColor) {
-          for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+          for (let m = 0; m < (state.gestureModes?.length ?? GESTURE_MODE_COUNT_LEGACY); m++) {
             try { await setGestureWaveColor(m, data.gestureWaveColor); } catch { /* 非対応FW */ }
           }
         }
@@ -683,6 +683,7 @@ export default function App() {
     macro:      !isConnected || state.gesture !== null || state.gestureModes !== null,      // マクロキー（v1.1.0〜非LED版のみ。判定理由は上のgestureと同じ）
     precision:  !isConnected || state.precision !== null, // 精密モードキー（RP2040版など対応FWのみ）
     gestureModes: !isConnected || state.gestureModes !== null, // 複数ジェスチャーモード（RP2040版限定）
+    gestureModes6: !isConnected || (state.gestureModes?.length ?? 0) >= 6, // ジェスチャー5・6（RP2040版v0.4.18〜）
     tapDance:   fwFeatures.tapDance,   // タップダンス（TD0〜TD7）。AVR版は非対応
     layerCount: state.info?.layers ?? 4,                     // 実際のレイヤー数（未接続時は4扱い）
   };

@@ -17,6 +17,8 @@ export const PRC_MO    = 0x7E11;  // 押している間だけ精密モード
 export const GST_HOLD2 = 0x7E13;  // 押している間ジェスチャーモード2
 export const GST_HOLD3 = 0x7E14;  // 押している間ジェスチャーモード3
 export const GST_HOLD4 = 0x7E15;  // 押している間ジェスチャーモード4
+export const GST_HOLD5 = 0x7E16;  // 押している間ジェスチャーモード5（RP2040版v0.4.18〜）
+export const GST_HOLD6 = 0x7E17;  // 押している間ジェスチャーモード6（RP2040版v0.4.18〜）
 
 const K = (code: number, label: string, short: string, group: string): KeycodeEntry =>
   ({ code, label, short, group });
@@ -265,6 +267,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E13, 'ジェスチャー2', 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
   K(0x7E14, 'ジェスチャー3', 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
   K(0x7E15, 'ジェスチャー4', 'GST_HOLD4', 'Keyball'),  // 押している間ジェスチャーモード4に切り替え（RP2040版限定）
+  K(0x7E16, 'ジェスチャー5', 'GST_HOLD5', 'Keyball'),  // 押している間ジェスチャーモード5に切り替え（RP2040版v0.4.18〜）
+  K(0x7E17, 'ジェスチャー6', 'GST_HOLD6', 'Keyball'),  // 押している間ジェスチャーモード6に切り替え（RP2040版v0.4.18〜）
 
   // レイヤー拡張（DF / OSL / TT）
   K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),
@@ -633,6 +637,8 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x7E13) return '押している間ジェスチャーモード2に切り替わります（RP2040版限定）';
   if (code === 0x7E14) return '押している間ジェスチャーモード3に切り替わります（RP2040版限定）';
   if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';
+  if (code === 0x7E16) return '押している間ジェスチャーモード5に切り替わります（RP2040版限定）';
+  if (code === 0x7E17) return '押している間ジェスチャーモード6に切り替わります（RP2040版限定）';
 
   // ワンショット修飾
   if (code === 0x52A1) return '次の1キーだけ Ctrl として動作します（ワンショット）';
@@ -700,6 +706,7 @@ export interface FirmwareAvail {
   macro:      boolean;  // マクロキー。v1.1.0〜非LED版のみ（LED版はメディアキーと引き換えに廃止）
   precision:  boolean;  // 精密モードキー（PRC_MO）。RP2040版など対応ファームのみ
   gestureModes: boolean;  // 複数ジェスチャーモードの手動切替キー（GST_HOLD2〜4）。RP2040版限定
+  gestureModes6?: boolean; // ジェスチャー5・6の切替キー（GST_HOLD5/6）。RP2040版v0.4.18〜（省略時は使える扱い）
   tapDance:   boolean;  // タップダンス（TD0〜TD7）。RP2040版のみ（AVR版はTAP_DANCE_ENABLE未使用）
   layerCount: number;   // 実際のレイヤー数（AVR版4、RP2040版8など）。MO(n)等の上限判定に使う
 }
@@ -725,6 +732,7 @@ export function isKeycodeUnavailable(
   if (entry.short === 'GST_HOLD' && !avail.gesture)   return true;
   if (entry.short === 'PRC_MO'   && !avail.precision) return true;
   if ((entry.short === 'GST_HOLD2' || entry.short === 'GST_HOLD3' || entry.short === 'GST_HOLD4') && !avail.gestureModes) return true;
+  if ((entry.short === 'GST_HOLD5' || entry.short === 'GST_HOLD6') && (!avail.gestureModes || avail.gestureModes6 === false)) return true;
   const layer = parseLayerSwitchTarget(entry);
   if (layer !== null && layer >= avail.layerCount) return true;
   return false;

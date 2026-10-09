@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
-import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, GESTURE_MODE_COUNT, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
+import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, gestureModeCountFor, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import { chipForProductId } from '../lib/deviceIds';
 import type { Preset } from '../lib/presets';
@@ -131,6 +131,10 @@ export function useKeyball() {
       try { macroSlots = await hid.current.getAllMacroSlots(); } catch { /* 旧FWは非対応 */ }
       let gesture: GestureConfig | null = null;
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
+      // ジェスチャーのモード数はファームのバージョンで決まる（gestureModeCountFor参照）ため、先に読む
+      let firmwareVersion: FirmwareVersion | null = null;
+      try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
+      const gestureModeCount = gestureModeCountFor(firmwareVersion);
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
       let gestureWaveSpeed: number[] | null = null;
@@ -139,7 +143,7 @@ export function useKeyball() {
       try {
         const modes: GestureModeConfig[] = [];
         const speeds: number[] = [];
-        for (let m = 0; m < GESTURE_MODE_COUNT; m++) {
+        for (let m = 0; m < gestureModeCount; m++) {
           modes.push(await hid.current.getGestureMode(m));
           speeds.push(await hid.current.getGestureWaveSpeed(m));
         }
@@ -150,13 +154,13 @@ export function useKeyball() {
       } catch { /* 複数ジェスチャーモード非対応FW（AVR版・旧RP2040版） */ }
       try {
         const styles: number[] = [];
-        for (let m = 0; m < GESTURE_MODE_COUNT; m++) styles.push(await hid.current.getGestureWaveStyle(m));
+        for (let m = 0; m < gestureModeCount; m++) styles.push(await hid.current.getGestureWaveStyle(m));
         gestureWaveStyle = styles;
       } catch { /* スタイル切り替え非対応の旧FW */ }
       let gestureWaveColor: GestureWaveColor[] | null = null;
       try {
         const colors: GestureWaveColor[] = [];
-        for (let m = 0; m < GESTURE_MODE_COUNT; m++) colors.push(await hid.current.getGestureWaveColor(m));
+        for (let m = 0; m < gestureModeCount; m++) colors.push(await hid.current.getGestureWaveColor(m));
         gestureWaveColor = colors;
       } catch { /* 色設定非対応の旧FW */ }
       let shake: ShakeConfig | null = null;
@@ -169,8 +173,6 @@ export function useKeyball() {
       try { detectedOs = await hid.current.getDetectedOs(); } catch { /* OS自動判別非対応FW */ }
       let dpiCurve: DpiCurveConfig | null = null;
       try { dpiCurve = await hid.current.getDpiCurve(); } catch { /* DPIカーブ非対応FW */ }
-      let firmwareVersion: FirmwareVersion | null = null;
-      try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
       let precision: PrecisionConfig | null = null;
       try { precision = await hid.current.getPrecisionConfig(); } catch { /* 精密モード非対応FW */ }
       let scrollInertia: ScrollInertiaConfig | null = null;

@@ -11,9 +11,32 @@
 | **本番** | https://keyball-link.shiroganelab.com （keyball-configuratorの`main`ブランチから`npm run deploy`。一般公開） |
 | **開発** | https://rp2040.keyball-link.pages.dev （`rp2040`ブランチから`npm run deploy`。本人の実機確認用・非公開） |
 | **AVR版** | .hexのファームウェア（Keyball39/44/61/+、通常版とLED版）。本番で配布中 |
-| **RP2040版** | .uf2のファームウェア（Keyball39/+、keyball-rp2040-firmware）。本番では`RP2040_PUBLIC_RELEASE=false`で非表示、開発からのみ書き込める |
+| **RP2040版** | .uf2のファームウェア（Keyball39/44/61/+、keyball-rp2040-firmware）。2026-10-09から本番でも公開（`RP2040_PUBLIC_RELEASE=true`） |
 
 報告例: 「RP2040版 v0.4.4を開発に反映（本番には未掲載）」。GitHubへのpushは本番・開発のどちらにも反映されないバックアップなので、別物として書く。
+
+## ★最新状況（2026-10-09時点。別デバイスで再開する時はまずここを読む）
+
+### いまの状態
+- **本番**（https://keyball-link.shiroganelab.com）でRP2040版を公開中（2026-10-09〜）。公開スイッチ`RP2040_PUBLIC_RELEASE`はmain・rp2040ブランチとも`true`。mainとrp2040は同じ内容で、都度`git merge --no-ff main`で同期する。
+- **最新バージョン**: RP2040版 **v0.4.28**（39/44/61/+）、AVR版 **v1.4.2**（39/44/61）・**v1.1.1**（Keyball+）。
+- **反映の手順**（keyball-configurator）: ①ファームを編集したら`npm run update-firmware`（全AVR 8本＋RP2040 4本をビルドし`public/firmware`へ配置・整合性チェック）②mainでコミット ③`git checkout rp2040 && git merge --no-ff main` → `npm run deploy`で**開発**へ ④本人の実機確認後、mainで`npm run deploy`して**本番**へ ⑤`git push`（本番・開発どちらにも反映されないバックアップ。pushは本人の指示があった時だけ）。
+- **RP2040ファームの編集場所**は`~/keyball-rp2040-firmware`。ビルドは`npm run update-firmware`が`~/qmk_firmware-keyball-rp2040`へ同期してから行う。バージョンは`keyboards/keyball/lib/keyball/kb_version.h`と、Keyball Linkの`src/lib/firmwareFeatures.ts`の`LATEST_FW_VERSION_RP2040`を必ず両方上げる。
+
+### 必ず知っておくこと（重要な仕様・落とし穴）
+1. **左右判定が物理的な左右と逆**: QMKの#22775（2024-01）で`SPLIT_HAND_MATRIX_GRID`の既定が「交差点が短絡=左」→「短絡=右」に反転した。Keyball基板は**左手側**にrow2-col5（F6,B5）を短絡する左手判定ジャンパーを付ける設計（KiCadで本人確認済み）なので、今のQMKでは**物理的な左手が「右」と判定される**（AVR版・RP2040版とも、全機種）。正規Yowkeesファームは旧QMK前提。Keyball Linkの配列定義（`src/layouts/*.ts`の「row0-3=物理右」）や、下記の上書き・補正はすべてこの逆転を前提にしている。**左右がらみの修正の前に必ず思い出すこと**（知らずに修正してv0.4.12で空振りした）。
+2. **RP2040版の「ボール側＝左」上書き**: 39/44/61/+の`keymaps/web_configurator/keymap.c`は`is_keyboard_left()`を上書きし、ボール検出後は「ボールがある基板＝LED表の前半担当（左）」と答える。LED数がボール側と反対側で違い、`RGB_MATRIX_SPLIT`はビルド時固定のため。ボール基板とボール無し基板のLED数は固定で、左手判定ジャンパーは「左手として使う基板」に付く（左手ボールならボール基板に付く）。左手ボール時はmatrix_coの行0-3⇔4-7入れ替えと、ジェスチャーウェーブの左右反転（`kb_ball_on_physical_left()`）を行う。LED座標表は39/44/+が右手ボール、61が左手ボールの実機で作ってある。
+3. **LEDモードの同期を左右の合図に使う時の落とし穴**（起動演出で2回ハマった）: (a) QMKの`rgb_matrix_mode_noeeprom()`はLEDオフ時は何もしない → オフでも合図を送るなら`rgb_matrix_config.mode`を直接書く（`keyball.c`の`boot_set_mode`）。(b) スレーブは、マスターから何も届いていない間も受信用共有メモリ（0）を毎スキャン`rgb_matrix_config`に写すので、起動直後のスレーブではモードが0になる → 0は「未受信」として扱う。
+4. **ハーフ間の新しい定期RPCは追加しない**（追加したらトラックボールが止まったことがある）。左右の合図は既存のRGB_MATRIX同期（100msごとの強制同期あり）などに乗せる。
+5. **EEPROM（RP2040は4096バイト）**: 独自設定は全機種共通の番地（`lib/keyball/kb_settings.h`）。0x0800〜0x0AEDまで使用済み、**次に追加するなら0x0AEEから**。キーマップ領域との衝突は`_Static_assert`で検査している。
+
+### 保留中のタスク（本人判断済み）
+- **左右判定の根本修正（B）**: `SPLIT_HAND_MATRIX_GRID_LOW_IS_LEFT`を入れて判定を物理と一致させる。本人は「気持ち悪いので直したい」「自分でビルドする人が混乱しそう」との意向。**条件: 利用者に一切混乱が出ないこと**（更新しても何も変わらない状態）。必要な作業: 全機種・AVR/RP2040のconfig.h、逆転前提の補正（Keyball Link配列定義・上書き・LED/ウェーブ補正）の外し直し、更新後初回起動での保存済みキーマップの行0-3⇔4-7自動入れ替え、書き出しJSONの新旧判別と自動変換、片側だけ更新すると壊れる旨の念押し、README/CHANGELOGへの経緯記載。**開発で全機種・全ボール位置をしっかり確認してから本番へ**。
+- **ボール無し・両側ボール構成**: 上記の「ボール側＝左」上書きが左右とも同じ値を返すため正しく動かない恐れがある。**Bで左右判定が正確になってから対処**（本人指示）。
+- **Keyball61の電源が落ちる（USBケーブルのランプが消える）症状**: LED電流が原因と見てLED最大輝度を機種別に下げた（39=150、44=140、61=130、+=150。ジェスチャーウェーブにも同じ上限）。**様子見中**。再発したら本人から報告が来る。複数機器をバスパワーのハブにつなぐと起きやすい旨は説明済み。
+- 書き込み時のChromeの「Failed to perform Safe Browsing check.」「Aborted due to security policy.」は、ブートローダーが先に再起動してドライブが消えるためと判断。データ送信後のエラーでドライブが消えていれば「書き込み完了」と表示する対策を入れ済み（`src/lib/uf2flash.ts`、本人確認OK）。
+
+---
 
 ## 0. プロジェクト概要
 - **何のアプリか**: Keyball（分割トラックボールキーボード）シリーズ用の、ブラウザから直接キーマップ編集・ファームウェア書き込みができるWebアプリ（WebHID / WebSerial API使用）。
@@ -306,6 +329,12 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 - **RP2040版 v0.4.9〜v0.4.16**: 詳細は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)。**左右判定が物理と逆（QMK #22775）**という重要な事実も判明・記録済み。
 - **2026-10-09 本番公開**: mainの`RP2040_PUBLIC_RELEASE`をtrueにして本番デプロイ。RP2040版が本番のファームウェアタブにも表示されるようになった。以後mainとrp2040ブランチはフラグも含め同じ。
 - **見送り**: RP2040書き込み時のChromeの「Failed to perform Safe Browsing check.」エラー。ブートローダーが先に再起動してドライブが消えるためと推定（書き込み自体は成功しているのを本人確認）。エラー後にドライブが消えていれば「書き込み完了」と表示する案は本人判断で見送り。
+
+### 2026-10-09（続き）: RP2040版v0.4.17〜v0.4.28対応・開発用タブ名・書き込みエラー対策（本番公開済み）
+- **ジェスチャー5・6**: `GESTURE_MODE_COUNT=6`（最大）、`gestureModeCountFor(firmwareVersion)`で接続中ファームのモード数を決める（v0.4.18未満は4。古いファームにモード5・6を問い合わせるとモード1の内容が返るため）。`useKeyball.ts`ではバージョンをジェスチャー読み込みより先に取得。`GestureCard`は`gestureModes.map`でタブを出す。キーコード`GST_HOLD5/6`（0x7E16/0x7E17）を追加し、`FirmwareAvail.gestureModes6`でグレーアウト。
+- **開発ではブラウザのタブ名を「Keyball Link 開発用」**（`App.tsx`の`isDevHost`。本番は「Keyball Link」）。
+- **RP2040書き込みエラー対策**（`src/lib/uf2flash.ts`）: データを全部送った後のエラー（Chromeの安全チェック）で、RPI-RP2ドライブが消えていれば成功扱い。
+- 詳細なファーム側の変更は[keyball-rp2040-firmware/HANDOFF.md](https://github.com/ineno771/keyball-rp2040-firmware)。
 
 ---
 

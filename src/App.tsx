@@ -32,6 +32,9 @@ type AccentTheme = 'mint' | 'amber' | 'violet';
 const isDevHost = typeof location !== 'undefined'
   && (location.hostname.startsWith('rp2040.') || location.hostname === 'localhost');
 
+// 開発ではブラウザのタブ名を変えて、本番と見分けられるようにする（2026-10-09、本人希望）
+if (isDevHost && typeof document !== 'undefined') document.title = 'Keyball Link 開発用';
+
 const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];
 const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
   { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },

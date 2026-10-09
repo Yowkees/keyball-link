@@ -28,15 +28,12 @@ const BUILTIN_FIRMWARE_AVR_LED: Partial<Record<ModelKey, string>> = {
 const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
   keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
   keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
-  keyball44: '/firmware/keyball_keyball44_web_configurator.uf2',  // 2026-10-02〜。LED配線は暫定
-  keyball61: '/firmware/keyball_keyball61_web_configurator.uf2',  // 2026-10-02〜。LED配線は暫定
+  keyball44: '/firmware/keyball_keyball44_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
+  keyball61: '/firmware/keyball_keyball61_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
 };
-// RP2040版はまだ一般公開しない方針（本人指示）のため、本番(mainブランチ)では
-// このフラグをfalseにしてWeb UI上でRP2040タブごと非表示にする。
-// 2026-09-30: 一方、rp2040ブランチ（Cloudflare Pagesのプレビュー用URL
-// https://rp2040.keyball-link.pages.dev/ ）は本番ドメインではなく実機確認専用の
-// 隠しURLという位置付けのため、このブランチ限定でtrueに固定する（今後mainの変更を
-// このブランチへ取り込む際も、このフラグ部分だけは書き戻さないこと）。
+// RP2040版をWeb UI上に表示するかどうか。2026-09-25〜はfalse（非公開）で、
+// 開発（rp2040ブランチ）だけtrueにして実機確認していた。
+// 2026-10-09: 全機種（39/44/61/+、左右ボール）の実機確認が済んだため本番でも公開（本人指示）。
 const RP2040_PUBLIC_RELEASE = true;
 
 const MODEL_LABELS: Record<ModelKey, string> = {

@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 
 export type GuideStep =
   | 'flash' | 'connect' | 'click' | 'assign'
-  | 'mods' | 'layers' | 'save' | 'trackball' | 'others' | 'done'
+  | 'mods' | 'layers' | 'led' | 'save' | 'trackball' | 'others' | 'done'
   | 'backToKeymap';  // キーマップタブ以外にいるときの誘導（擬似ステップ）
 
 interface WelcomeGuideProps {
@@ -11,13 +11,15 @@ interface WelcomeGuideProps {
   onNext?: () => void;  // 「次へ」で手動進行するステップ用
 }
 
-const STEP_ORDER: GuideStep[] = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'others', 'done'];
+const STEP_ORDER: GuideStep[] = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'led', 'save', 'trackball', 'others', 'done'];
 
 interface StepDef {
   title: string;
   desc: string;
   targets: string[];   // 吹き出しを付ける対象（先頭から順に探し、見つかった要素に付ける）
   manual?: boolean;    // trueなら「次へ」ボタンで進行
+  // 吹き出しを対象の横に置く（対象が縦長・大きくて上下に入らない時用）。入らなければ上下に置く
+  side?: 'right' | 'left';
 }
 
 // 2026-10-20: 画面の作り直し（キー設定の右パネル化・設定タブの左サイドバー化・ファームウェア
@@ -39,11 +41,13 @@ const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
     title: 'キーをクリック',
     desc: '変更したいキーをクリックしてください。右側のキー設定パネルに、割り当てられるキーの一覧が出ます。',
     targets: ['[data-guide="keyboard"]'],
+    side: 'right',  // キー配列は大きいので、右（キー設定パネルの上）から指す
   },
   assign: {
     title: '新しいキーを選ぶ',
     desc: '右側の一覧から割り当てたいキーをクリックすると、選んだキーにすぐ設定されます。',
     targets: ['[data-guide="key-picker"]', '[data-guide="keyboard"]'],
+    side: 'left',   // キー設定パネルは縦長なので、左（キー配列側）から指す
   },
   mods: {
     title: '修飾キーとホールド',
@@ -55,6 +59,12 @@ const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
     title: 'レイヤー',
     desc: 'レイヤーはキー配列の切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。ここで編集するレイヤーを選べます。「全レイヤー」で全部を並べて見比べたり、ドラッグで並べ替えたりもできます。',
     targets: ['[data-guide="layer-tabs"]'],
+    manual: true,
+  },
+  led: {
+    title: 'LED',
+    desc: 'キー配列の下のLEDパネルで、LEDの光り方（エフェクト）・色・明るさ・速さを変えられます。レイヤーごとに光り方を変える「レイヤー連動LED」も設定できます。（LEDなしのファームウェアでは灰色で表示されます）',
+    targets: ['[data-guide="led-panel"]'],
     manual: true,
   },
   save: {
@@ -139,10 +149,24 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
   const vh = window.innerHeight;
 
   let bubbleStyle: CSSProperties = {};
-  let arrow: { style: CSSProperties; dir: 'below' | 'above' } | null = null;
+  let arrow: { style: CSSProperties; dir: 'below' | 'above' | 'right' | 'left' } | null = null;
   let highlight: CSSProperties | null = null;
 
-  if (rect) {
+  // 横に置く指定があり、その側に吹き出しが収まる時は横に置く
+  const sideFits = rect && def.side
+    ? (def.side === 'right' ? rect.left + rect.width + 14 + BUBBLE_W <= vw - 12 : rect.left - 14 - BUBBLE_W >= 12)
+    : false;
+
+  if (rect && sideFits) {
+    const right = def.side === 'right';
+    const mid   = Math.min(Math.max(rect.top + rect.height / 2, 110), vh - 110);  // 吹き出しの縦中央
+    const left  = right ? rect.left + rect.width + 14 : rect.left - 14 - BUBBLE_W;
+    bubbleStyle = { top: mid, left, transform: 'translateY(-50%)' };
+    arrow = right
+      ? { style: { top: mid - 6, left: rect.left + rect.width + 8 }, dir: 'right' }
+      : { style: { top: mid - 6, left: rect.left - 20 }, dir: 'left' };
+    highlight = { top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 };
+  } else if (rect) {
     const below = rect.bottom + 180 < vh;
     const above = !below && rect.top > 180;
     const left = Math.min(Math.max(rect.left + rect.width / 2 - BUBBLE_W / 2, 12), Math.max(vw - BUBBLE_W - 12, 12));

@@ -2643,6 +2643,9 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 .guide-arrow--below { border-left: 1px solid var(--accent); border-top: 1px solid var(--accent); }
 .guide-arrow--above { border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent); }
+/* 吹き出しが対象の右にある時（矢印は左向き）／左にある時（矢印は右向き） */
+.guide-arrow--right { border-left: 1px solid var(--accent); border-bottom: 1px solid var(--accent); }
+.guide-arrow--left  { border-right: 1px solid var(--accent); border-top: 1px solid var(--accent); }
 
 /* 対象要素の強調枠 */
 .guide-highlight {

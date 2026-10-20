@@ -122,7 +122,7 @@ export default function App() {
   const [showResetMenu, setShowResetMenu] = useState(false);
   const [loadingPreset, setLoadingPreset] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
-  const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'others' | 'done'>('flash');
+  const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'led' | 'trackball' | 'others' | 'done'>('flash');
   const [showGuide, setShowGuide] = useState(false);
   const everAssignedRef = useRef(false);
   // 右側キー設定パネルの高さを、左側（キー配列＋LEDカード）の実測高さに合わせるための参照。
@@ -211,7 +211,7 @@ export default function App() {
 
   // チュートリアルの「次へ」（全ステップでスキップ可能）
   const advanceGuide = () => {
-    const order = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'others', 'done'] as const;
+    const order = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'led', 'save', 'trackball', 'others', 'done'] as const;
     // レイヤーの説明へ進むときはキー設定画面を閉じて、Layerタブが見える状態にする
     if (guideStep === 'mods') setSelectedKeyIndex(null);
     const i = order.indexOf(guideStep);
@@ -820,7 +820,7 @@ export default function App() {
       {showGuide && (() => {
         // 対象がキーマップタブ内にあるステップで別タブにいるときは、タブへ戻る誘導を出す
         // （接続ボタンはどのタブにもある＝キーマップタブではヘッダー以外の場所にある、ため'connect'は含めない）
-        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
+        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'led', 'save'].includes(guideStep);
         const displayStep = needsKeymapTab && activeTab !== 'keymap' ? 'backToKeymap' as const : guideStep;
         return (
           <WelcomeGuide
@@ -1004,7 +1004,7 @@ export default function App() {
                   {/* LED設定。キーボードカードとは別の1枚のパネルとして、キー配列カードの下・
                       キー設定パネルの隣に配置。LED対応版（state.led あり）は操作可、通常版はグレーアウト表示。 */}
                   {isConnected && (
-                    <div className="keymap-led-panel">
+                    <div className="keymap-led-panel" data-guide="led-panel">
                       <LedPanel
                         led={state.led}
                         onLedChange={handleLedChange}

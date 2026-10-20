@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 
 export type GuideStep =
   | 'flash' | 'connect' | 'click' | 'assign'
-  | 'mods' | 'layers' | 'save' | 'trackball' | 'done'
+  | 'mods' | 'layers' | 'save' | 'trackball' | 'others' | 'done'
   | 'backToKeymap';  // キーマップタブ以外にいるときの誘導（擬似ステップ）
 
 interface WelcomeGuideProps {
@@ -11,7 +11,7 @@ interface WelcomeGuideProps {
   onNext?: () => void;  // 「次へ」で手動進行するステップ用
 }
 
-const STEP_ORDER: GuideStep[] = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'done'];
+const STEP_ORDER: GuideStep[] = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'others', 'done'];
 
 interface StepDef {
   title: string;
@@ -20,49 +20,58 @@ interface StepDef {
   manual?: boolean;    // trueなら「次へ」ボタンで進行
 }
 
+// 2026-10-20: 画面の作り直し（キー設定の右パネル化・設定タブの左サイドバー化・ファームウェア
+// タブの①②手順化など）に合わせて文言と指す場所を更新（本人依頼）。
 const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
   flash: {
-    title: 'ファームウェアを書き込む',
-    desc: 'この「ファームウェア」タブから専用ファームウェアを書き込みます（初回のみ）。書き込みが済んだら「次へ」を押してください。',
-    targets: ['[data-guide="firmware-tab"]'],
+    title: 'ファームウェアを書き込む（初回のみ）',
+    desc: 'Keyball Linkを使うには、専用のファームウェアが必要です。購入時のファームウェア（Remap用）のままでは接続できません。「ファームウェア」タブを開き、①で機種・チップ（AVR/RP2040）・内蔵ファームウェアを選んで、②「書き込む」を押します（左右それぞれ）。もう書き込み済みなら「次へ」を押してください。',
+    // ファームウェアタブを開いている時は書き込みの手順のカード、それ以外はタブ見出しを指す
+    targets: ['[data-guide="firmware-panel"] [data-card="flash"]', '[data-guide="firmware-tab"]'],
     manual: true,
   },
   connect: {
     title: 'キーボードに接続',
-    desc: 'このボタンを押して、一覧から Keyball を選んでください。',
+    desc: 'キーボードをUSBでつないでから、このボタンを押し、一覧から Keyball を選んで「接続」を押してください。',
     targets: ['[data-guide="connect-btn"]'],
   },
   click: {
     title: 'キーをクリック',
-    desc: '変更したいキーをクリックしてください。設定画面が開きます。',
+    desc: '変更したいキーをクリックしてください。右側のキー設定パネルに、割り当てられるキーの一覧が出ます。',
     targets: ['[data-guide="keyboard"]'],
   },
   assign: {
     title: '新しいキーを選ぶ',
-    desc: 'この一覧から割り当てたいキーをクリックすると、選んだキーに設定されます。',
+    desc: '右側の一覧から割り当てたいキーをクリックすると、選んだキーにすぐ設定されます。',
     targets: ['[data-guide="key-picker"]', '[data-guide="keyboard"]'],
   },
   mods: {
     title: '修飾キーとホールド',
-    desc: 'キー設定画面の「ホールド」タブでは、タップ＝通常キー／長押し＝Shift・Ctrl やレイヤー切替、という1キー2役の設定ができます。',
+    desc: '右側のキー設定パネルの「ホールド」タブでは、タップ＝通常キー／長押し＝Shift・Ctrl やレイヤー切替、という1キー2役の設定ができます。',
     targets: ['[data-guide="hold-tab"]', '[data-guide="keyboard"]'],
     manual: true,
   },
   layers: {
     title: 'レイヤー',
-    desc: 'レイヤーはキーマップの切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。このタブで各レイヤーを編集できます。',
+    desc: 'レイヤーはキー配列の切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。ここで編集するレイヤーを選べます。「全レイヤー」で全部を並べて見比べたり、ドラッグで並べ替えたりもできます。',
     targets: ['[data-guide="layer-tabs"]'],
     manual: true,
   },
   save: {
     title: '保存する',
-    desc: 'このボタンを押して、設定をキーボード本体に保存しましょう。',
+    desc: 'このボタンを押して、設定をキーボード本体に保存しましょう。保存しないと、電源を抜いた時に元に戻ります。',
     targets: ['[data-guide="save-btn"]'],
   },
   trackball: {
     title: 'トラックボール設定',
-    desc: 'この「トラックボール設定」タブでカーソル速度（CPI）・スクロール・オートマウスレイヤーなどを調整できます。以上で基本の使い方は終わりです！',
+    desc: '「トラックボール設定」タブでは、左の一覧から項目を選んで調整します。ボール動作（カーソルの速さ・精密モード）、スクロール、ジェスチャー、オートマウスレイヤー、シェイク・ダブルフリックが設定できます。',
     targets: ['[data-guide="trackball-tab"]'],
+    manual: true,
+  },
+  others: {
+    title: 'その他の設定',
+    desc: '「マクロ拡張」ではマクロ・タップダンス・コンボ、「詳細設定」ではキー動作（長押しの判定時間など）・OS自動判別・キー表示の配列（JIS/US）などを設定できます。項目にマウスを乗せると説明が出ます。以上で基本の使い方は終わりです！',
+    targets: ['[data-guide="macro-tab"]'],
     manual: true,
   },
   backToKeymap: {
@@ -166,7 +175,7 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
         {onNext && (
           <div className="guide-tooltip__actions">
             <button className="btn btn--primary btn--small" onClick={onNext}>
-              {step === 'trackball' ? '完了' : '次へ'}
+              {step === 'others' ? '完了' : '次へ'}
             </button>
           </div>
         )}

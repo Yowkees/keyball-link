@@ -441,7 +441,7 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   ];
 
   return (
-    <div className="settings-tab">
+    <div className="settings-tab" data-guide="firmware-panel">
       <SettingsSidebarBoard cards={cards} />
     </div>
   );

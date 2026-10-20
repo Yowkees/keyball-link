@@ -19,7 +19,7 @@ function BoardCardView({ card }: { card: BoardCard }) {
   const [pane, setPane] = useState(0);
   const panes = card.panes && card.panes.length > 1 ? card.panes : null;
   return (
-    <section className={`board-card ${card.className ?? ''}`} style={{ '--area': card.key } as React.CSSProperties}>
+    <section className={`board-card ${card.className ?? ''}`} data-card={card.key} style={{ '--area': card.key } as React.CSSProperties}>
       <header className="board-card__head">
         <span className="board-card__title" data-tip={card.tip}>{card.title}</span>
         {card.note && !panes && <span className="board-card__note">{card.note}</span>}

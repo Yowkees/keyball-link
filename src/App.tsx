@@ -122,7 +122,7 @@ export default function App() {
   const [showResetMenu, setShowResetMenu] = useState(false);
   const [loadingPreset, setLoadingPreset] = useState(false);
   // ガイドの進捗（接続後に初回のみ表示）
-  const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'done'>('flash');
+  const [guideStep, setGuideStep] = useState<'flash' | 'connect' | 'click' | 'assign' | 'save' | 'mods' | 'layers' | 'trackball' | 'others' | 'done'>('flash');
   const [showGuide, setShowGuide] = useState(false);
   const everAssignedRef = useRef(false);
   // 右側キー設定パネルの高さを、左側（キー配列＋LEDカード）の実測高さに合わせるための参照。
@@ -211,7 +211,7 @@ export default function App() {
 
   // チュートリアルの「次へ」（全ステップでスキップ可能）
   const advanceGuide = () => {
-    const order = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'done'] as const;
+    const order = ['flash', 'connect', 'click', 'assign', 'mods', 'layers', 'save', 'trackball', 'others', 'done'] as const;
     // レイヤーの説明へ進むときはキー設定画面を閉じて、Layerタブが見える状態にする
     if (guideStep === 'mods') setSelectedKeyIndex(null);
     const i = order.indexOf(guideStep);
@@ -805,6 +805,7 @@ export default function App() {
               {activeTab !== 'keymap' && (
                 <button
                   className="btn btn--primary"
+                  data-guide="connect-btn"
                   onClick={connect}
                   disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                 >
@@ -818,7 +819,8 @@ export default function App() {
 
       {showGuide && (() => {
         // 対象がキーマップタブ内にあるステップで別タブにいるときは、タブへ戻る誘導を出す
-        const needsKeymapTab = ['connect', 'click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
+        // （接続ボタンはどのタブにもある＝キーマップタブではヘッダー以外の場所にある、ため'connect'は含めない）
+        const needsKeymapTab = ['click', 'assign', 'mods', 'layers', 'save'].includes(guideStep);
         const displayStep = needsKeymapTab && activeTab !== 'keymap' ? 'backToKeymap' as const : guideStep;
         return (
           <WelcomeGuide
@@ -840,7 +842,7 @@ export default function App() {
             <div className="tabs">
               <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>キーマップ</button>
               <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>トラックボール設定</button>
-              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} onClick={() => setActiveTab('macro')}>マクロ拡張</button>
+              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>マクロ拡張</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
               <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>

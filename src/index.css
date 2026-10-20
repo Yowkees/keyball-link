@@ -566,6 +566,10 @@ body { background: var(--bg); overflow-x: hidden; }
   background: var(--accent-soft);
   color: var(--accent);
 }
+/* キーボードから自動で読み取った時は押せない（選ばれていない方は薄く表示） */
+.ball-toggle__btn:disabled { cursor: default; }
+.ball-toggle__btn:disabled:not(.ball-toggle__btn--active) { opacity: 0.4; }
+.ball-toggle__btn:disabled:hover:not(.ball-toggle__btn--active) { border-color: transparent; }
 .btn--layer {
   background: var(--bg2);
   color: var(--text-dim);

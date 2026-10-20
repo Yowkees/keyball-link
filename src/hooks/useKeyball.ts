@@ -4,7 +4,7 @@ import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, Macr
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, gestureModeCountFor, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import { chipForProductId } from '../lib/deviceIds';
-import { firmwareUsesPhysicalRowOrder } from '../lib/firmwareFeatures';
+import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide } from '../lib/firmwareFeatures';
 import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -37,6 +37,7 @@ export interface KeyballState {
   detectedOs: number | null;  // OS自動判別の検出結果（0-4）。null = 非対応ファーム
   dpiCurve: DpiCurveConfig | null;  // DPIカーブ。null = 非対応ファーム
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
+  detectedBallSide: 'left' | 'right' | null;  // ファームが答えたボールの左右（null = 不明・手動で選ぶ）
   precision: PrecisionConfig | null;  // 精密モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
@@ -81,6 +82,7 @@ const initialKeyballState = (): KeyballState => ({
   detectedOs: null,
   dpiCurve: null,
   firmwareVersion: null,
+  detectedBallSide: null,
   precision: null,
   scrollInertia: null,
   layerLedEnable: null,
@@ -138,6 +140,10 @@ export function useKeyball() {
       try { gesture = await hid.current.getGesture(); } catch { /* ジェスチャー非対応FW */ }
       // ジェスチャーのモード数はファームのバージョンで決まる（gestureModeCountFor参照）
       const gestureModeCount = gestureModeCountFor(firmwareVersion);
+      let detectedBallSide: 'left' | 'right' | null = null;
+      if (firmwareReportsBallSide(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
+        try { detectedBallSide = await hid.current.getBallSide(); } catch { /* 取得できなければ手動の選択を使う */ }
+      }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
       let gestureWaveSpeed: number[] | null = null;
@@ -213,6 +219,7 @@ export function useKeyball() {
         detectedOs,
         dpiCurve,
         firmwareVersion,
+        detectedBallSide,
         precision,
         scrollInertia,
         layerLedEnable,

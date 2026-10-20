@@ -37,7 +37,7 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
-export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 0 };
+export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 1 };
 
 export function latestFwVersion(model: ModelKey, chip: Chip | undefined): FirmwareVersion {
   return chip === 'rp2040' ? LATEST_FW_VERSION_RP2040 : LATEST_FW_VERSION[model];
@@ -55,4 +55,13 @@ export function firmwareUsesPhysicalRowOrder(chip: Chip | undefined, version: Fi
   if (!version) return false;
   if (chip === 'rp2040') return !isOlderVersion(version, PHYSICAL_ROW_ORDER_MIN_VERSION_RP2040);
   return false;
+}
+
+// ボールの左右の自動判定（GET_BALL_SIDE、RP2040版v0.5.1〜）。左右判定が物理と一致したファームでだけ
+// 正しく答えられるため、それより古いファームでは問い合わせない（未対応のコマンドを送っても
+// 区別できる応答が返らないため、バージョンで判断する）。
+const BALL_SIDE_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 1 };
+
+export function firmwareReportsBallSide(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
+  return chip === 'rp2040' && !!version && !isOlderVersion(version, BALL_SIDE_MIN_VERSION_RP2040);
 }

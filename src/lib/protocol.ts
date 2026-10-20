@@ -32,6 +32,7 @@ export const CMD = {
   GET_GESTURE:   0x15,
   SET_GESTURE:   0x16,
   GET_VERSION:   0x17,
+  GET_BALL_SIDE: 0x35,  // ボールが物理的に左右どちらの基板にあるか（RP2040版v0.5.1〜）
   GET_PRECISION: 0x18,
   SET_PRECISION: 0x19,
   GET_LAYER_LED_ENABLE: 0x1A,

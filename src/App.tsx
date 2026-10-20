@@ -103,9 +103,13 @@ export default function App() {
   const [accentTheme, setAccentTheme] = useState<AccentTheme>(() =>
     (localStorage.getItem('accentTheme') as AccentTheme) ?? 'mint'
   );
-  const [ballSide, setBallSide] = useState<BallSide>(() =>
+  // ボールの左右。ファームが答えられる時（RP2040版v0.5.1〜、片側だけにボール）はその値を使い、
+  // それ以外は画面のボタンで選んだ値（ブラウザに保存）を使う。
+  const [manualBallSide, setManualBallSide] = useState<BallSide>(() =>
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
   );
+  const ballSide: BallSide = state.detectedBallSide ?? manualBallSide;
+  const ballSideAuto = state.detectedBallSide !== null;
   const [keyLayout, setKeyLayout] = useState<KeyLayout>(() =>
     (localStorage.getItem('keyLayout') as KeyLayout) ?? 'JIS'
   );
@@ -232,7 +236,7 @@ export default function App() {
   };
 
   const handleBallSide = (side: BallSide) => {
-    setBallSide(side);
+    setManualBallSide(side);
     localStorage.setItem('ballSide', side);
   };
 
@@ -940,10 +944,10 @@ export default function App() {
                         );
                       })()}
                       <div className="ball-toggle">
-                        <span className="ball-toggle__label">ボール</span>
-                        <div className="ball-toggle__group">
-                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} onClick={() => handleBallSide('left')}>左</button>
-                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} onClick={() => handleBallSide('right')}>右</button>
+                        <span className="ball-toggle__label">{ballSideAuto ? 'ボール（自動）' : 'ボール'}</span>
+                        <div className="ball-toggle__group" title={ballSideAuto ? 'キーボードから読み取ったボールの位置を表示しています' : undefined}>
+                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('left')}>左</button>
+                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('right')}>右</button>
                         </div>
                       </div>
                     </div>

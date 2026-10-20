@@ -544,6 +544,19 @@ export class KeyballHID {
     return { major: r[1], minor: r[2], patch: r[3] };
   }
 
+  // ボールが物理的に左右どちらにあるか。片側だけにボールがある時だけ 'left' / 'right' を返し、
+  // ボール無し・両側ボール・反対側と未接続で判断できない時は null（手動の選択を使う）。
+  async getBallSide(): Promise<'left' | 'right' | null> {
+    const r = await this.sendCommand(makePacket(CMD.GET_BALL_SIDE));
+    if (r[0] !== CMD.GET_BALL_SIDE) throw new Error('ボールの左右の取得に非対応のファームです');
+    const thisIsLeft = r[1] === 1, thisHave = r[2] === 1, thatEnable = r[3] === 1, thatHave = r[4] === 1;
+    if (!thatEnable) return thisHave ? (thisIsLeft ? 'left' : 'right') : null;
+    const left  = thisIsLeft ? thisHave : thatHave;
+    const right = thisIsLeft ? thatHave : thisHave;
+    if (left === right) return null;
+    return left ? 'left' : 'right';
+  }
+
   async getMatrixState(): Promise<boolean[][]> {
     const r = await this.sendCommand(makePacket(CMD.GET_MATRIX));
     const rows = r[1];

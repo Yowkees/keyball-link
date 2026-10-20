@@ -1,5 +1,6 @@
 import type { ModelKey } from '../layouts';
 import type { FirmwareVersion } from './protocol';
+import { isOlderVersion } from './protocol';
 import type { Chip } from './deviceIds';
 
 // ファームウェアの rules.mk と一致させること（rules.mk を変更したときはここも更新する）。
@@ -36,8 +37,22 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
-export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 4, patch: 28 };
+export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 0 };
 
 export function latestFwVersion(model: ModelKey, chip: Chip | undefined): FirmwareVersion {
   return chip === 'rp2040' ? LATEST_FW_VERSION_RP2040 : LATEST_FW_VERSION[model];
+}
+
+// ファームのキーマトリクスの行の並び（2026-10-20、左右判定の根本修正）。
+// 旧ファームは基板の左右判定が物理と逆（QMK #22775の影響）で、行0〜(半分-1)＝物理的な右手だった。
+// RP2040版v0.5.0からは判定を物理と一致させたため、行0〜(半分-1)＝物理的な左手になった。
+// Keyball Linkの中（src/layouts/*.tsの行番号・プリセット・書き出したファイル）は旧い並びのまま
+// 変えず、新しい並びのファームと通信する時だけ hid.ts の出入口で前半と後半の行を入れ替える
+// （書き出し済みのファイルや旧ファームの利用者に影響を出さないため）。
+const PHYSICAL_ROW_ORDER_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 0 };
+
+export function firmwareUsesPhysicalRowOrder(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
+  if (!version) return false;
+  if (chip === 'rp2040') return !isOlderVersion(version, PHYSICAL_ROW_ORDER_MIN_VERSION_RP2040);
+  return false;
 }

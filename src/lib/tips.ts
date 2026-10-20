@@ -67,6 +67,7 @@ export const TIPS = {
 
   // ── ファームウェア・ご意見 ──
   fwFlash: 'Keyball Linkのファームウェアをキーボードに書き込みます。機種と版を選んで「書き込む」を押してください。',
+  fwBothHalves: 'Keyballは左右の基板それぞれにマイコンがあるため、両方への書き込みが必要です。',
   fwSwitch: '公式ファームウェアなどから初めてKeyball Linkに乗り換える時の注意です。',
   fwRevert: 'Keyball Linkから正規ファームウェアなど別のファームウェアに戻す時の注意です。',
   fwTrouble: 'ブラウザからの書き込みがうまくいかない時の方法です。',

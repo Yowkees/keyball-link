@@ -96,13 +96,24 @@ export class KeyballHID {
     return { model: r[1] as KeyballModel, layers: r[2], rows: r[3], cols: r[4], protocol: r[5] };
   }
 
+  // Keyball Linkの中の行番号（旧い並び）とファームの行番号の対応。0なら同じ。新しい並びの
+  // ファーム（firmwareFeatures.tsのfirmwareUsesPhysicalRowOrder）では行数の半分を入れ、
+  // 前半と後半の行を入れ替えて通信する。接続のたびにuseKeyballが設定する。
+  rowSwapHalf = 0;
+
+  private toFirmwareRow(row: number): number {
+    const h = this.rowSwapHalf;
+    if (h === 0) return row;
+    return row < h ? row + h : row - h;
+  }
+
   async getKeycode(layer: number, row: number, col: number): Promise<number> {
-    const r = await this.sendCommand(makePacket(CMD.GET_KEYCODE, layer, row, col));
+    const r = await this.sendCommand(makePacket(CMD.GET_KEYCODE, layer, this.toFirmwareRow(row), col));
     return (r[4] << 8) | r[5];
   }
 
   async setKeycode(layer: number, row: number, col: number, keycode: number): Promise<void> {
-    const r = await this.sendCommand(makePacket(CMD.SET_KEYCODE, layer, row, col, (keycode >> 8) & 0xFF, keycode & 0xFF));
+    const r = await this.sendCommand(makePacket(CMD.SET_KEYCODE, layer, this.toFirmwareRow(row), col, (keycode >> 8) & 0xFF, keycode & 0xFF));
     if (r[0] !== CMD.SET_KEYCODE) {
       throw new Error(`SET_KEYCODE 応答異常 (cmd=0x${r[0].toString(16).padStart(2,'0')}) — ファームウェアがコマンドを認識していない可能性があります`);
     }
@@ -538,7 +549,7 @@ export class KeyballHID {
     const rows = r[1];
     const matrix: boolean[][] = [];
     for (let row = 0; row < rows; row++) {
-      const mask = r[2 + row];
+      const mask = r[2 + this.toFirmwareRow(row)];
       matrix[row] = Array.from({ length: 8 }, (_, col) => (mask >> col & 1) === 1);
     }
     return matrix;

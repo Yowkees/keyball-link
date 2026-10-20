@@ -418,6 +418,16 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
       ),
     }] : []),
     {
+      key: 'both', title: '左右の両方に書き込む', tip: TIPS.fwBothHalves,
+      render: () => (
+        <p className="fw-note">
+          Keyballは左右の基板それぞれにマイコンがあります。書き込み・更新をする時は、
+          USBケーブルを反対側に挿し替えて<strong>左右の両方に同じファームウェアを書き込んでください</strong>。<br />
+          片側だけ更新すると、LEDの光り方などが左右で合わなくなることがあります。
+        </p>
+      ),
+    },
+    {
       key: 'switch', title: '公式ファームからの乗り換え', tip: TIPS.fwSwitch,
       render: () => (
         <p className="fw-note">

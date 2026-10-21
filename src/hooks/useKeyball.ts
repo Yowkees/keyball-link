@@ -4,7 +4,7 @@ import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, Macr
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, gestureModeCountFor, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import { chipForProductId } from '../lib/deviceIds';
-import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide } from '../lib/firmwareFeatures';
+import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide, firmwareSupportsOledAnimToggle } from '../lib/firmwareFeatures';
 import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -38,6 +38,7 @@ export interface KeyballState {
   dpiCurve: DpiCurveConfig | null;  // DPIカーブ。null = 非対応ファーム
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
   detectedBallSide: 'left' | 'right' | null;  // ファームが答えたボールの左右（null = 不明・手動で選ぶ）
+  oledAnimEnabled: boolean | null;  // OLEDのアニメーションのON/OFF（null = 非対応ファーム）
   precision: PrecisionConfig | null;  // 精密モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
@@ -83,6 +84,7 @@ const initialKeyballState = (): KeyballState => ({
   dpiCurve: null,
   firmwareVersion: null,
   detectedBallSide: null,
+  oledAnimEnabled: null,
   precision: null,
   scrollInertia: null,
   layerLedEnable: null,
@@ -143,6 +145,10 @@ export function useKeyball() {
       let detectedBallSide: 'left' | 'right' | null = null;
       if (firmwareReportsBallSide(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
         try { detectedBallSide = await hid.current.getBallSide(); } catch { /* 取得できなければ手動の選択を使う */ }
+      }
+      let oledAnimEnabled: boolean | null = null;
+      if (firmwareSupportsOledAnimToggle(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
+        try { oledAnimEnabled = await hid.current.getOledAnimEnabled(); } catch { /* 非対応なら項目を出さない */ }
       }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
@@ -220,6 +226,7 @@ export function useKeyball() {
         dpiCurve,
         firmwareVersion,
         detectedBallSide,
+        oledAnimEnabled,
         precision,
         scrollInertia,
         layerLedEnable,
@@ -377,6 +384,11 @@ export function useKeyball() {
     setPartial({ scrollInertia: c });
   }, []);
 
+  const setOledAnimEnabled = useCallback(async (v: boolean) => {
+    await hid.current.setOledAnimEnabled(v);
+    setPartial({ oledAnimEnabled: v });
+  }, []);
+
   const setLayerLedEnable = useCallback(async (v: boolean) => {
     await hid.current.setLayerLedEnable(v);
     setPartial({ layerLedEnable: v });
@@ -473,5 +485,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

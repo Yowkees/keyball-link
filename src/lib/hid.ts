@@ -557,6 +557,16 @@ export class KeyballHID {
     return left ? 'left' : 'right';
   }
 
+  async getOledAnimEnabled(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_OLED_ANIM));
+    if (r[0] !== CMD.GET_OLED_ANIM) throw new Error('OLEDアニメーションの設定に非対応のファームです');
+    return r[1] === 1;
+  }
+
+  async setOledAnimEnabled(enabled: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_OLED_ANIM, enabled ? 1 : 0));
+  }
+
   async getMatrixState(): Promise<boolean[][]> {
     const r = await this.sendCommand(makePacket(CMD.GET_MATRIX));
     const rows = r[1];

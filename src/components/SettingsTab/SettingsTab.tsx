@@ -15,6 +15,8 @@ interface SettingsTabProps {
   isConnected: boolean;
   onChange: (s: KbSettings) => Promise<void>;
   detectedOs: number | null;  // OS自動判別の検出結果（0-4）。null = 非対応ファーム
+  oledAnimEnabled: boolean | null;  // OLEDのアニメーションのON/OFF。null = 非対応ファーム（項目を出さない）
+  onOledAnimChange: (v: boolean) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   model: ModelKey | null;
@@ -25,7 +27,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({
-  settings, isConnected, onChange, detectedOs,
+  settings, isConnected, onChange, detectedOs, oledAnimEnabled, onOledAnimChange,
   keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
 }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
@@ -100,6 +102,22 @@ export function SettingsTab({
           </div>
           {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
         </>
+      ),
+    }] : []),
+    ...(oledAnimEnabled !== null ? [{
+      key: 'oled', title: 'OLED', className: 'board-card--narrow', tip: TIPS.oled,
+      render: () => (
+        <div className="setting-rows">
+          <ToggleRow
+            label="アニメーション"
+            desc="" tip={TIPS.oledAnim}
+            checked={oledAnimEnabled} disabled={disabled}
+            onChange={async v => {
+              setSaving(true);
+              try { await onOledAnimChange(v); } finally { setSaving(false); }
+            }}
+          />
+        </div>
       ),
     }] : []),
     {

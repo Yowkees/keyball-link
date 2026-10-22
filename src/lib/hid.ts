@@ -567,6 +567,16 @@ export class KeyballHID {
     await this.sendCommand(makePacket(CMD.SET_OLED_ANIM, enabled ? 1 : 0));
   }
 
+  async getBootAnimEnabled(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_BOOT_ANIM));
+    if (r[0] !== CMD.GET_BOOT_ANIM) throw new Error('起動アニメーションの設定に非対応のファームです');
+    return r[1] === 1;
+  }
+
+  async setBootAnimEnabled(enabled: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_BOOT_ANIM, enabled ? 1 : 0));
+  }
+
   async getMatrixState(): Promise<boolean[][]> {
     const r = await this.sendCommand(makePacket(CMD.GET_MATRIX));
     const rows = r[1];

@@ -37,7 +37,7 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
-export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 6 };
+export const LATEST_FW_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 7 };
 
 export function latestFwVersion(model: ModelKey, chip: Chip | undefined): FirmwareVersion {
   return chip === 'rp2040' ? LATEST_FW_VERSION_RP2040 : LATEST_FW_VERSION[model];
@@ -71,4 +71,11 @@ const OLED_ANIM_TOGGLE_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 
 
 export function firmwareSupportsOledAnimToggle(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
   return chip === 'rp2040' && !!version && !isOlderVersion(version, OLED_ANIM_TOGGLE_MIN_VERSION_RP2040);
+}
+
+// 起動アニメーションのON/OFF（GET/SET_BOOT_ANIM、RP2040版v0.5.7〜）。
+const BOOT_ANIM_TOGGLE_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 7 };
+
+export function firmwareSupportsBootAnimToggle(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
+  return chip === 'rp2040' && !!version && !isOlderVersion(version, BOOT_ANIM_TOGGLE_MIN_VERSION_RP2040);
 }

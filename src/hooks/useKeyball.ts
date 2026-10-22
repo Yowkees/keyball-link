@@ -4,7 +4,7 @@ import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, Macr
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, gestureModeCountFor, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
 import type { ModelKey } from '../layouts';
 import { chipForProductId } from '../lib/deviceIds';
-import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide, firmwareSupportsOledAnimToggle } from '../lib/firmwareFeatures';
+import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide, firmwareSupportsOledAnimToggle, firmwareSupportsBootAnimToggle } from '../lib/firmwareFeatures';
 import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -39,6 +39,7 @@ export interface KeyballState {
   firmwareVersion: FirmwareVersion | null;  // null = バージョン情報非対応の旧ファーム
   detectedBallSide: 'left' | 'right' | null;  // ファームが答えたボールの左右（null = 不明・手動で選ぶ）
   oledAnimEnabled: boolean | null;  // OLEDのアニメーションのON/OFF（null = 非対応ファーム）
+  bootAnimEnabled: boolean | null;  // 起動アニメーションのON/OFF（null = 非対応ファーム）
   precision: PrecisionConfig | null;  // 精密モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
@@ -85,6 +86,7 @@ const initialKeyballState = (): KeyballState => ({
   firmwareVersion: null,
   detectedBallSide: null,
   oledAnimEnabled: null,
+  bootAnimEnabled: null,
   precision: null,
   scrollInertia: null,
   layerLedEnable: null,
@@ -149,6 +151,10 @@ export function useKeyball() {
       let oledAnimEnabled: boolean | null = null;
       if (firmwareSupportsOledAnimToggle(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
         try { oledAnimEnabled = await hid.current.getOledAnimEnabled(); } catch { /* 非対応なら項目を出さない */ }
+      }
+      let bootAnimEnabled: boolean | null = null;
+      if (firmwareSupportsBootAnimToggle(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
+        try { bootAnimEnabled = await hid.current.getBootAnimEnabled(); } catch { /* 非対応なら項目を出さない */ }
       }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
@@ -227,6 +233,7 @@ export function useKeyball() {
         firmwareVersion,
         detectedBallSide,
         oledAnimEnabled,
+        bootAnimEnabled,
         precision,
         scrollInertia,
         layerLedEnable,
@@ -389,6 +396,11 @@ export function useKeyball() {
     setPartial({ oledAnimEnabled: v });
   }, []);
 
+  const setBootAnimEnabled = useCallback(async (v: boolean) => {
+    await hid.current.setBootAnimEnabled(v);
+    setPartial({ bootAnimEnabled: v });
+  }, []);
+
   const setLayerLedEnable = useCallback(async (v: boolean) => {
     await hid.current.setLayerLedEnable(v);
     setPartial({ layerLedEnable: v });
@@ -485,5 +497,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

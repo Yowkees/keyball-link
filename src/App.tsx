@@ -93,7 +93,7 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
@@ -1134,6 +1134,11 @@ export default function App() {
                 onChange={handleKbSettingsChange}
                 detectedOs={state.detectedOs}
                 oledAnimEnabled={state.oledAnimEnabled}
+                bootAnimEnabled={state.bootAnimEnabled}
+                onBootAnimChange={async v => {
+                  try { await setBootAnimEnabled(v); }
+                  catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                }}
                 onOledAnimChange={async v => {
                   try { await setOledAnimEnabled(v); }
                   catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }

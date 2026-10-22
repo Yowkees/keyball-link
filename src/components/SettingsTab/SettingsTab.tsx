@@ -17,6 +17,8 @@ interface SettingsTabProps {
   detectedOs: number | null;  // OS自動判別の検出結果（0-4）。null = 非対応ファーム
   oledAnimEnabled: boolean | null;  // OLEDのアニメーションのON/OFF。null = 非対応ファーム（項目を出さない）
   onOledAnimChange: (v: boolean) => Promise<void>;
+  bootAnimEnabled: boolean | null;  // 起動アニメーションのON/OFF。null = 非対応ファーム（項目を出さない）
+  onBootAnimChange: (v: boolean) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   model: ModelKey | null;
@@ -27,7 +29,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({
-  settings, isConnected, onChange, detectedOs, oledAnimEnabled, onOledAnimChange,
+  settings, isConnected, onChange, detectedOs, oledAnimEnabled, onOledAnimChange, bootAnimEnabled, onBootAnimChange,
   keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
 }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
@@ -104,19 +106,32 @@ export function SettingsTab({
         </>
       ),
     }] : []),
-    ...(oledAnimEnabled !== null ? [{
-      key: 'oled', title: 'OLED', className: 'board-card--narrow', tip: TIPS.oled,
+    ...(oledAnimEnabled !== null || bootAnimEnabled !== null ? [{
+      key: 'oled', title: 'アニメーション', className: 'board-card--narrow', tip: TIPS.oled,
       render: () => (
         <div className="setting-rows">
-          <ToggleRow
-            label="アニメーション"
-            desc="" tip={TIPS.oledAnim}
-            checked={oledAnimEnabled} disabled={disabled}
-            onChange={async v => {
-              setSaving(true);
-              try { await onOledAnimChange(v); } finally { setSaving(false); }
-            }}
-          />
+          {bootAnimEnabled !== null && (
+            <ToggleRow
+              label="起動アニメーション"
+              desc="" tip={TIPS.bootAnim}
+              checked={bootAnimEnabled} disabled={disabled}
+              onChange={async v => {
+                setSaving(true);
+                try { await onBootAnimChange(v); } finally { setSaving(false); }
+              }}
+            />
+          )}
+          {oledAnimEnabled !== null && (
+            <ToggleRow
+              label="OLEDアニメーション"
+              desc="" tip={TIPS.oledAnim}
+              checked={oledAnimEnabled} disabled={disabled}
+              onChange={async v => {
+                setSaving(true);
+                try { await onOledAnimChange(v); } finally { setSaving(false); }
+              }}
+            />
+          )}
         </div>
       ),
     }] : []),

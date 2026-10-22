@@ -11,25 +11,29 @@ import { TIPS } from '../../lib/tips';
 
 // 2026-09-18、Keyball+のAVR版LEDがフラッシュ容量超過のため一時非公開にしていたが、
 // 2026-09-25、原因（診断用コードの残存）を解消しビルド対象に復帰させたため再度公開。
+// ファームウェアは public/firmware/v2/ に置く（2026-10-22、左右判定の根本修正と同時）。
+// 修正前のKeyball Linkの画面を開いたままの人が、修正後のファームを書き込んで表示と実際のキーが
+// 左右逆になるのを防ぐため、修正前の画面が読む public/firmware/ 直下の古いファイルは修正前の版の
+// まま残している（触らないこと）。scripts/build-firmware.shもv2/へ出力する。
 const BUILTIN_FIRMWARE_AVR: Partial<Record<ModelKey, string>> = {
-  keyball39: '/firmware/keyball_keyball39_web_configurator.hex',
-  keyball44: '/firmware/keyball_keyball44_web_configurator.hex',
-  keyball61: '/firmware/keyball_keyball61_web_configurator.hex',
-  keyballplus: '/firmware/keyball_keyballplus_web_configurator.hex',
+  keyball39: '/firmware/v2/keyball_keyball39_web_configurator.hex',
+  keyball44: '/firmware/v2/keyball_keyball44_web_configurator.hex',
+  keyball61: '/firmware/v2/keyball_keyball61_web_configurator.hex',
+  keyballplus: '/firmware/v2/keyball_keyballplus_web_configurator.hex',
 };
 // LED版（AVR各機種）。LED有効・メディアキー有効・マクロ/ジェスチャー等を削減した構成
 const BUILTIN_FIRMWARE_AVR_LED: Partial<Record<ModelKey, string>> = {
-  keyball39: '/firmware/keyball_keyball39_web_configurator_led.hex',
-  keyball44: '/firmware/keyball_keyball44_web_configurator_led.hex',
-  keyball61: '/firmware/keyball_keyball61_web_configurator_led.hex',
-  keyballplus: '/firmware/keyball_keyballplus_web_configurator_led.hex',
+  keyball39: '/firmware/v2/keyball_keyball39_web_configurator_led.hex',
+  keyball44: '/firmware/v2/keyball_keyball44_web_configurator_led.hex',
+  keyball61: '/firmware/v2/keyball_keyball61_web_configurator_led.hex',
+  keyballplus: '/firmware/v2/keyball_keyballplus_web_configurator_led.hex',
 };
 // RP2040版。移植済みの機種のみ（LED版の分岐は無い＝1機種1ビルド）
 const BUILTIN_FIRMWARE_RP2040: Partial<Record<ModelKey, string>> = {
-  keyball39: '/firmware/keyball_keyball39_web_configurator.uf2',
-  keyballplus: '/firmware/keyball_keyballplus_web_configurator.uf2',
-  keyball44: '/firmware/keyball_keyball44_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
-  keyball61: '/firmware/keyball_keyball61_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
+  keyball39: '/firmware/v2/keyball_keyball39_web_configurator.uf2',
+  keyballplus: '/firmware/v2/keyball_keyballplus_web_configurator.uf2',
+  keyball44: '/firmware/v2/keyball_keyball44_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
+  keyball61: '/firmware/v2/keyball_keyball61_web_configurator.uf2',  // 2026-10-02〜。LED配線は実機確認済み（左右ボールとも）
 };
 // RP2040版をWeb UI上に表示するかどうか。2026-09-25〜はfalse（非公開）で、
 // 開発（rp2040ブランチ）だけtrueにして実機確認していた。

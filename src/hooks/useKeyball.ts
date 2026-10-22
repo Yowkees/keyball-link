@@ -129,7 +129,7 @@ export function useKeyball() {
       // 行の並びはファームのバージョンで決まる（firmwareUsesPhysicalRowOrder参照）ため、キーマップより先に読む
       let firmwareVersion: FirmwareVersion | null = null;
       try { firmwareVersion = await hid.current.getVersion(); } catch { /* バージョン情報非対応の旧FW */ }
-      hid.current.rowSwapHalf = firmwareUsesPhysicalRowOrder(pid != null ? chipForProductId(pid) : undefined, firmwareVersion) ? info.rows / 2 : 0;
+      hid.current.rowSwapHalf = firmwareUsesPhysicalRowOrder(model, pid != null ? chipForProductId(pid) : undefined, firmwareVersion) ? info.rows / 2 : 0;
       const keymap = await hid.current.getFullKeymap(info.layers, info.rows, info.cols);
       const trackball = await hid.current.getTrackball();
       let led = null;

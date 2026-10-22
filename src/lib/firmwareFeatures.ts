@@ -30,10 +30,10 @@ export function firmwareFeaturesForChip(chip: Chip | undefined) {
 // 以前はRP2040版接続時もAVR版の値と比べてしまい「最新版 v1.4.1 があります」と誤表示していた）。
 // hex/uf2 を作り直して差し替えるたびにここも更新する。
 export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
-  keyball39: { major: 1, minor: 4, patch: 2 },
-  keyball44: { major: 1, minor: 4, patch: 2 },
-  keyball61: { major: 1, minor: 4, patch: 2 },
-  keyballplus: { major: 1, minor: 1, patch: 1 },
+  keyball39: { major: 1, minor: 5, patch: 0 },
+  keyball44: { major: 1, minor: 5, patch: 0 },
+  keyball61: { major: 1, minor: 5, patch: 0 },
+  keyballplus: { major: 1, minor: 2, patch: 0 },
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。
@@ -45,15 +45,23 @@ export function latestFwVersion(model: ModelKey, chip: Chip | undefined): Firmwa
 
 // ファームのキーマトリクスの行の並び（2026-10-20、左右判定の根本修正）。
 // 旧ファームは基板の左右判定が物理と逆（QMK #22775の影響）で、行0〜(半分-1)＝物理的な右手だった。
-// RP2040版v0.5.0からは判定を物理と一致させたため、行0〜(半分-1)＝物理的な左手になった。
+// RP2040版v0.5.0・AVR版v1.5.0（Keyball+はv1.2.0）からは判定を物理と一致させたため、
+// 行0〜(半分-1)＝物理的な左手になった。
 // Keyball Linkの中（src/layouts/*.tsの行番号・プリセット・書き出したファイル）は旧い並びのまま
 // 変えず、新しい並びのファームと通信する時だけ hid.ts の出入口で前半と後半の行を入れ替える
 // （書き出し済みのファイルや旧ファームの利用者に影響を出さないため）。
 const PHYSICAL_ROW_ORDER_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 5, patch: 0 };
+// AVR版は機種でバージョンの数え方が違う（Keyball+はkeyball-plus-firmwareの別系統）
+const PHYSICAL_ROW_ORDER_MIN_VERSION_AVR: FirmwareVersion = { major: 1, minor: 5, patch: 0 };
+const PHYSICAL_ROW_ORDER_MIN_VERSION_AVR_PLUS: FirmwareVersion = { major: 1, minor: 2, patch: 0 };
 
-export function firmwareUsesPhysicalRowOrder(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
+export function firmwareUsesPhysicalRowOrder(model: ModelKey | null, chip: Chip | undefined, version: FirmwareVersion | null): boolean {
   if (!version) return false;
   if (chip === 'rp2040') return !isOlderVersion(version, PHYSICAL_ROW_ORDER_MIN_VERSION_RP2040);
+  if (chip === 'avr' && model) {
+    const min = model === 'keyballplus' ? PHYSICAL_ROW_ORDER_MIN_VERSION_AVR_PLUS : PHYSICAL_ROW_ORDER_MIN_VERSION_AVR;
+    return !isOlderVersion(version, min);
+  }
   return false;
 }
 

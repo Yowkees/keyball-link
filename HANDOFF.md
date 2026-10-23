@@ -15,26 +15,34 @@
 
 報告例: 「RP2040版 v0.4.4を開発に反映（本番には未掲載）」。GitHubへのpushは本番・開発のどちらにも反映されないバックアップなので、別物として書く。
 
-## ★最新状況（2026-10-09時点。別デバイスで再開する時はまずここを読む）
+## ★最新状況（2026-10-23時点。別デバイスで再開する時はまずここを読む）
 
 ### いまの状態
-- **本番**（https://keyball-link.shiroganelab.com）でRP2040版を公開中（2026-10-09〜）。公開スイッチ`RP2040_PUBLIC_RELEASE`はmain・rp2040ブランチとも`true`。mainとrp2040は同じ内容で、都度`git merge --no-ff main`で同期する。
-- **最新バージョン**: RP2040版 **v0.4.28**（39/44/61/+）、AVR版 **v1.4.2**（39/44/61）・**v1.1.1**（Keyball+）。
-- **反映の手順**（keyball-configurator）: ①ファームを編集したら`npm run update-firmware`（全AVR 8本＋RP2040 4本をビルドし`public/firmware`へ配置・整合性チェック）②mainでコミット ③`git checkout rp2040 && git merge --no-ff main` → `npm run deploy`で**開発**へ ④本人の実機確認後、mainで`npm run deploy`して**本番**へ ⑤`git push`（本番・開発どちらにも反映されないバックアップ。pushは本人の指示があった時だけ）。
-- **RP2040ファームの編集場所**は`~/keyball-rp2040-firmware`。ビルドは`npm run update-firmware`が`~/qmk_firmware-keyball-rp2040`へ同期してから行う。バージョンは`keyboards/keyball/lib/keyball/kb_version.h`と、Keyball Linkの`src/lib/firmwareFeatures.ts`の`LATEST_FW_VERSION_RP2040`を必ず両方上げる。
+- **本番**（https://keyball-link.shiroganelab.com）で、2026-10-23に**左右判定の根本修正**を公開。mainとrp2040は同じ内容で、都度`git merge --no-ff`で同期する。公開スイッチ`RP2040_PUBLIC_RELEASE`は両ブランチとも`true`。
+- **最新バージョン**: RP2040版 **v0.5.8**（39/44/61/+）、AVR版 **v1.5.3**（39/44/61）・**v1.2.3**（Keyball+）。
+- **配布ファームの置き場所は`public/firmware/v2/`**（2026-10-23〜）。`public/firmware/`直下は修正前の本番の版（RP2040 v0.4.28・AVR v1.4.2・Keyball+ v1.1.1）を、開いたままの古い画面向けに**凍結して残している。上書き・削除しないこと**（古い画面＋修正後のファームだと表示と実際のキーが左右逆になる。開発で本人が実際に遭遇）。
+- **反映の手順**（keyball-configurator）: ①ファームを編集したら`npm run update-firmware`（全AVR 8本＋RP2040 4本をビルドし`public/firmware/v2/`へ配置・整合性チェック）②コミット ③rp2040ブランチで`npm run deploy`して**開発**へ ④本人の実機確認後、mainで`npm run deploy`して**本番**へ ⑤`git push`（pushは本人の指示があった時だけ）。
+- **ファームの編集場所**: RP2040版`~/keyball-rp2040-firmware`、AVR版`~/keyball-link-firmware`（39/44/61）・`~/keyball-plus-firmware`（+）。バージョンは各`kb_version.h`と`src/lib/firmwareFeatures.ts`（`LATEST_FW_VERSION`/`LATEST_FW_VERSION_RP2040`）を必ず両方上げる。
+- **RP2040のビルド環境`~/qmk_firmware-keyball-rp2040`にはQMK本体へのパッチ`keyball-rp2040-firmware/patches/0001〜0004`が必要**（0004=起動演出の溶け込み用`rgb_matrix_color_filter_kb`、2026-10-22追加）。別のパソコンでは`git apply`で当てること。
 
 ### 必ず知っておくこと（重要な仕様・落とし穴）
-1. **左右判定が物理的な左右と逆**: QMKの#22775（2024-01）で`SPLIT_HAND_MATRIX_GRID`の既定が「交差点が短絡=左」→「短絡=右」に反転した。Keyball基板は**左手側**にrow2-col5（F6,B5）を短絡する左手判定ジャンパーを付ける設計（KiCadで本人確認済み）なので、今のQMKでは**物理的な左手が「右」と判定される**（AVR版・RP2040版とも、全機種）。正規Yowkeesファームは旧QMK前提。Keyball Linkの配列定義（`src/layouts/*.ts`の「row0-3=物理右」）や、下記の上書き・補正はすべてこの逆転を前提にしている。**左右がらみの修正の前に必ず思い出すこと**（知らずに修正してv0.4.12で空振りした）。
-2. **RP2040版の「ボール側＝左」上書き**: 39/44/61/+の`keymaps/web_configurator/keymap.c`は`is_keyboard_left()`を上書きし、ボール検出後は「ボールがある基板＝LED表の前半担当（左）」と答える。LED数がボール側と反対側で違い、`RGB_MATRIX_SPLIT`はビルド時固定のため。ボール基板とボール無し基板のLED数は固定で、左手判定ジャンパーは「左手として使う基板」に付く（左手ボールならボール基板に付く）。左手ボール時はmatrix_coの行0-3⇔4-7入れ替えと、ジェスチャーウェーブの左右反転（`kb_ball_on_physical_left()`）を行う。LED座標表は39/44/+が右手ボール、61が左手ボールの実機で作ってある。
-3. **LEDモードの同期を左右の合図に使う時の落とし穴**（起動演出で2回ハマった）: (a) QMKの`rgb_matrix_mode_noeeprom()`はLEDオフ時は何もしない → オフでも合図を送るなら`rgb_matrix_config.mode`を直接書く（`keyball.c`の`boot_set_mode`）。(b) スレーブは、マスターから何も届いていない間も受信用共有メモリ（0）を毎スキャン`rgb_matrix_config`に写すので、起動直後のスレーブではモードが0になる → 0は「未受信」として扱う。
-4. **ハーフ間の新しい定期RPCは追加しない**（追加したらトラックボールが止まったことがある）。左右の合図は既存のRGB_MATRIX同期（100msごとの強制同期あり）などに乗せる。
-5. **EEPROM（RP2040は4096バイト）**: 独自設定は全機種共通の番地（`lib/keyball/kb_settings.h`）。0x0800〜0x0AEDまで使用済み、**次に追加するなら0x0AEEから**。キーマップ領域との衝突は`_Static_assert`で検査している。
+1. **左右判定（2026-10-23に根本修正済み）**: QMKの#22775（2024-01）で`SPLIT_HAND_MATRIX_GRID`の既定が「短絡=右」に変わり、左手側にジャンパーを付けるKeyballでは物理と逆に判定されていた。RP2040版v0.5.0・AVR版v1.5.0・Keyball+ AVR v1.2.0で`SPLIT_HAND_MATRIX_GRID_LOW_IS_LEFT`を入れ、**今はファームのキーマップの行0〜(半分-1)＝物理的な左手**。
+   - **Keyball Linkの中（`src/layouts/*.ts`の行番号・プリセット・書き出しJSON）は旧い並び（行0-3=物理右）のまま**。新しいファームと通信する時だけ`hid.ts`の`rowSwapHalf`で前半と後半の行を入れ替える（判定は`firmwareFeatures.ts`の`firmwareUsesPhysicalRowOrder`）。
+   - 保存済みキーマップは更新後の初回起動で自動移行（`kb_row_order_migrate()`）。RP2040: EEPROM 0x0AEE状態/0x0AEF進捗/0x0AF0-退避。AVR: 39/44/+は0x03E4-、61は0x03F6-。目印は1バイト（2バイトだと書き込み途中の電源断で壊れるとホストテストで判明）。EEPROM初期化時（`eeconfig_init_user`）は移行済みの印だけ書く。
+   - ボールの向きの補正は今までと同じ「物理的な右手の基板」で反転（RP2040は`keyball_motion_is_left`、AVRは`keyball.c`で`is_keyboard_left()`を反転して渡す）。
+   - 機種を変えてマイコンを使い回すと、前の機種のキーマップが残ってばらばらになる（修正前から同じ。書き込み後に初期化すれば直る。自動初期化は本人判断で見送り）。
+2. **RP2040版の「ボール側＝左」上書き**: 39/44/61/+の`keymap.c`は`is_keyboard_left()`を上書きし、ボール検出後は「ボールがある基板＝LED表の前半担当（左）」と答える（`RGB_MATRIX_SPLIT`はビルド時固定のため。修正後も必要）。基板本来の判定は`g_hw_is_left`（今は物理と一致）。ボールが右手の時（基板本来の判定が「右」の側にボール）にmatrix_coの行を入れ替える。LED座標表は39/44/+が右手ボール、61が左手ボールの実機で作ってある。`kb_ball_on_physical_left()`はジェスチャーウェーブの左右補正用。
+3. **LEDモードの同期を左右の合図に使う時の落とし穴**: (a) `rgb_matrix_mode_noeeprom()`はLEDオフ時は何もしない → `rgb_matrix_config.mode`を直接書く。(b) 起動直後のスレーブはモードが0 → 「未受信」として扱う。
+4. **ハーフ間の通信は増やさない・タイミングも触らない**: 定期RPCを足したらトラックボールが止まった（v0.4.2）。2026-10-22には「つながる前だけ」の再試行間隔（`KEYBALL_TX_GETINFO_INTERVAL`）と接続確認間隔（`SPLIT_CONNECTION_CHECK_TIMEOUT`）を縮めてもトラックボールが止まった（v0.5.5→v0.5.6で戻した）。設定をスレーブへ伝える時は既存の`KEYBALL_SET_CPI`のflagsに相乗りさせる（OLEDアニメ0x01・起動アニメ0x02）。
+5. **EEPROM（RP2040は4096バイト）**: 0x0B10=OLEDアニメ、0x0B11=起動アニメ。**次に追加するなら0x0B12から**。
+6. **AVR版の容量**: Keyball61のLED版は残り約18バイト（ブリージング表を128段階にして確保）。これ以上はほぼ入らない。
+7. **ボールの左右の自動判定**（RP2040版v0.5.1〜、HID 0x35）: 片側だけにボールがある時だけ「ボール（自動）」。ボールのセンサーが抜けかけていると判定されず、LEDもずれる（本人の実機で発生）。
 
 ### 保留中のタスク（本人判断済み）
-- **左右判定の根本修正（B）**: `SPLIT_HAND_MATRIX_GRID_LOW_IS_LEFT`を入れて判定を物理と一致させる。本人は「気持ち悪いので直したい」「自分でビルドする人が混乱しそう」との意向。**条件: 利用者に一切混乱が出ないこと**（更新しても何も変わらない状態）。必要な作業: 全機種・AVR/RP2040のconfig.h、逆転前提の補正（Keyball Link配列定義・上書き・LED/ウェーブ補正）の外し直し、更新後初回起動での保存済みキーマップの行0-3⇔4-7自動入れ替え、書き出しJSONの新旧判別と自動変換、片側だけ更新すると壊れる旨の念押し、README/CHANGELOGへの経緯記載。**開発で全機種・全ボール位置をしっかり確認してから本番へ**。
-- **ボール無し・両側ボール構成**: 上記の「ボール側＝左」上書きが左右とも同じ値を返すため正しく動かない恐れがある。**Bで左右判定が正確になってから対処**（本人指示）。
-- **Keyball61の電源が落ちる（USBケーブルのランプが消える）症状**: LED電流が原因と見てLED最大輝度を機種別に下げた（39=150、44=140、61=130、+=150。ジェスチャーウェーブにも同じ上限）。**様子見中**。再発したら本人から報告が来る。複数機器をバスパワーのハブにつなぐと起きやすい旨は説明済み。
-- 書き込み時のChromeの「Failed to perform Safe Browsing check.」「Aborted due to security policy.」は、ブートローダーが先に再起動してドライブが消えるためと判断。データ送信後のエラーでドライブが消えていれば「書き込み完了」と表示する対策を入れ済み（`src/lib/uf2flash.ts`、本人確認OK）。
+- **ボール無し・両側ボール構成**: 「ボール側＝左」上書きが左右とも同じ値を返すため正しく動かない恐れがある。左右判定が正確になったので着手可能（本人に確認してから）。
+- **Keyball61の電源が落ちる症状**: LED最大輝度を機種別に下げて**様子見中**。
+- 起動時間の短縮は本人判断で断念（USB確認の2秒はSparkFun互換基板ではVBUS検出が無く安全に縮められない）。
+- iPad・Androidタブレットは非対応（WebHID・書き込み機能がブラウザに無い）。
 
 ---
 

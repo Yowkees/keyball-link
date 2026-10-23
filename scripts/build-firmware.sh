@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ファームウェア（AVR版: keyball39/44/61 + keyballplus、各 通常版/LED版 = 計8パターン。
 # RP2040版: keyball39 + keyballplus + keyball44 + keyball61、各1パターン = 計4パターン）をビルドし、
-# public/firmware/ に配置するための唯一の正規手順。
+# public/firmware/v2/ に配置するための唯一の正規手順。
 #
 # 過去に「ビルド直後にコピーせず、後から別のスクリプトが
 # “最後にビルドされた方”を無条件でコピーしてしまい、
@@ -40,7 +40,11 @@
 # 使い方: npm run update-firmware
 set -euo pipefail
 
-DEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/public/firmware"
+# 2026-10-22: 左右判定の根本修正から、出力先を public/firmware/v2/ に変更した。public/firmware/ 直下は
+# 修正前のKeyball Linkの画面（開いたままのタブ）向けに修正前の版を残しているので、上書きしないこと
+# （FirmwareFlasher.tsxの説明参照）。
+DEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/public/firmware/v2"
+mkdir -p "$DEST_DIR"
 
 LINK_SRC="${LINK_SRC:-$HOME/keyball-link-firmware}"
 LINK_QMK="${LINK_QMK:-$HOME/qmk_firmware-keyball-link}"
@@ -160,7 +164,7 @@ done
 
 if [ "$fail" -ne 0 ]; then
   echo >&2
-  echo "整合性チェックに失敗しました。public/firmware/ のファイルはコミットしないでください。" >&2
+  echo "整合性チェックに失敗しました。public/firmware/v2/ のファイルはコミットしないでください。" >&2
   exit 1
 fi
 

@@ -96,13 +96,24 @@ export class KeyballHID {
     return { model: r[1] as KeyballModel, layers: r[2], rows: r[3], cols: r[4], protocol: r[5] };
   }
 
+  // Keyball Linkの中の行番号（旧い並び）とファームの行番号の対応。0なら同じ。新しい並びの
+  // ファーム（firmwareFeatures.tsのfirmwareUsesPhysicalRowOrder）では行数の半分を入れ、
+  // 前半と後半の行を入れ替えて通信する。接続のたびにuseKeyballが設定する。
+  rowSwapHalf = 0;
+
+  private toFirmwareRow(row: number): number {
+    const h = this.rowSwapHalf;
+    if (h === 0) return row;
+    return row < h ? row + h : row - h;
+  }
+
   async getKeycode(layer: number, row: number, col: number): Promise<number> {
-    const r = await this.sendCommand(makePacket(CMD.GET_KEYCODE, layer, row, col));
+    const r = await this.sendCommand(makePacket(CMD.GET_KEYCODE, layer, this.toFirmwareRow(row), col));
     return (r[4] << 8) | r[5];
   }
 
   async setKeycode(layer: number, row: number, col: number, keycode: number): Promise<void> {
-    const r = await this.sendCommand(makePacket(CMD.SET_KEYCODE, layer, row, col, (keycode >> 8) & 0xFF, keycode & 0xFF));
+    const r = await this.sendCommand(makePacket(CMD.SET_KEYCODE, layer, this.toFirmwareRow(row), col, (keycode >> 8) & 0xFF, keycode & 0xFF));
     if (r[0] !== CMD.SET_KEYCODE) {
       throw new Error(`SET_KEYCODE 応答異常 (cmd=0x${r[0].toString(16).padStart(2,'0')}) — ファームウェアがコマンドを認識していない可能性があります`);
     }
@@ -533,12 +544,45 @@ export class KeyballHID {
     return { major: r[1], minor: r[2], patch: r[3] };
   }
 
+  // ボールが物理的に左右どちらにあるか。片側だけにボールがある時だけ 'left' / 'right' を返し、
+  // ボール無し・両側ボール・反対側と未接続で判断できない時は null（手動の選択を使う）。
+  async getBallSide(): Promise<'left' | 'right' | null> {
+    const r = await this.sendCommand(makePacket(CMD.GET_BALL_SIDE));
+    if (r[0] !== CMD.GET_BALL_SIDE) throw new Error('ボールの左右の取得に非対応のファームです');
+    const thisIsLeft = r[1] === 1, thisHave = r[2] === 1, thatEnable = r[3] === 1, thatHave = r[4] === 1;
+    if (!thatEnable) return thisHave ? (thisIsLeft ? 'left' : 'right') : null;
+    const left  = thisIsLeft ? thisHave : thatHave;
+    const right = thisIsLeft ? thatHave : thisHave;
+    if (left === right) return null;
+    return left ? 'left' : 'right';
+  }
+
+  async getOledAnimEnabled(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_OLED_ANIM));
+    if (r[0] !== CMD.GET_OLED_ANIM) throw new Error('OLEDアニメーションの設定に非対応のファームです');
+    return r[1] === 1;
+  }
+
+  async setOledAnimEnabled(enabled: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_OLED_ANIM, enabled ? 1 : 0));
+  }
+
+  async getBootAnimEnabled(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_BOOT_ANIM));
+    if (r[0] !== CMD.GET_BOOT_ANIM) throw new Error('起動アニメーションの設定に非対応のファームです');
+    return r[1] === 1;
+  }
+
+  async setBootAnimEnabled(enabled: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_BOOT_ANIM, enabled ? 1 : 0));
+  }
+
   async getMatrixState(): Promise<boolean[][]> {
     const r = await this.sendCommand(makePacket(CMD.GET_MATRIX));
     const rows = r[1];
     const matrix: boolean[][] = [];
     for (let row = 0; row < rows; row++) {
-      const mask = r[2 + row];
+      const mask = r[2 + this.toFirmwareRow(row)];
       matrix[row] = Array.from({ length: 8 }, (_, col) => (mask >> col & 1) === 1);
     }
     return matrix;

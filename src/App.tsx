@@ -793,7 +793,12 @@ export default function App() {
                 onClick={handleSave}
                 title={hasUnsaved ? '未保存の変更があります' : '設定をキーボードに保存'}
               >
-                {hasUnsaved ? '● 保存する' : '保存'}
+                {/* 未保存の有無で文字が変わってもボタンの幅を変えない（左に並ぶボタンが動かないように。
+                    2026-10-23、本人希望）。長い方の文字を見えない形で重ねて、幅を確保している */}
+                <span className="btn-fixed-label">
+                  <span className="btn-fixed-label__sizer" aria-hidden="true">● 保存する</span>
+                  <span>{hasUnsaved ? '● 保存する' : '保存'}</span>
+                </span>
               </button>
             </>
           ) : (

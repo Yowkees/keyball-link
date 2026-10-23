@@ -3549,3 +3549,9 @@ p[data-tip] { width: fit-content; }
 .fw-step > .btn--primary { align-self: flex-start; padding: 10px 40px; }
 /* ファームウェア選択の各項目の見出し（モデル・マイコン・ファームウェア） */
 .fw-field-label { margin: 6px 0 -4px; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+
+/* 文字が変わっても幅が変わらないボタンの中身（保存ボタン）。子要素を同じ位置に重ね、
+   見えない「長い方の文字」で幅を確保する */
+.btn-fixed-label { display: inline-grid; }
+.btn-fixed-label > span { grid-area: 1 / 1; text-align: center; }
+.btn-fixed-label__sizer { visibility: hidden; }

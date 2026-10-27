@@ -8,6 +8,7 @@ import { FirmwareFlasher } from './components/FirmwareFlasher/FirmwareFlasher';
 import { SettingsTab } from './components/SettingsTab/SettingsTab';
 import { TrackballSettingsTab } from './components/TrackballSettingsTab/TrackballSettingsTab';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
+import { TypingGame } from './components/TypingGame/TypingGame';
 import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
@@ -22,7 +23,7 @@ import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
 import './index.css';
 
-type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'feedback';
+type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing' | 'feedback';
 // キー変更1回分（Undo/Redo用）
 interface EditOp { layer: number; row: number; col: number; prev: number; next: number }
 type BallSide = 'left' | 'right';
@@ -914,6 +915,7 @@ export default function App() {
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>マクロ拡張</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
+              <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>タイピングゲーム</button>
               <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
             </div>
 
@@ -1186,6 +1188,8 @@ export default function App() {
             {activeTab === 'firmware' && (
               <FirmwareFlasher detectedModel={state.model} productId={state.productId} isHIDConnected={isConnected} onReboot={reboot} />
             )}
+
+            {activeTab === 'typing' && <TypingGame />}
 
             {activeTab === 'feedback' && <FeedbackTab />}
 

@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import type { KbSettings, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
+import type { KbSettings, ScrollInertiaConfig, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
-import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } from '../../lib/protocol';
+import {
+  LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, SCROLL_MODE, cpiIndexToValue, computeAccelCurvePoints,
+  SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX,
+} from '../../lib/protocol';
+import { DpiCurveEditor } from '../DpiCurveEditor/DpiCurveEditor';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { buildHueGradient } from '../../lib/hueGradient';
 
@@ -26,6 +30,9 @@ interface BallPanelProps {
   onChange: (s: KbSettings) => Promise<void>;
   trackball: TrackballConfig | null;
   onTrackballChange: (cfg: TrackballConfig) => Promise<void>;
+  accelAvailable: boolean;  // LED版の44/61では加速度が無効
+  scrollInertia: ScrollInertiaConfig | null;  // 非対応ファームではnull
+  onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
   precision: PrecisionConfig | null;
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
   gesture: GestureConfig | null;
@@ -129,8 +136,6 @@ export function BallPanel(p: BallPanelProps) {
           >
             {options.map(o => <option key={o.key} value={o.key} disabled={o.disabled}>{o.label}</option>)}
           </select>
-          {/* オートマウスの設定はトラックボール設定タブで行い、ここでは設定したレイヤーに文字で示すだけ（2026-10-27、本人希望） */}
-          {amlHere && <span className="ball-panel__aml">オートマウス</span>}
         </div>
 
 
@@ -141,8 +146,12 @@ export function BallPanel(p: BallPanelProps) {
               <SliderControl value={tb.cpiIndex} min={0} max={MAX_CPI_INDEX} step={1} disabled={disabled} unit=""
                 format={v => String(cpiIndexToValue(v))} onCommit={v => p.onTrackballChange({ ...tb, cpiIndex: v })} />
               <span className="ball-panel__label">加速度</span>
-              <SliderControl value={tb.accel} min={0} max={MAX_ACCEL} step={1} disabled={disabled} unit=""
-                format={v => (v === 0 ? 'オフ' : String(v))} onCommit={v => p.onTrackballChange({ ...tb, accel: v })} />
+              <SliderControl value={tb.accel} min={0} max={MAX_ACCEL} step={1} disabled={disabled || !p.accelAvailable} unit=""
+                format={v => (!p.accelAvailable ? '—' : v === 0 ? 'オフ' : String(v))} onCommit={v => p.onTrackballChange({ ...tb, accel: v })} />
+              {!p.accelAvailable && <p className="settings-desc">この版（LED版）では加速度は使用できません</p>}
+              <div className="ball-panel__curve">
+                <DpiCurveEditor points={computeAccelCurvePoints(tb.accel)} disabled={!p.accelAvailable} interactive={false} yMax={127} />
+              </div>
             </>
           )}
           {tb && motion === 'scroll' && (
@@ -154,6 +163,28 @@ export function BallPanel(p: BallPanelProps) {
                 onChange={v => run(() => p.onChange({ ...settings, scrollInvertV: v }))} />
               <ToggleRow label="横スクロールを反転" desc="" checked={settings.scrollInvertH} disabled={disabled}
                 onChange={v => run(() => p.onChange({ ...settings, scrollInvertH: v }))} />
+              <span className="ball-panel__label">スクロール方向</span>
+              <select className="trackball-bar__select" value={tb.scrollMode} disabled={disabled}
+                onChange={e => p.onTrackballChange({ ...tb, scrollMode: Number(e.target.value) })}>
+                <option value={SCROLL_MODE.VERTICAL}>縦のみ</option>
+                <option value={SCROLL_MODE.HORIZONTAL}>横のみ</option>
+                <option value={SCROLL_MODE.FREE}>自由（縦横）</option>
+              </select>
+              {p.scrollInertia && (() => {
+                const si = p.scrollInertia;
+                return (
+                  <>
+                    <ToggleRow label="慣性スクロール" desc="" checked={si.enable} disabled={disabled}
+                      onChange={v => run(() => p.onScrollInertiaChange({ ...si, enable: v }))} />
+                    <span className="ball-panel__label">慣性レベル</span>
+                    <SliderControl value={si.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
+                      disabled={disabled || !si.enable} unit="" onCommit={v => p.onScrollInertiaChange({ ...si, strength: v })} />
+                    <span className="ball-panel__label">発動しやすさ</span>
+                    <SliderControl value={si.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
+                      disabled={disabled || !si.enable} unit="" invert onCommit={v => p.onScrollInertiaChange({ ...si, flickMult: v })} />
+                  </>
+                );
+              })()}
             </>
           )}
           {precision && !isGesture && (

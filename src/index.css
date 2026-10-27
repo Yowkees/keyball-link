@@ -510,6 +510,10 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 /* このレイヤーに何らかの連動機能（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）が
    割り当てられていることを示す小さなバッジ。詳細はtitle属性のツールチップと下の連動機能表示で確認できる */
+.layer-toolbar__aml {
+  /* オートマウスのレイヤーに出す文字（ONボタンと同じ色） */
+  font-family: var(--font-heading); font-weight: 600; font-size: 12.5px; color: var(--accent); white-space: nowrap;
+}
 .ball-toggle {
   margin-left: auto;
   display: flex;
@@ -1016,8 +1020,9 @@ body { background: var(--bg); overflow-x: hidden; }
 .led-settings .led-panel__slider { gap: 16px; }
 .led-settings .led-panel__slider-label { flex-basis: 40px; font-size: 12px; }
 .led-settings .led-panel__slider-value { width: 38px; font-size: 12px; }
-.led-settings__note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.led-settings__note { margin: 0; min-height: 1.5em; }
+.led-settings .led-panel__toprow { flex-wrap: nowrap; }
+.led-settings__note { white-space: nowrap; }
+.led-settings__note { margin: 0; }
 /* オフ中にレイヤー0の光り方を見せている時は、操作できないのでグレーにする */
 .led-settings__body--preview .led-panel__bar,
 .led-settings__body--preview .led-panel__sliders { opacity: .45; }
@@ -3582,9 +3587,7 @@ p[data-tip] { width: fit-content; }
 /* キーマップのトラックボールを押した時の右側のパネル（BallPanel.tsx）。LED設定パネルと同じ部品を使う */
 .ball-panel-wrap { padding: 12px 14px; overflow-y: auto; gap: 8px; }  /* LED設定と同じく見出しとの間に余白 */
 .ball-panel__targets { flex-wrap: wrap; flex-shrink: 1; }
-.led-panel__toprow:has(.ball-panel__aml) { flex-wrap: nowrap; }
-/* オートマウスのレイヤーに出す文字（ONボタンと同じ色） */
-.ball-panel__aml { white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.ball-panel__curve { margin-top: 8px; }
 .ball-panel__cont { display: flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
 .ball-panel__label { font-size: 12px; color: var(--text-dim); margin-top: 6px; display: block; }
 .ball-panel__sliders { display: flex; flex-direction: column; gap: 2px; }

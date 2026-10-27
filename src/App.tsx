@@ -998,6 +998,10 @@ export default function App() {
                           全レイヤー
                         </button>
                       </div>
+                      {/* 選んでいるレイヤーがオートマウスのレイヤーなら、タブの横に示す（設定はトラックボール設定タブ）（2026-10-27、本人希望） */}
+                      {!showAllLayers && state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === state.currentLayer && (
+                        <span className="layer-toolbar__aml">オートマウス</span>
+                      )}
                       <div className="ball-toggle">
                         <span className="ball-toggle__label">{ballSideAuto ? 'ボール（自動）' : 'ボール'}</span>
                         <div className="ball-toggle__group" title={ballSideAuto ? 'キーボードから読み取ったボールの位置を表示しています' : undefined}>
@@ -1098,6 +1102,9 @@ export default function App() {
                           onChange={handleKbSettingsChange}
                           trackball={state.trackball}
                           onTrackballChange={handleTrackballChange}
+                          accelAvailable={accelAvailable}
+                          scrollInertia={state.scrollInertia}
+                          onScrollInertiaChange={handleScrollInertiaChange}
                           precision={state.precision}
                           onPrecisionChange={handlePrecisionChange}
                           gesture={state.gesture}

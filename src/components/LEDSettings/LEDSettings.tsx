@@ -113,6 +113,12 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
             <option key={e.id} value={e.id}>{e.label}</option>
           ))}
         </select>
+        {/* 説明は選択欄の横に置く（下に置くと説明が無い時に空白ができ、出すと高さが変わるため） */}
+        {(previewing || isFixedHue) && (
+          <span className="settings-desc led-settings__note">
+            {previewing ? 'オフの間はレイヤー0の光り方で光ります' : '色相固定のエフェクトです（彩度・明度は調整できます）'}
+          </span>
+        )}
       </div>
 
       {extraRow}
@@ -125,11 +131,6 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
           )}
         </div>
 
-        {/* 説明の行は常に場所を取っておき、パネルの高さを変えない */}
-        <p className="settings-desc led-settings__note">
-          {previewing ? 'オフの間はレイヤー0の光り方で光ります'
-            : isFixedHue ? '色相固定のエフェクトです（彩度・明度は調整できます）' : '\u00a0'}
-        </p>
 
         <div className="led-panel__sliders">
           <LedSlider label="色相" value={view.hue} max={255} hidden={!showHue} disabled={previewing}

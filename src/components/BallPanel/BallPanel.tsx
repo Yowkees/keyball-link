@@ -4,7 +4,7 @@ import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } from '../../lib/protocol';
-import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { HeaderToggle, SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
 // キーマップのトラックボールを押した時に、右側に出すトラックボールの設定（2026-10-27、本人希望）。
 // LED設定パネル（LedPanel）と同じ作り: 上に「動き」の選択欄、その下にスイッチとスライダー。
@@ -125,17 +125,15 @@ export function BallPanel(p: BallPanelProps) {
           >
             {options.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
           </select>
+          {/* オートマウスのON/OFFは選択欄の横に置く（2026-10-27、本人希望） */}
+          {L > 0 && (
+            <span className={`ball-panel__aml ${disabled || amlElsewhere ? 'ball-panel__aml--disabled' : ''}`}>
+              オートマウス
+              <HeaderToggle checked={amlHere} disabled={disabled || amlElsewhere} onChange={toggleAml} />
+            </span>
+          )}
         </div>
 
-        {L > 0 && (
-          <ToggleRow
-            label="オートマウス"
-            desc=""
-            checked={amlHere}
-            disabled={disabled || amlElsewhere}
-            onChange={toggleAml}
-          />
-        )}
         {msg && <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ {msg}</p>}
 
         <div className="led-panel__sliders ball-panel__sliders">

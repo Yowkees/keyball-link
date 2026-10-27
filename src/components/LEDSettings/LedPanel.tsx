@@ -1,6 +1,5 @@
 import type { LedConfig, LayerLedConfig } from '../../lib/protocol';
 import { LAYER_LED_DEFAULT } from '../LayerFeatures/LayerLedCard';
-import { ToggleRow } from '../SettingsControls/SettingsControls';
 import { LEDSettings } from './LEDSettings';
 
 interface LedPanelProps {
@@ -40,9 +39,8 @@ export function LedPanel({
 
   const targetTabs = undefined;  // レイヤーはキー配列の上で選ぶ（パネル内には表示しない）
 
-  // レイヤー0（通常）とレイヤー1以降とで表示するパネルの高さが変わらないよう、
-  // どちらの場合も必ずこの行を出す。レイヤー0は常時有効な基本設定なのでON/OFFはできず、
-  // その旨を示すだけの無効化トグルにする。
+  // レイヤーごとのON/OFFは、エフェクトの選択だけで決める（2026-10-27、本人希望）。
+  // 「オフ」を選べばOFF（基本の光り方に従う）、それ以外を選べばON。
   if (target === 'normal') {
     return (
       <>
@@ -52,42 +50,27 @@ export function LedPanel({
           onChange={onLedChange}
           headerLeft={targetTabs}
           allowedEffectIds={allowedEffectIds}
-          extraRow={
-            <ToggleRow
-              label="レイヤー0は基本の光り方です（常時有効）"
-              desc=""
-              checked
-              disabled
-              onChange={() => {}}
-            />
-          }
         />
       </>
     );
   }
 
   const layerCfg = layerLeds[target] ?? LAYER_LED_DEFAULT;
+  // OFFの時は、保存されているエフェクトに関わらず選択欄は「オフ」と見せる
+  const shown = layerCfg.enabled ? layerCfg : { ...layerCfg, effectId: 0 };
 
   return (
     <>
       <div className="led-panel__title">LED設定</div>
       <LEDSettings
-        config={layerCfg}
-        onChange={c => onLayerLedChange(target, { ...layerCfg, ...c })}
+        config={shown}
+        onChange={c => {
+          const enabled = c.effectId !== 0;
+          onLayerLedChange(target, { ...layerCfg, ...c, effectId: enabled ? c.effectId : layerCfg.effectId, enabled });
+          if (enabled && layerLedEnable === false) onLayerLedEnableChange(true);
+        }}
         headerLeft={targetTabs}
         allowedEffectIds={allowedEffectIds}
-        extraRow={
-          <ToggleRow
-            label={`レイヤー${target}で専用の光り方を使う`}
-            desc=""
-            checked={layerCfg.enabled}
-            disabled={false}
-            onChange={v => {
-              onLayerLedChange(target, { ...layerCfg, enabled: v });
-              if (v && layerLedEnable === false) onLayerLedEnableChange(true);
-            }}
-          />
-        }
       />
     </>
   );

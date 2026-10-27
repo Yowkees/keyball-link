@@ -3662,8 +3662,10 @@ p[data-tip] { width: fit-content; }
 .typing-pop {
   position: absolute; transform: translate(-50%, -50%); pointer-events: none;
   font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--accent);
-  animation: typing-clear .7s ease-out forwards;
+  animation: typing-clear .8s ease-out forwards; white-space: nowrap;
 }
+.typing-pop--bonus { color: #e8b44a; font-size: 26px; }
+.typing-pop--lost { color: var(--red); }
 @keyframes typing-pop-char { 0% { transform: translateY(-5px) scale(1.4); } 100% { transform: none; } }
 @keyframes typing-flash-ok {
   0% { box-shadow: 0 0 0 3px var(--accent), 0 0 16px var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
@@ -3704,3 +3706,27 @@ p[data-tip] { width: fit-content; }
 .typing-game__field--small .typing-card__text { font-size: 15px; }
 .typing-game__field--small .typing-card__kana { font-size: 11px; }
 .typing-game__field--small .typing-card__romaji { font-size: 14px; }
+
+/* タイピングゲーム: 残り時間のバー・ボーナスカード・ライフ・点数 */
+.typing-card__timer {
+  position: absolute; left: 10px; right: 10px; bottom: 4px; height: 4px; border-radius: 2px;
+  background: color-mix(in srgb, var(--text-dim) 20%, transparent); overflow: hidden; pointer-events: none;
+}
+.typing-card__timer > span {
+  display: block; height: 100%; width: calc(var(--life, 1) * 100%); background: var(--accent); border-radius: 2px;
+}
+.typing-card[data-low="1"] .typing-card__timer > span { background: var(--red); }
+.typing-card[data-low="1"]:not(.typing-card--active) { border-color: var(--red); }
+.typing-card--bonus {
+  min-width: 0; padding: 8px 12px; border-color: #e8b44a;
+  background: color-mix(in srgb, #e8b44a 16%, var(--key-bg));
+  box-shadow: 0 0 14px color-mix(in srgb, #e8b44a 55%, transparent);
+}
+.typing-card--bonus .typing-card__text { font-size: 15px; color: #e8b44a; }
+.typing-card--bonus .typing-card__timer > span { background: #e8b44a; }
+.typing-game__lives { font-size: 16px; letter-spacing: 2px; }
+.typing-game__life { color: var(--red); }
+.typing-game__life--lost { color: color-mix(in srgb, var(--text-dim) 40%, transparent); }
+.typing-game__score { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); }
+.typing-game__combo { font-size: 13px; font-weight: 800; color: #e8b44a; animation: typing-pop-char .25s ease-out; display: inline-block; }
+.typing-game__final { margin: 0; font-family: var(--font-mono); font-size: 34px; font-weight: 800; color: var(--accent); }

@@ -87,15 +87,30 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
       maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
     }
   }
-  // トラックボール: ボールの位置にあるキー（傾きなし）の範囲の中心に、キー約1.6個分の丸を置く
+  // トラックボール: ボールの位置にあるキーのうち、表示中のキーと重ならないものの範囲の中心に丸を置く。
+  // 大きさは、周りのキーとすき間が空く大きさまで（最大でキー約1.5個分）。
   let ball: BallRect | null = null;
   if (ballGeometry && ballGeometry.length) {
-    const bx0 = Math.min(...ballGeometry.map(g => g.x)) * U, by0 = Math.min(...ballGeometry.map(g => g.y)) * U;
-    const bx1 = Math.max(...ballGeometry.map(g => g.x + (g.w ?? 1))) * U - GAP, by1 = Math.max(...ballGeometry.map(g => g.y + (g.h ?? 1))) * U - GAP;
-    const d = Math.min(bx1 - bx0, U * 1.6);
-    ball = { cx: (bx0 + bx1) / 2, cy: (by0 + by1) / 2, d };
-    minX = Math.min(minX, ball.cx - d / 2); maxX = Math.max(maxX, ball.cx + d / 2);
-    minY = Math.min(minY, ball.cy - d / 2); maxY = Math.max(maxY, ball.cy + d / 2);
+    // 表示中のキーの範囲（傾いたキーは回転後の外接する四角）
+    const boxes = raw.map(r => {
+      const rad = (r.rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+      const pts = [[0, 0], [r.width, 0], [0, r.height], [r.width, r.height]].map(([dx, dy]) => [
+        r.left + r.originX + (dx - r.originX) * c - (dy - r.originY) * s,
+        r.top + r.originY + (dx - r.originX) * s + (dy - r.originY) * c,
+      ]);
+      return { x0: Math.min(...pts.map(p => p[0])), y0: Math.min(...pts.map(p => p[1])), x1: Math.max(...pts.map(p => p[0])), y1: Math.max(...pts.map(p => p[1])) };
+    });
+    const overlaps = (x0: number, y0: number, x1: number, y1: number) => boxes.some(b => x0 < b.x1 && x1 > b.x0 && y0 < b.y1 && y1 > b.y0);
+    const free = ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }))
+      .filter(b => !overlaps(b.x0, b.y0, b.x1, b.y1));
+    const area = free.length ? free : ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }));
+    const cx = (Math.min(...area.map(b => b.x0)) + Math.max(...area.map(b => b.x1))) / 2;
+    const cy = (Math.min(...area.map(b => b.y0)) + Math.max(...area.map(b => b.y1))) / 2;
+    const nearest = Math.min(...boxes.map(b => Math.hypot(Math.max(b.x0 - cx, 0, cx - b.x1), Math.max(b.y0 - cy, 0, cy - b.y1))));
+    const d = Math.max(KEY_SIZE, Math.min(U * 1.5, (nearest - GAP * 2) * 2));
+    ball = { cx, cy, d };
+    minX = Math.min(minX, cx - d / 2); maxX = Math.max(maxX, cx + d / 2);
+    minY = Math.min(minY, cy - d / 2); maxY = Math.max(maxY, cy + d / 2);
   }
   // 影や選択枠が切れないよう、ほんの少し余白をとる
   const pad = 4;
@@ -177,7 +192,6 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
             onMouseLeave={() => setHoverDesc(null)}
           >
-            <span className="kb-ball__icon">🖲</span>
             <span className="kb-ball__label">{ballLabel ?? 'カーソル'}</span>
           </button>
         )}

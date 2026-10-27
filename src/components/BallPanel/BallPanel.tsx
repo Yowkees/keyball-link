@@ -5,6 +5,7 @@ import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } from '../../lib/protocol';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { buildHueGradient } from '../../lib/hueGradient';
 
 // キーマップのトラックボールを押した時に、右側に出すトラックボールの設定（2026-10-27、本人希望）。
 // LED設定パネル（LedPanel）と同じ作り: 上に「動き」の選択欄、その下にスイッチとスライダー。
@@ -50,7 +51,6 @@ interface BallPanelProps {
 export function BallPanel(p: BallPanelProps) {
   const layer = p.layer;
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const disabled = p.disabled || busy;
   const L = layer;
   const { settings, precision, gesture, gestureModes } = p;
@@ -84,13 +84,11 @@ export function BallPanel(p: BallPanelProps) {
       ? gestureModes.map((m, i) => opt(`g${i}`, `ジェスチャー${i + 1}`, m.layer, amlHere))
       : gesture ? [opt('g', 'ジェスチャー', gesture.layer, amlHere)] : []),
   ];
-  const amlElsewhere = settings.autoMouseEnable && settings.autoMouseLayer !== L;
   const precElsewhere = precision ? usedElsewhere(precision.layer) : false;
   const [editDir, setEditDir] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
-    setMsg(null);
     try { await fn(); } finally { setBusy(false); }
   };
 
@@ -117,15 +115,6 @@ export function BallPanel(p: BallPanelProps) {
     await p.onPrecisionChange({ ...precision, layer: on ? L : LAYER_NONE });
   });
 
-  const toggleAml = (on: boolean) => run(async () => {
-    if (on && (motion === 'scroll' || isGesture)) {
-      setMsg('スクロール・ジェスチャーのレイヤーはオートマウスにできません。先に動きを「カーソル」にしてください');
-      return;
-    }
-    if (on) await p.onChange({ ...settings, autoMouseEnable: true, autoMouseLayer: L });
-    else if (amlHere) await p.onChange({ ...settings, autoMouseEnable: false });
-  });
-
   const tb = p.trackball;
   return (
     <>
@@ -140,16 +129,10 @@ export function BallPanel(p: BallPanelProps) {
           >
             {options.map(o => <option key={o.key} value={o.key} disabled={o.disabled}>{o.label}</option>)}
           </select>
-          {/* オートマウスのON/OFFは選択欄の横に置く。他のレイヤーに設定済みなら、そのレイヤーだけに出す（2026-10-27、本人希望） */}
-          {L > 0 && !amlElsewhere && (
-            <button type="button" className={`ball-panel__aml ${amlHere ? 'ball-panel__aml--on' : ''}`}
-              disabled={disabled} aria-pressed={amlHere} onClick={() => toggleAml(!amlHere)}>
-              オートマウス
-            </button>
-          )}
+          {/* オートマウスの設定はトラックボール設定タブで行い、ここでは設定したレイヤーに文字で示すだけ（2026-10-27、本人希望） */}
+          {amlHere && <span className="ball-panel__aml">オートマウス</span>}
         </div>
 
-        {msg && <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ {msg}</p>}
 
         <div className="led-panel__sliders ball-panel__sliders">
           {tb && motion === 'cursor' && (
@@ -243,8 +226,7 @@ export function BallPanel(p: BallPanelProps) {
                 {color && (
                   <>
                     <span className="ball-panel__label">色相</span>
-                    <SliderControl value={color.hue} min={0} max={255} step={1} disabled={off} unit=""
-                      onCommit={hue => p.onGestureWaveColorChange(i, { ...color, hue })} />
+                    <HueBar key={i} color={color} disabled={off} onCommit={hue => p.onGestureWaveColorChange(i, { ...color, hue })} />
                     <span className="ball-panel__label">彩度</span>
                     <SliderControl value={color.sat} min={0} max={255} step={1} disabled={off} unit=""
                       onCommit={sat => p.onGestureWaveColorChange(i, { ...color, sat })} />
@@ -287,5 +269,30 @@ export function BallPanel(p: BallPanelProps) {
 
       </div>
     </>
+  );
+}
+
+// 虹色のバーそのものをドラッグして色相を選ぶ（トラックボール設定タブのジェスチャーと同じ見た目）
+function HueBar({ color, disabled, onCommit }: { color: GestureWaveColor; disabled: boolean; onCommit: (hue: number) => void }) {
+  const [hue, setHue] = useState(color.hue);
+  const shown = { ...color, hue };
+  return (
+    <div className="tapping-term-row hue-bar-row">
+      <div className={`led-panel__bar hue-bar ${disabled ? 'hue-bar--disabled' : ''}`}>
+        <div className="led-panel__bar-fill" style={{ background: buildHueGradient(shown) }} />
+        <div className="led-panel__marker" style={{ left: `${(hue / 255 * 100).toFixed(1)}%` }} />
+        <input
+          type="range" min={0} max={255} step={1}
+          className="hue-bar__input"
+          aria-label="色相"
+          value={hue}
+          disabled={disabled}
+          onChange={e => setHue(Number(e.target.value))}
+          onPointerUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
+          onKeyUp={e => onCommit(Number((e.target as HTMLInputElement).value))}
+        />
+      </div>
+      <span className="tapping-term-value">{hue}</span>
+    </div>
   );
 }

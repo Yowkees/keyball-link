@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDescription } from '../../lib/keycodes';
@@ -133,6 +133,15 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
 
 export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
+  // 説明のバーは高さ固定（2行分）。長い説明は全文が収まるまで文字を小さくする
+  // （高さが変わるとパネル全体の大きさが変わるため。省略すると読めないので「…」にはしない）
+  const descRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = descRef.current;
+    if (!el) return;
+    el.style.fontSize = '';
+    for (let fs = 12.5; fs >= 9 && el.scrollHeight > el.clientHeight; fs -= 0.5) el.style.fontSize = `${fs}px`;
+  }, [hoverDesc]);
 
   // ボールの位置にあるキーは表示しないので、座標の計算からも外す
   const visibleLayout = layout.filter(k => k.ball !== ballSide);
@@ -210,9 +219,8 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
       </div>
       </div>
       {showDescBar && (
-        <div className="key-desc-bar">
-          {/* 説明が長くても1行に収め、バーの高さ（＝パネルの大きさ）を変えない */}
-          <span className="key-desc-bar__text">{hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}</span>
+        <div className="key-desc-bar" ref={descRef}>
+          {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
         </div>
       )}
     </div>

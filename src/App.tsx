@@ -70,8 +70,6 @@ function getLayerDotColor(layer: number, state: {
   return ledConfigToColor(state.layerLeds[layer]) ?? 'var(--text-dim)';
 }
 
-// 指定レイヤーに紐づいているレイヤー連動機能の一覧（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）。
-// 各種LAYER_NONE(0xFE)は実レイヤー番号(0〜7)とは一致しないため、単純な等価比較だけで「未割り当て」を除外できる。
 // キー配列に描くトラックボールに書く、そのレイヤーでのボールの機能（2026-10-27、本人希望）。
 // 連動レイヤーの設定（スクロール・精密モード・ジェスチャー）から決める。どれでもなければカーソル移動。
 function getBallFunctionLabel(layer: number, state: {
@@ -87,23 +85,6 @@ function getBallFunctionLabel(layer: number, state: {
   if (modeIdx >= 0) tags.push(`ジェスチャー${modeIdx + 1}`);
   else if (state.gesture?.layer === layer) tags.push('ジェスチャー');
   return tags.length ? tags.join('・') : 'カーソル';
-}
-
-function getLayerFeatures(layer: number, state: {
-  kbSettings: { autoMouseEnable: boolean; autoMouseLayer: number; scrollLayer: number };
-  gesture: { layer: number } | null;
-  gestureModes: { layer: number }[] | null;
-  precision: { layer: number } | null;
-  layerLedEnable: boolean | null;
-  layerLeds: ({ enabled: boolean } | null)[];
-}): string[] {
-  const tags: string[] = [];
-  if (state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === layer) tags.push('オートマウス');
-  if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
-  if (state.gesture?.layer === layer || state.gestureModes?.some(m => m.layer === layer)) tags.push('ジェスチャー');
-  if (state.precision?.layer === layer) tags.push('精密モード');
-  if (state.layerLedEnable && state.layerLeds[layer]?.enabled) tags.push('LED連動');
-  return tags;
 }
 
 interface Toast {
@@ -991,7 +972,6 @@ export default function App() {
                       <div className="layer-tabs">
                         {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
                           const src = pendingOrder ? pendingOrder[i] : i;
-                          const features = getLayerFeatures(i, state);
                           const dragTitle = pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます';
                           return (
                             <button
@@ -1003,7 +983,7 @@ export default function App() {
                               onDrop={() => { if (dragLayer !== null) reorderTabs(dragLayer, i); setDragLayer(null); }}
                               onDragEnd={() => setDragLayer(null)}
                               onClick={() => { setShowAllLayers(false); setCurrentLayer(i); setSelectedKeyIndex(null); }}
-                              title={features.length ? `${dragTitle} / 連動機能: ${features.join('・')}` : dragTitle}
+                              title={dragTitle}
                             >
                               <span className="layer-tab__dot" style={{ background: getLayerDotColor(i, state) }} />
                               L{i}{pendingOrder && src !== i ? ` ←${src}` : ''}
@@ -1019,14 +999,6 @@ export default function App() {
                           全レイヤー
                         </button>
                       </div>
-                      {!showAllLayers && (() => {
-                        const currentFeatures = getLayerFeatures(state.currentLayer, state);
-                        return (
-                          <span className="layer-toolbar__features">
-                            {currentFeatures.length ? `連動: ${currentFeatures.join('・')}` : '連動機能なし'}
-                          </span>
-                        );
-                      })()}
                       <div className="ball-toggle">
                         <span className="ball-toggle__label">{ballSideAuto ? 'ボール（自動）' : 'ボール'}</span>
                         <div className="ball-toggle__group" title={ballSideAuto ? 'キーボードから読み取ったボールの位置を表示しています' : undefined}>

@@ -3583,7 +3583,7 @@ p[data-tip] { width: fit-content; }
 .kb-ball--selected .key__label { color: var(--key-sel-fg); }
 
 /* キーマップのトラックボールを押した時の右側のパネル（BallPanel.tsx）。LED設定パネルと同じ部品を使う */
-.ball-panel-wrap { padding: 12px 14px; overflow-y: auto; }
+.ball-panel-wrap { padding: 12px 14px; overflow-y: auto; gap: 8px; }  /* LED設定と同じく見出しとの間に余白 */
 .ball-panel__targets { flex-wrap: wrap; flex-shrink: 1; }
 .ball-panel__label { font-size: 12px; color: var(--text-dim); margin-top: 6px; display: block; }
 .ball-panel__sliders { display: flex; flex-direction: column; gap: 2px; }

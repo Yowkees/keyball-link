@@ -46,7 +46,7 @@ export function BallPanel(p: BallPanelProps) {
   const L = layer;
   const { settings, precision, gesture, gestureModes } = p;
 
-  // 今の動き（カーソル・スクロール・ジェスチャーn）。精密モード（ゆっくり）はカーソル・スクロールに
+  // 今の動き（カーソル・スクロール・ジェスチャーn）。精密モードはカーソル・スクロールに
   // 付けられる別のON/OFF（2026-10-27、本人希望で詳細設定側に移した）
   const motionOf = (l: number): string => {
     const gi = gestureModes ? gestureModes.findIndex(m => m.layer === l) : -1;
@@ -129,9 +129,7 @@ export function BallPanel(p: BallPanelProps) {
 
         {L > 0 && (
           <ToggleRow
-            label={amlElsewhere
-              ? `ボールを動かすとこのレイヤーに切り替える（オートマウス。レイヤー${settings.autoMouseLayer}で使用中）`
-              : 'ボールを動かすとこのレイヤーに切り替える（オートマウス）'}
+            label="オートマウス"
             desc=""
             checked={amlHere}
             disabled={disabled || amlElsewhere}
@@ -165,7 +163,7 @@ export function BallPanel(p: BallPanelProps) {
           {precision && !isGesture && (
             <>
               <ToggleRow
-                label={precElsewhere ? `ゆっくり動かす（精密モード。レイヤー${precision.layer}で使用中）` : 'ゆっくり動かす（精密モード）'}
+                label="精密モード"
                 desc="" checked={precisionOn} disabled={disabled || precElsewhere} onChange={togglePrecision}
               />
               {precisionOn && (

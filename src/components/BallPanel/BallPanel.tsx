@@ -193,13 +193,10 @@ export function BallPanel(p: BallPanelProps) {
                 label="精密モード"
                 desc="" checked={precisionOn} disabled={disabled || precElsewhere} onChange={togglePrecision}
               />
-              {precisionOn && (
-                <>
-                  <span className="ball-panel__label">減速レベル</span>
-                  <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled} unit="分の1"
-                    onCommit={div => p.onPrecisionChange({ ...precision, div })} />
-                </>
-              )}
+              {/* 減速レベルはOFFの時もグレーで出しておく（ON/OFFでパネルの高さが変わらないように） */}
+              <span className="ball-panel__label">減速レベル</span>
+              <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled || !precisionOn} unit="分の1"
+                onCommit={div => p.onPrecisionChange({ ...precision, div })} />
             </>
           )}
           {isGesture && (() => {
@@ -276,6 +273,11 @@ export function BallPanel(p: BallPanelProps) {
               </>
             );
           })()}
+          {(motion === 'cursor' || motion === 'scroll') && (
+            <p className="settings-desc ball-panel__note">
+              {motion === 'cursor' ? 'カーソル' : 'スクロール'}の設定は全レイヤー共通です（精密モードはレイヤーごと）
+            </p>
+          )}
         </div>
         {editDir && isGesture && (
           <KeyConfigModal

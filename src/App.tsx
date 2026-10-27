@@ -71,6 +71,23 @@ function getLayerDotColor(layer: number, state: {
 
 // 指定レイヤーに紐づいているレイヤー連動機能の一覧（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）。
 // 各種LAYER_NONE(0xFE)は実レイヤー番号(0〜7)とは一致しないため、単純な等価比較だけで「未割り当て」を除外できる。
+// キー配列に描くトラックボールに書く、そのレイヤーでのボールの機能（2026-10-27、本人希望）。
+// 連動レイヤーの設定（スクロール・精密モード・ジェスチャー）から決める。どれでもなければカーソル移動。
+function getBallFunctionLabel(layer: number, state: {
+  kbSettings: { scrollLayer: number };
+  gesture: { layer: number } | null;
+  gestureModes: { layer: number }[] | null;
+  precision: { layer: number } | null;
+}): string {
+  const tags: string[] = [];
+  if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
+  if (state.precision?.layer === layer) tags.push('精密');
+  const modeIdx = state.gestureModes?.findIndex(m => m.layer === layer) ?? -1;
+  if (modeIdx >= 0) tags.push(`ジェスチャー${modeIdx + 1}`);
+  else if (state.gesture?.layer === layer) tags.push('ジェスチャー');
+  return tags.length ? tags.join('・') : 'カーソル';
+}
+
 function getLayerFeatures(layer: number, state: {
   kbSettings: { autoMouseEnable: boolean; autoMouseLayer: number; scrollLayer: number };
   gesture: { layer: number } | null;
@@ -113,6 +130,23 @@ export default function App() {
   const ballSideAuto = state.detectedBallSide !== null;
   // Remapと同じキー配置（via.jsonから生成）。キーマップの表示に使う（2026-10-27、本人希望）
   const kleGeometry = state.model ? KLE_GEOMETRY[state.model]?.[ballSide] : undefined;
+  // トラックボールの位置: ボールの位置にあるキー（今は隠しているキー）の、反対側にボールがある時の座標
+  const ballGeometry = (() => {
+    if (!state.model) return undefined;
+    const other = KLE_GEOMETRY[state.model]?.[ballSide === 'right' ? 'left' : 'right'];
+    if (!other) return undefined;
+    const keys = LAYOUTS[state.model].filter(k => k.ball === ballSide).map(k => other[`${k.row},${k.col}`]).filter(Boolean);
+    return keys.length ? keys : undefined;
+  })();
+  const ballProps = (layer: number) => {
+    const label = getBallFunctionLabel(layer, state);
+    return {
+      ballGeometry,
+      ballLabel: label,
+      ballTitle: `トラックボール（レイヤー${layer}）: ${label}。クリックでトラックボール設定を開きます`,
+      onBallClick: () => setActiveTab('trackball'),
+    };
+  };
   const [keyLayout, setKeyLayout] = useState<KeyLayout>(() =>
     (localStorage.getItem('keyLayout') as KeyLayout) ?? 'JIS'
   );
@@ -974,6 +1008,7 @@ export default function App() {
                                   selectedIndex={null}
                                   ballSide={ballSide}
                                   geometry={kleGeometry}
+                                  {...ballProps(li)}
                                   keyLayout={keyLayout}
                                   onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
                                   onKeyDrop={() => {}}
@@ -1005,6 +1040,7 @@ export default function App() {
                           selectedIndex={selectedKeyIndex}
                           ballSide={ballSide}
                           geometry={kleGeometry}
+                          {...ballProps(state.currentLayer)}
                           keyLayout={keyLayout}
                           onKeyClick={handleKeyClick}
                           onKeyDrop={handleKeyDrop}

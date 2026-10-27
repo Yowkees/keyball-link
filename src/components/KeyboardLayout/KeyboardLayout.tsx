@@ -53,11 +53,19 @@ interface KeyboardLayoutProps {
   // Remapと同じキー配置（via.jsonから生成したKLE座標、"行,列"→位置）。あれば格子状の配置の代わりに使う
   // （2026-10-27、本人希望）。全てのキーの座標がそろっている時だけ使い、欠けていれば従来の配置に戻る
   geometry?: Record<string, KleKeyGeometry>;
+  // トラックボールを描く位置（ボールの位置にあるキーの、反対側のボール配置の時の座標。KLE単位）と、
+  // ボールに書く機能の名前。あればボールを丸で描く（2026-10-27、本人希望）
+  ballGeometry?: KleKeyGeometry[];
+  ballLabel?: string;
+  ballTitle?: string;
+  onBallClick?: () => void;
 }
+
+interface BallRect { cx: number; cy: number; d: number }
 
 // KLE座標（1=キー1個分）をpxに直し、全体が(0,0)から始まるようにずらす。傾いたキーは回転後の
 // 四隅も含めて全体の大きさを求める。
-function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>): { rects: KeyRect[]; width: number; height: number } | null {
+function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>, ballGeometry?: KleKeyGeometry[]): { rects: KeyRect[]; width: number; height: number; ball: BallRect | null } | null {
   const U = KEY_SIZE + GAP;
   const raw: KeyRect[] = [];
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -79,18 +87,29 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>)
       maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
     }
   }
+  // トラックボール: ボールの位置にあるキー（傾きなし）の範囲の中心に、キー約1.6個分の丸を置く
+  let ball: BallRect | null = null;
+  if (ballGeometry && ballGeometry.length) {
+    const bx0 = Math.min(...ballGeometry.map(g => g.x)) * U, by0 = Math.min(...ballGeometry.map(g => g.y)) * U;
+    const bx1 = Math.max(...ballGeometry.map(g => g.x + (g.w ?? 1))) * U - GAP, by1 = Math.max(...ballGeometry.map(g => g.y + (g.h ?? 1))) * U - GAP;
+    const d = Math.min(bx1 - bx0, U * 1.6);
+    ball = { cx: (bx0 + bx1) / 2, cy: (by0 + by1) / 2, d };
+    minX = Math.min(minX, ball.cx - d / 2); maxX = Math.max(maxX, ball.cx + d / 2);
+    minY = Math.min(minY, ball.cy - d / 2); maxY = Math.max(maxY, ball.cy + d / 2);
+  }
   // 影や選択枠が切れないよう、ほんの少し余白をとる
   const pad = 4;
   const rects = raw.map(r => ({ ...r, left: r.left - minX + pad, top: r.top - minY + pad }));
-  return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2 };
+  if (ball) ball = { ...ball, cx: ball.cx - minX + pad, cy: ball.cy - minY + pad };
+  return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2, ball };
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballLabel, ballTitle, onBallClick }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   // ボールの位置にあるキーは表示しないので、座標の計算からも外す
   const visibleLayout = layout.filter(k => k.ball !== ballSide);
-  const kle = geometry ? kleRects(visibleLayout, geometry) : null;
+  const kle = geometry ? kleRects(visibleLayout, geometry, ballGeometry) : null;
   const rectById = new Map<string, KeyRect>();
   if (kle) visibleLayout.forEach((k, i) => rectById.set(k.id, kle.rects[i]));
 
@@ -148,6 +167,20 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             onHoverEnd={() => setHoverDesc(null)}
           />
         ))}
+        {kle?.ball && (
+          <button
+            type="button"
+            className="kb-ball"
+            style={{ left: kle.ball.cx - kle.ball.d / 2, top: kle.ball.cy - kle.ball.d / 2, width: kle.ball.d, height: kle.ball.d }}
+            title={ballTitle}
+            onClick={onBallClick}
+            onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
+            onMouseLeave={() => setHoverDesc(null)}
+          >
+            <span className="kb-ball__icon">🖲</span>
+            <span className="kb-ball__label">{ballLabel ?? 'カーソル'}</span>
+          </button>
+        )}
       </div>
       </div>
       {showDescBar && (

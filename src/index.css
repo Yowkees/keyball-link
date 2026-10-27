@@ -3557,3 +3557,24 @@ p[data-tip] { width: fit-content; }
 .btn-fixed-label { display: inline-grid; }
 .btn-fixed-label > span { grid-area: 1 / 1; text-align: center; }
 .btn-fixed-label__sizer { visibility: hidden; }
+
+/* キー配列の中に描くトラックボール（KeyboardLayout.tsx）。押すとトラックボール設定のタブへ移る */
+.kb-ball {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 22%, var(--key-bg)), var(--key-bg) 70%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--text);
+  padding: 6px;
+  text-align: center;
+}
+.kb-ball:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--key-bg)); }
+.kb-ball__icon { font-size: 16px; line-height: 1; }
+.kb-ball__label { font-size: 11px; font-weight: 600; line-height: 1.25; word-break: keep-all; }

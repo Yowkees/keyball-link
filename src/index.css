@@ -3576,4 +3576,3 @@ p[data-tip] { width: fit-content; }
   transition: background 0.1s, border-color 0.1s;
 }
 .kb-ball:hover { background: var(--key-hover); border-color: var(--accent); }
-.kb-ball__label { font-size: 11px; line-height: 1.25; word-break: keep-all; }

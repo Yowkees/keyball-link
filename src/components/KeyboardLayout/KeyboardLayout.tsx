@@ -104,10 +104,21 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
     const free = ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }))
       .filter(b => !overlaps(b.x0, b.y0, b.x1, b.y1));
     const area = free.length ? free : ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }));
-    const cx = (Math.min(...area.map(b => b.x0)) + Math.max(...area.map(b => b.x1))) / 2;
-    const cy = (Math.min(...area.map(b => b.y0)) + Math.max(...area.map(b => b.y1))) / 2;
-    const nearest = Math.min(...boxes.map(b => Math.hypot(Math.max(b.x0 - cx, 0, cx - b.x1), Math.max(b.y0 - cy, 0, cy - b.y1))));
-    const d = Math.max(KEY_SIZE, Math.min(U * 1.5, (nearest - GAP * 2) * 2));
+    // ボールの位置の範囲（少し広めに）の中で、周りのキーから一番離れられる場所を探して中心にする
+    // （2026-10-27、本人指摘「小さすぎる」。範囲の真ん中に置くと片側のキーが近く、小さくなっていた）
+    const ax0 = Math.min(...area.map(b => b.x0)) - U * 0.5, ax1 = Math.max(...area.map(b => b.x1)) + U * 0.5;
+    const ay0 = Math.min(...area.map(b => b.y0)) - U * 0.5, ay1 = Math.max(...area.map(b => b.y1)) + U * 0.5;
+    const distTo = (x: number, y: number) => Math.min(...boxes.map(b => Math.hypot(Math.max(b.x0 - x, 0, x - b.x1), Math.max(b.y0 - y, 0, y - b.y1))));
+    let cx = (ax0 + ax1) / 2, cy = (ay0 + ay1) / 2, best = -1;
+    for (let i = 0; i <= 24; i++) {
+      for (let j = 0; j <= 16; j++) {
+        const x = ax0 + ((ax1 - ax0) * i) / 24, y = ay0 + ((ay1 - ay0) * j) / 16;
+        const dd = Math.min(distTo(x, y), U * 0.8);  // 最大の大きさに届けば、なるべく範囲の真ん中寄りを選ぶ
+        const center = -Math.hypot(x - (ax0 + ax1) / 2, y - (ay0 + ay1) / 2) * 0.001;
+        if (dd + center > best) { best = dd + center; cx = x; cy = y; }
+      }
+    }
+    const d = Math.max(KEY_SIZE, Math.min(U * 1.6, (distTo(cx, cy) - GAP * 2) * 2));
     ball = { cx, cy, d };
     minX = Math.min(minX, cx - d / 2); maxX = Math.max(maxX, cx + d / 2);
     minY = Math.min(minY, cy - d / 2); maxY = Math.max(maxY, cy + d / 2);
@@ -192,7 +203,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
             onMouseLeave={() => setHoverDesc(null)}
           >
-            <span className="kb-ball__label">{ballLabel ?? 'カーソル'}</span>
+            <span className="key__label">{ballLabel ?? 'カーソル'}</span>
           </button>
         )}
       </div>

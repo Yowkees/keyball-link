@@ -3625,33 +3625,63 @@ p[data-tip] { width: fit-content; }
 .typing-game__new { margin: 0; color: var(--accent); font-weight: 700; }
 .typing-game__msg { margin: 0; font-size: 13px; color: var(--text-dim); text-align: center; min-height: 1.5em; }
 
+.typing-game__msg--warn { color: var(--red); font-weight: 600; }
+/* 日本語入力を受け取る見えない入力欄（変換候補の窓がカードの近くに出るよう、カードの位置に動かす） */
+.typing-game__input {
+  position: absolute; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
+  pointer-events: none; left: 50%; top: 50%;
+}
+
 .typing-card {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
   min-width: 150px; padding: 14px 20px; border-radius: 12px;
-  border: 1px solid var(--border); background: var(--key-bg); color: var(--text);
+  border: 2px solid var(--border); background: var(--key-bg); color: var(--text);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); cursor: pointer;
   transition: opacity .15s, border-color .15s, box-shadow .15s;
 }
+.typing-card:hover { border-color: var(--accent); }
+.typing-card__body { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .typing-card__text { font-size: 20px; font-weight: 700; }
-.typing-card__kana { font-size: 12px; color: var(--text-dim); }
-.typing-card__romaji { font-family: var(--font-mono); font-size: 15px; color: var(--text-dim); letter-spacing: .02em; }
-.typing-card__typed { color: var(--accent); }
-.typing-card__romaji--miss { animation: typing-miss .25s; }
-.typing-card--target {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
-  animation: typing-glow 1.2s ease-in-out infinite;
+.typing-card__kana { font-size: 13px; color: var(--text-dim); }
+.typing-card__romaji { font-family: var(--font-mono); font-size: 18px; letter-spacing: .03em; margin-top: 2px; }
+.typing-card__typed { color: var(--accent); font-weight: 700; }
+.typing-card__rest { color: var(--text-dim); }
+.typing-card__wrong { color: var(--red); font-weight: 700; }
+.typing-card__last { display: inline-block; animation: typing-pop-char .18s ease-out; }
+.typing-card--active {
+  border-color: var(--accent); cursor: default; z-index: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 14px rgba(0, 0, 0, 0.25);
 }
-.typing-card--active { border-color: var(--accent); cursor: default; z-index: 1; }
-.typing-card--dim { opacity: .35; }
-.typing-card--wrong { animation: typing-shake .3s; }
-@keyframes typing-glow { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 55%, transparent); } }
-@keyframes typing-miss { 0%, 100% { color: var(--text-dim); } 30% { color: var(--red); } }
+.typing-card--dim { opacity: .4; }
+/* 正解・間違いの時にカード全体に一瞬かぶせる色 */
+.typing-card__flash { position: absolute; inset: -2px; border-radius: 12px; pointer-events: none; }
+.typing-card__flash--ok { animation: typing-flash-ok .25s ease-out forwards; }
+.typing-card__flash--miss { animation: typing-flash-miss .45s ease-out forwards; }
+.typing-card__body--shake { animation: typing-shake .3s; }
+/* 打ち終わった時の「クリア！」 */
+.typing-pop {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+  font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--accent);
+  animation: typing-clear .7s ease-out forwards;
+}
+@keyframes typing-pop-char { 0% { transform: translateY(-5px) scale(1.4); } 100% { transform: none; } }
+@keyframes typing-flash-ok {
+  0% { box-shadow: 0 0 0 3px var(--accent), 0 0 16px var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  100% { box-shadow: none; background: transparent; }
+}
+@keyframes typing-flash-miss {
+  0%, 40% { box-shadow: 0 0 0 3px var(--red), 0 0 16px var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
+  100% { box-shadow: none; background: transparent; }
+}
 @keyframes typing-shake {
-  0%, 100% { transform: translate(-50%, -50%); }
-  25% { transform: translate(calc(-50% - 6px), -50%); }
-  75% { transform: translate(calc(-50% + 6px), -50%); }
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-7px); } 40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); } 80% { transform: translateX(3px); }
+}
+@keyframes typing-clear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); }
+  25% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(1); }
 }
 @media (max-width: 700px) {
   .typing-card { min-width: 0; padding: 10px 12px; }

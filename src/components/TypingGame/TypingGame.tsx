@@ -4,23 +4,40 @@ import { pickWords, type Word } from './words';
 
 // タイピングゲーム（2026-10-27〜、本人希望）。Keyballらしく「トラックボールで狙ってクリック →
 // キーで打つ」を繰り返し、ボール操作と文字入力の行き来に慣れるためのもの。
-// まずはステージ1（大きいカード）のみ。打つ言葉は日本語（ローマ字入力）と英単語を混ぜる。
+// 画面の中をゆっくり動くカードから好きなものを選んでクリックし、その言葉を打つ。
+// 日本語は「日本語入力オフでローマ字を直接」「日本語入力オン（IME）」のどちらで打っても判定する。
+// 英単語は日本語入力オフ（英数）で打つ。まずはステージ1（大きいカード）のみ。
+// 正解・間違いは、文字の色・カードの光り方・揺れではっきり分かるようにする（本人希望）。
 
 const ROUND_WORDS = 10;   // 1回のゲームで打つ単語の数
 const ON_FIELD = 4;       // 画面に同時に出すカードの数
-const COLS = 4;           // カードを置く場所のマス目（重ならないようにマスごとに1枚）
-const ROWS = 3;
+const SPEED = 5;          // カードの動く速さ（画面の幅・高さに対する％／秒）
 const BEST_KEY = 'typingGameBest';
 
-interface Card { id: number; word: Word; cell: number; dx: number; dy: number }
-interface Result { total: number; aim: number; type: number; miss: number; clickMiss: number; keys: number }
+interface Card { id: number; word: Word }
+interface Pos { x: number; y: number; vx: number; vy: number }   // 位置は画面に対する％
+interface Result { total: number; aim: number; type: number; miss: number; keys: number }
+interface Pop { id: number; x: number; y: number }   // 打ち終わった時に出す「クリア！」の表示
 
-const randomCell = (used: number[]) => {
-  const free = Array.from({ length: COLS * ROWS }, (_, i) => i).filter(i => !used.includes(i));
-  return free[Math.floor(Math.random() * free.length)];
-};
-// マスの中で少しずらして、並びが単調にならないようにする（-1〜1）
-const jitter = () => Math.random() * 2 - 1;
+// 日本語入力の途中の文字を、読みと比べられる形にそろえる（カタカナ→ひらがな、全角英字→半角）
+function normalizeIme(s: string): string {
+  return s
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/[ａ-ｚＡ-Ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .toLowerCase();
+}
+
+// 他のカードとなるべく離れた場所に、ランダムな向きで出す
+function spawnPos(others: Pos[]): Pos {
+  let best: Pos | null = null, bestD = -1;
+  for (let i = 0; i < 12; i++) {
+    const x = 14 + Math.random() * 72, y = 16 + Math.random() * 68;
+    const d = Math.min(100, ...others.map(o => Math.hypot(o.x - x, o.y - y)));
+    if (d > bestD) { bestD = d; best = { x, y, vx: 0, vy: 0 }; }
+  }
+  const a = Math.random() * Math.PI * 2;
+  return { ...best!, vx: Math.cos(a) * SPEED, vy: Math.sin(a) * SPEED };
+}
 
 function loadBest(): number | null {
   try { const v = localStorage.getItem(BEST_KEY); return v ? Number(v) : null; } catch { return null; }
@@ -36,104 +53,177 @@ export function TypingGame() {
   const [phase, setPhase] = useState<'ready' | 'play' | 'result'>('ready');
   const [queue, setQueue] = useState<Word[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [targetId, setTargetId] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);   // クリックして打っている最中のカード
-  const [romaji, setRomaji] = useState<RomajiState | null>(null);
-  const [missFlash, setMissFlash] = useState(0);
-  const [wrongCard, setWrongCard] = useState<number | null>(null);
-  const [imeWarn, setImeWarn] = useState(false);
-  const [needClick, setNeedClick] = useState(false);
+  const [romaji, setRomaji] = useState<RomajiState | null>(null);   // 日本語入力オフで打っている時の進み具合
+  const [ime, setIme] = useState<{ ok: number; pending: string; wrong: boolean } | null>(null);  // 日本語入力オンの時
+  const [missFlash, setMissFlash] = useState(0);   // 増えるたびに「間違い」の演出をやり直す
+  const [okFlash, setOkFlash] = useState(0);       // 増えるたびに「正解」の演出をやり直す
+  const [pops, setPops] = useState<Pop[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [best, setBest] = useState<number | null>(loadBest);
-  const stats = useRef({ start: 0, phaseStart: 0, aim: 0, type: 0, miss: 0, clickMiss: 0, keys: 0 });
+  const stats = useRef({ start: 0, phaseStart: 0, aim: 0, type: 0, miss: 0, keys: 0 });
   const nextId = useRef(0);
+  const pos = useRef(new Map<number, Pos>());
+  const els = useRef(new Map<number, HTMLElement>());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const activeRef = useRef<number | null>(null);
+  useEffect(() => { activeRef.current = activeId; }, [activeId]);
+
+  const active = cards.find(c => c.id === activeId) ?? null;
+
+  // カードをゆっくり動かす（壁で跳ね返る）。打っている最中のカードは止める。
+  // 毎フレームReactで描き直すと重いので、位置は要素のstyleを直接書き換える
+  useEffect(() => {
+    if (phase !== 'play') return;
+    let raf = 0, last = clock();
+    const step = () => {
+      const now = clock(), dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      for (const [id, p] of pos.current) {
+        if (id !== activeRef.current) {
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          if (p.x < 12 || p.x > 88) { p.vx = -p.vx; p.x = Math.max(12, Math.min(88, p.x)); }
+          if (p.y < 14 || p.y > 86) { p.vy = -p.vy; p.y = Math.max(14, Math.min(86, p.y)); }
+        }
+        const el = els.current.get(id);
+        if (el) { el.style.left = `${p.x}%`; el.style.top = `${p.y}%`; }
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [phase]);
 
   const start = () => {
     const words = pickWords(ROUND_WORDS);
-    const first: Card[] = [];
-    for (const w of words.slice(0, ON_FIELD)) {
-      first.push({ id: nextId.current++, word: w, cell: randomCell(first.map(c => c.cell)), dx: jitter(), dy: jitter() });
-    }
+    pos.current.clear();
+    const first: Card[] = words.slice(0, ON_FIELD).map(w => {
+      const id = nextId.current++;
+      pos.current.set(id, spawnPos([...pos.current.values()]));
+      return { id, word: w };
+    });
     setQueue(words.slice(ON_FIELD));
     setCards(first);
-    setTargetId(first[0].id);
     setActiveId(null);
     setRomaji(null);
+    setIme(null);
     setResult(null);
-    setImeWarn(false);
-    setNeedClick(false);
+    setMsg(null);
+    setPops([]);
     const now = clock();
-    stats.current = { start: now, phaseStart: now, aim: 0, type: 0, miss: 0, clickMiss: 0, keys: 0 };
+    stats.current = { start: now, phaseStart: now, aim: 0, type: 0, miss: 0, keys: 0 };
     setPhase('play');
   };
 
   const clickCard = (c: Card) => {
-    if (phase !== 'play' || activeId !== null) return;
-    if (c.id !== targetId) {
-      // 光っていないカードを押した（狙いのずれ）
-      stats.current.clickMiss++;
-      setWrongCard(c.id);
-      setTimeout(() => setWrongCard(w => (w === c.id ? null : w)), 300);
-      return;
-    }
+    if (phase !== 'play' || c.id === activeId) { inputRef.current?.focus(); return; }
     const now = clock();
-    stats.current.aim += now - stats.current.phaseStart;
-    stats.current.phaseStart = now;
+    // 狙う時間は、最初にカードを選ぶまで（打っている途中で別のカードに替えた時は数えない）
+    if (activeId === null) { stats.current.aim += now - stats.current.phaseStart; stats.current.phaseStart = now; }
     setActiveId(c.id);
+    activeRef.current = c.id;
     setRomaji(newRomaji(c.word.kana));
+    setIme(null);
     setMissFlash(0);
-    setNeedClick(false);
+    setOkFlash(0);
+    setMsg(null);
+    const input = inputRef.current;
+    if (input) {
+      // 日本語入力の変換候補の窓がカードの近くに出るよう、見えない入力欄をカードの位置へ
+      const p = pos.current.get(c.id);
+      if (p) { input.style.left = `${p.x}%`; input.style.top = `${p.y}%`; }
+      input.value = '';
+      input.focus();
+    }
   };
 
-  // 1単語打ち終わった: カードを消して、残りがあれば新しいカードを出し、次に狙うカードを決める
+  // 1単語打ち終わった: 「クリア」を出してカードを消し、残りがあれば新しいカードを出す
   const finishWord = (doneId: number) => {
     const now = clock();
     stats.current.type += now - stats.current.phaseStart;
     stats.current.phaseStart = now;
+    const p = pos.current.get(doneId);
+    if (p) {
+      const pop = { id: doneId, x: p.x, y: p.y };
+      setPops(ps => [...ps, pop]);
+      setTimeout(() => setPops(ps => ps.filter(x => x !== pop)), 700);
+    }
+    pos.current.delete(doneId);
     let rest = cards.filter(c => c.id !== doneId);
     if (queue.length > 0) {
-      const used = cards.map(c => c.cell);   // 今消したカードの場所はすぐには使わない（同じ所に出ると狙う練習にならない）
-      rest = [...rest, { id: nextId.current++, word: queue[0], cell: randomCell(used), dx: jitter(), dy: jitter() }];
+      const id = nextId.current++;
+      pos.current.set(id, spawnPos([...pos.current.values()]));
+      rest = [...rest, { id, word: queue[0] }];
       setQueue(queue.slice(1));
     }
     setCards(rest);
     setActiveId(null);
+    activeRef.current = null;
     setRomaji(null);
+    setIme(null);
+    setMsg(null);
+    // 日本語入力の途中の文字が残らないように、入力欄を空にして一度外す
+    const input = inputRef.current;
+    if (input) { input.blur(); input.value = ''; }
     if (rest.length === 0) {
       const s = stats.current;
       const total = now - s.start;
-      setResult({ total, aim: s.aim / ROUND_WORDS, type: s.type / ROUND_WORDS, miss: s.miss, clickMiss: s.clickMiss, keys: s.keys });
+      setResult({ total, aim: s.aim / ROUND_WORDS, type: s.type / ROUND_WORDS, miss: s.miss, keys: s.keys });
       if (best === null || total < best) { setBest(total); saveBest(total); }
       setPhase('result');
-      return;
     }
-    setTargetId(rest[Math.floor(Math.random() * rest.length)].id);
   };
 
+  const miss = () => { stats.current.miss++; setMissFlash(f => f + 1); };
+  const hit = () => { stats.current.keys++; setOkFlash(f => f + 1); };
+
+  // 日本語入力オフ（ローマ字・英字を直接）の判定
   useEffect(() => {
     if (phase !== 'play') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Escape') { setPhase('ready'); return; }
-      // 日本語入力（IME）がオンだと1文字ずつ判定できない
-      if (e.isComposing || e.key === 'Process') { setImeWarn(true); e.preventDefault(); return; }
+      // 日本語入力オンの時は、見えない入力欄の変換前の文字（compositionupdate）で判定する
+      if (e.isComposing || e.key === 'Process' || e.keyCode === 229) return;
       if (e.key.length !== 1) return;
       e.preventDefault();
-      setImeWarn(false);
-      if (activeId === null || !romaji) { setNeedClick(true); return; }
+      if (!active || !romaji) { setMsg('先に打ちたいカードをクリックしてください'); return; }
+      setMsg(null);
       const next = typeKey(romaji, e.key.toLowerCase());
-      if (!next) {
-        stats.current.miss++;
-        setMissFlash(f => f + 1);
-        return;
-      }
-      stats.current.keys++;
-      if (isFinished(next)) finishWord(activeId);
+      if (!next) { miss(); setMsg(`「${e.key}」は違います`); return; }
+      hit();
+      if (isFinished(next)) finishWord(active.id);
       else setRomaji(next);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
+
+  // 日本語入力オンの判定: 変換前の文字（ひらがな＋打ちかけのローマ字）が読みの先頭と合っているか
+  const onComposition = (data: string) => {
+    if (!active) return;
+    if (active.word.lang === 'en') { setMsg('英単語は日本語入力をオフ（英数）にして打ちます'); return; }
+    const t = normalizeIme(data);
+    const m = /[a-z']*$/.exec(t);
+    const pending = m ? m[0] : '';
+    const kana = t.slice(0, t.length - pending.length);
+    const reading = active.word.kana;
+    const ok = reading.startsWith(kana);
+    if (!ok && !ime?.wrong) miss();
+    else if (ok) hit();
+    setMsg(ok ? null : '違う文字が入っています（BackSpaceで消して打ち直し）');
+    if (ok && kana === reading && pending === '') { finishWord(active.id); return; }
+    setIme({ ok: ok ? kana.length : 0, pending, wrong: !ok });
+  };
+
+  // 変換して確定した時（漢字にしてEnterなど）。表示と同じか読みと同じなら正解
+  const onCommit = (text: string) => {
+    if (!active || text === '') return;
+    if (text === active.word.text || normalizeIme(text) === active.word.kana) finishWord(active.id);
+    else if (active.word.lang === 'ja') { miss(); setIme(null); setMsg('違う言葉で確定されました。もう一度打ってください'); }
+    if (inputRef.current) inputRef.current.value = '';
+  };
 
   return (
     <div className="typing-game">
@@ -145,12 +235,23 @@ export function TypingGame() {
       </div>
 
       <div className="typing-game__field">
+        {/* 日本語入力の文字を受け取るための見えない入力欄 */}
+        <input
+          ref={inputRef}
+          className="typing-game__input"
+          aria-label="入力"
+          autoComplete="off"
+          onCompositionUpdate={e => onComposition(e.data)}
+          onCompositionEnd={e => { if (activeRef.current !== null) onCommit(e.data); }}
+          onInput={e => { if (!(e.nativeEvent as InputEvent).isComposing) e.currentTarget.value = ''; }}
+        />
+
         {phase === 'ready' && (
           <div className="typing-game__center">
-            <p className="typing-game__lead">光っているカードをトラックボールで狙ってクリックし、出てきた言葉を打ちます。</p>
+            <p className="typing-game__lead">動いているカードから好きなものをトラックボールで狙ってクリックし、その言葉を打ちます。</p>
             <ul className="typing-game__rules">
-              <li>日本語はローマ字で打ちます（し＝shi / si など、どの打ち方でもOK）</li>
-              <li>日本語入力はオフ（英数）にしてください</li>
+              <li>日本語は、日本語入力オン・オフどちらでも打てます（オフの時はローマ字で。し＝shi / si など、どの打ち方でもOK）</li>
+              <li>英単語は日本語入力をオフ（英数）にして打ちます</li>
               <li>全部で{ROUND_WORDS}語。途中でやめる時は Esc</li>
             </ul>
             <button className="btn btn--primary typing-game__start" onClick={start}>スタート</button>
@@ -158,35 +259,57 @@ export function TypingGame() {
         )}
 
         {phase === 'play' && cards.map(c => {
-          const col = c.cell % COLS, row = Math.floor(c.cell / COLS);
-          const left = ((col + 0.5 + c.dx * 0.18) / COLS) * 100;
-          const top = ((row + 0.5 + c.dy * 0.15) / ROWS) * 100;
-          const active = c.id === activeId;
-          const [typed, rest] = active && romaji ? guide(romaji) : ['', ''];
+          const isActive = c.id === activeId;
+          const [typed, rest] = isActive && romaji && !ime ? guide(romaji) : ['', ''];
           return (
             <button
               key={c.id}
+              ref={el => {
+                if (!el) { els.current.delete(c.id); return; }
+                // 出た瞬間から正しい位置に置く（以後の移動はアニメーションの処理で書き換える）
+                const p = pos.current.get(c.id);
+                if (p && !els.current.has(c.id)) { el.style.left = `${p.x}%`; el.style.top = `${p.y}%`; }
+                els.current.set(c.id, el);
+              }}
               type="button"
               className={[
                 'typing-card',
-                c.id === targetId && !active ? 'typing-card--target' : '',
-                active ? 'typing-card--active' : '',
-                activeId !== null && !active ? 'typing-card--dim' : '',
-                wrongCard === c.id ? 'typing-card--wrong' : '',
+                isActive ? 'typing-card--active' : '',
+                activeId !== null && !isActive ? 'typing-card--dim' : '',
               ].join(' ')}
-              style={{ left: `${left}%`, top: `${top}%` }}
               onClick={() => clickCard(c)}
             >
-              <span className="typing-card__text">{c.word.text}</span>
-              {c.word.lang === 'ja' && <span className="typing-card__kana">{c.word.kana}</span>}
-              {active && (
-                <span key={missFlash} className={`typing-card__romaji ${missFlash ? 'typing-card__romaji--miss' : ''}`}>
-                  <span className="typing-card__typed">{typed}</span>{rest}
-                </span>
-              )}
+              {/* 間違えた時は中身が揺れて枠が赤く、正解の時は枠が一瞬明るく光る（keyを変えて演出をやり直す） */}
+              {isActive && missFlash > 0 && <span key={`m${missFlash}`} className="typing-card__flash typing-card__flash--miss" />}
+              {isActive && okFlash > 0 && <span key={`o${okFlash}`} className="typing-card__flash typing-card__flash--ok" />}
+              <span key={isActive ? `s${missFlash}` : 's'} className={`typing-card__body ${isActive && missFlash ? 'typing-card__body--shake' : ''}`}>
+                <span className="typing-card__text">{c.word.text}</span>
+                {c.word.lang === 'ja' && (
+                  <span className="typing-card__kana">
+                    {isActive && ime ? (
+                      <><span className="typing-card__typed">{c.word.kana.slice(0, ime.ok)}</span>{c.word.kana.slice(ime.ok)}</>
+                    ) : c.word.kana}
+                  </span>
+                )}
+                {isActive && (
+                  <span className="typing-card__romaji">
+                    {ime ? <span className={ime.wrong ? 'typing-card__wrong' : 'typing-card__typed'}>{ime.pending || ' '}</span>
+                      : <>
+                          <span className="typing-card__typed">{typed.slice(0, -1)}</span>
+                          {/* 最後に打った文字は少し跳ねさせて、入ったことを分かりやすくする */}
+                          {typed && <span key={`k${okFlash}`} className="typing-card__typed typing-card__last">{typed.slice(-1)}</span>}
+                          <span className="typing-card__rest">{rest}</span>
+                        </>}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
+
+        {pops.map(p => (
+          <span key={p.id} className="typing-pop" style={{ left: `${p.x}%`, top: `${p.y}%` }}>クリア！</span>
+        ))}
 
         {phase === 'result' && result && (
           <div className="typing-game__center">
@@ -196,7 +319,6 @@ export function TypingGame() {
               <span>狙う時間（1語あたり）</span><b>{sec(result.aim)} 秒</b>
               <span>打つ時間（1語あたり）</span><b>{sec(result.type)} 秒</b>
               <span>打ち間違い</span><b>{result.miss} 回</b>
-              <span>クリックの外れ</span><b>{result.clickMiss} 回</b>
               <span>正確さ</span><b>{result.keys + result.miss ? Math.round(result.keys / (result.keys + result.miss) * 100) : 100}%</b>
             </div>
             {best !== null && result.total <= best && <p className="typing-game__new">ベスト更新！</p>}
@@ -205,10 +327,9 @@ export function TypingGame() {
         )}
       </div>
 
-      <p className="typing-game__msg">
-        {imeWarn ? '⚠ 日本語入力がオンになっています。英数に切り替えてください'
-          : needClick ? '先に光っているカードをクリックしてください'
-          : phase === 'play' ? (activeId === null ? '光っているカードをクリック' : '打ってください（Escでやめる）') : ' '}
+      <p className={`typing-game__msg ${msg ? 'typing-game__msg--warn' : ''}`}>
+        {msg ? `⚠ ${msg}`
+          : phase === 'play' ? (activeId === null ? '打ちたいカードをクリック' : '打ってください（別のカードをクリックすると替えられます／Escでやめる）') : ' '}
       </p>
     </div>
   );

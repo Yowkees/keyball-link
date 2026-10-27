@@ -6,13 +6,19 @@ import { pickWords, type Word } from './words';
 // キーで打つ」を繰り返し、ボール操作と文字入力の行き来に慣れるためのもの。
 // 画面の中をゆっくり動くカードから好きなものを選んでクリックし、その言葉を打つ。
 // 日本語は「日本語入力オフでローマ字を直接」「日本語入力オン（IME）」のどちらで打っても判定する。
-// 英単語は日本語入力オフ（英数）で打つ。まずはステージ1（大きいカード）のみ。
+// 英単語は日本語入力オフ（英数）で打つ。難易度は3段階（カードの数・速さ・大きさ・言葉の長さが変わる）。
 // 正解・間違いは、文字の色・カードの光り方・揺れではっきり分かるようにする（本人希望）。
 
-const ROUND_WORDS = 10;   // 1回のゲームで打つ単語の数
-const ON_FIELD = 4;       // 画面に同時に出すカードの数
-const SPEED = 5;          // カードの動く速さ（画面の幅・高さに対する％／秒）
-const BEST_KEY = 'typingGameBest';
+type Level = 'easy' | 'normal' | 'hard';
+// words: 1回のゲームで打つ単語の数 / onField: 画面に同時に出すカードの数
+// speed: カードの動く速さ（画面の幅・高さに対する％／秒） / small: カードを小さくする
+const LEVELS: Record<Level, { name: string; words: number; onField: number; speed: number; small: boolean; desc: string }> = {
+  easy:   { name: 'かんたん',   words: 10, onField: 3, speed: 3,  small: false, desc: '短い言葉・ゆっくり' },
+  normal: { name: 'ふつう',     words: 15, onField: 4, speed: 6,  small: false, desc: 'いろいろな長さ' },
+  hard:   { name: 'むずかしい', words: 20, onField: 5, speed: 10, small: true,  desc: '長い言葉・小さく速いカード' },
+};
+const BEST_KEY = (lv: Level) => `typingGameBest_${lv}`;
+const LEVEL_KEY = 'typingGameLevel';
 
 interface Card { id: number; word: Word }
 interface Pos { x: number; y: number; vx: number; vy: number }   // 位置は画面に対する％
@@ -28,7 +34,7 @@ function normalizeIme(s: string): string {
 }
 
 // 他のカードとなるべく離れた場所に、ランダムな向きで出す
-function spawnPos(others: Pos[]): Pos {
+function spawnPos(others: Pos[], speed: number): Pos {
   let best: Pos | null = null, bestD = -1;
   for (let i = 0; i < 12; i++) {
     const x = 14 + Math.random() * 72, y = 16 + Math.random() * 68;
@@ -36,14 +42,17 @@ function spawnPos(others: Pos[]): Pos {
     if (d > bestD) { bestD = d; best = { x, y, vx: 0, vy: 0 }; }
   }
   const a = Math.random() * Math.PI * 2;
-  return { ...best!, vx: Math.cos(a) * SPEED, vy: Math.sin(a) * SPEED };
+  return { ...best!, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed };
 }
 
-function loadBest(): number | null {
-  try { const v = localStorage.getItem(BEST_KEY); return v ? Number(v) : null; } catch { return null; }
+function loadBest(lv: Level): number | null {
+  try { const v = localStorage.getItem(BEST_KEY(lv)); return v ? Number(v) : null; } catch { return null; }
 }
-function saveBest(v: number) {
-  try { localStorage.setItem(BEST_KEY, String(v)); } catch { /* 保存できなくても遊べる */ }
+function saveBest(lv: Level, v: number) {
+  try { localStorage.setItem(BEST_KEY(lv), String(v)); } catch { /* 保存できなくても遊べる */ }
+}
+function loadLevel(): Level {
+  try { const v = localStorage.getItem(LEVEL_KEY); return v === 'easy' || v === 'hard' ? v : 'normal'; } catch { return 'normal'; }
 }
 // 経過時間の計測用（イベントの中でだけ呼ぶ）
 const clock = () => performance.now();
@@ -61,7 +70,9 @@ export function TypingGame() {
   const [pops, setPops] = useState<Pop[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [best, setBest] = useState<number | null>(loadBest);
+  const [level, setLevel] = useState<Level>(loadLevel);
+  const [best, setBest] = useState<number | null>(() => loadBest(loadLevel()));
+  const lv = LEVELS[level];
   const stats = useRef({ start: 0, phaseStart: 0, aim: 0, type: 0, miss: 0, keys: 0 });
   const nextId = useRef(0);
   const pos = useRef(new Map<number, Pos>());
@@ -95,15 +106,21 @@ export function TypingGame() {
     return () => cancelAnimationFrame(raf);
   }, [phase]);
 
+  const chooseLevel = (l: Level) => {
+    setLevel(l);
+    setBest(loadBest(l));
+    try { localStorage.setItem(LEVEL_KEY, l); } catch { /* 覚えられなくても遊べる */ }
+  };
+
   const start = () => {
-    const words = pickWords(ROUND_WORDS);
+    const words = pickWords(lv.words, level);
     pos.current.clear();
-    const first: Card[] = words.slice(0, ON_FIELD).map(w => {
+    const first: Card[] = words.slice(0, lv.onField).map(w => {
       const id = nextId.current++;
-      pos.current.set(id, spawnPos([...pos.current.values()]));
+      pos.current.set(id, spawnPos([...pos.current.values()], lv.speed));
       return { id, word: w };
     });
-    setQueue(words.slice(ON_FIELD));
+    setQueue(words.slice(lv.onField));
     setCards(first);
     setActiveId(null);
     setRomaji(null);
@@ -153,7 +170,7 @@ export function TypingGame() {
     let rest = cards.filter(c => c.id !== doneId);
     if (queue.length > 0) {
       const id = nextId.current++;
-      pos.current.set(id, spawnPos([...pos.current.values()]));
+      pos.current.set(id, spawnPos([...pos.current.values()], lv.speed));
       rest = [...rest, { id, word: queue[0] }];
       setQueue(queue.slice(1));
     }
@@ -169,8 +186,8 @@ export function TypingGame() {
     if (rest.length === 0) {
       const s = stats.current;
       const total = now - s.start;
-      setResult({ total, aim: s.aim / ROUND_WORDS, type: s.type / ROUND_WORDS, miss: s.miss, keys: s.keys });
-      if (best === null || total < best) { setBest(total); saveBest(total); }
+      setResult({ total, aim: s.aim / lv.words, type: s.type / lv.words, miss: s.miss, keys: s.keys });
+      if (best === null || total < best) { setBest(total); saveBest(level, total); }
       setPhase('result');
     }
   };
@@ -229,12 +246,12 @@ export function TypingGame() {
     <div className="typing-game">
       <div className="typing-game__head">
         <span className="typing-game__title">タイピングゲーム</span>
-        <span className="typing-game__stage">ステージ1</span>
+        {phase !== 'ready' && <span className="typing-game__stage">{lv.name}</span>}
         {phase === 'play' && <span className="typing-game__left">残り {cards.length + queue.length} 語</span>}
         {best !== null && <span className="typing-game__best">ベスト {sec(best)} 秒</span>}
       </div>
 
-      <div className="typing-game__field">
+      <div className={`typing-game__field ${lv.small ? 'typing-game__field--small' : ''}`}>
         {/* 日本語入力の文字を受け取るための見えない入力欄 */}
         <input
           ref={inputRef}
@@ -252,8 +269,16 @@ export function TypingGame() {
             <ul className="typing-game__rules">
               <li>日本語は、日本語入力オン・オフどちらでも打てます（オフの時はローマ字で。し＝shi / si など、どの打ち方でもOK）</li>
               <li>英単語は日本語入力をオフ（英数）にして打ちます</li>
-              <li>全部で{ROUND_WORDS}語。途中でやめる時は Esc</li>
+              <li>途中でやめる時は Esc</li>
             </ul>
+            <div className="typing-game__levels">
+              {(Object.keys(LEVELS) as Level[]).map(l => (
+                <button key={l} type="button" className={`typing-level ${level === l ? 'typing-level--on' : ''}`} onClick={() => chooseLevel(l)}>
+                  <b>{LEVELS[l].name}</b>
+                  <span>{LEVELS[l].desc}・{LEVELS[l].words}語</span>
+                </button>
+              ))}
+            </div>
             <button className="btn btn--primary typing-game__start" onClick={start}>スタート</button>
           </div>
         )}
@@ -322,7 +347,10 @@ export function TypingGame() {
               <span>正確さ</span><b>{result.keys + result.miss ? Math.round(result.keys / (result.keys + result.miss) * 100) : 100}%</b>
             </div>
             {best !== null && result.total <= best && <p className="typing-game__new">ベスト更新！</p>}
-            <button className="btn btn--primary typing-game__start" onClick={start}>もう一度</button>
+            <div className="typing-game__again">
+              <button className="btn btn--primary typing-game__start" onClick={start}>もう一度</button>
+              <button className="btn typing-game__start" onClick={() => setPhase('ready')}>難易度を変える</button>
+            </div>
           </div>
         )}
       </div>

@@ -3687,3 +3687,20 @@ p[data-tip] { width: fit-content; }
   .typing-card { min-width: 0; padding: 10px 12px; }
   .typing-card__text { font-size: 16px; }
 }
+/* タイピングゲームの難易度選び */
+.typing-game__levels { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.typing-level {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 150px; padding: 10px 16px;
+  border-radius: 10px; border: 2px solid var(--border); background: var(--key-bg); color: var(--text); cursor: pointer;
+}
+.typing-level b { font-size: 15px; }
+.typing-level span { font-size: 11.5px; color: var(--text-dim); }
+.typing-level:hover { border-color: var(--accent); }
+.typing-level--on { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.typing-level--on b { color: var(--accent); }
+.typing-game__again { display: flex; gap: 10px; }
+/* むずかしい: カードを小さくする */
+.typing-game__field--small .typing-card { min-width: 0; padding: 8px 12px; }
+.typing-game__field--small .typing-card__text { font-size: 15px; }
+.typing-game__field--small .typing-card__kana { font-size: 11px; }
+.typing-game__field--small .typing-card__romaji { font-size: 14px; }

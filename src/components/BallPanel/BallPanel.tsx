@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { KbSettings, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold } from '../../lib/protocol';
+import type { KbSettings, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } from '../../lib/protocol';
-import { HeaderToggle, SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
 // キーマップのトラックボールを押した時に、右側に出すトラックボールの設定（2026-10-27、本人希望）。
 // LED設定パネル（LedPanel）と同じ作り: 上に「動き」の選択欄、その下にスイッチとスライダー。
@@ -12,7 +12,7 @@ import { HeaderToggle, SliderControl, ToggleRow } from '../SettingsControls/Sett
 // 動きを選ぶと、そのレイヤーの連動設定（スクロールレイヤー・精密モードの連動レイヤー・
 // ジェスチャーnの連動レイヤー）を書き換える。別のレイヤーで使っている機能は、そちらで外すまで
 // 選べない（本人希望。勝手に移すと分かりにくいため）。
-// 細かい設定は「トラックボール設定」タブにあり、ここには選んだ動きに関係するものだけを出す。
+// ここには選んだ動きに関係するものだけを出す（シェイクなどは「トラックボール設定」タブ）。
 
 const MAX_CPI_INDEX = 17;   // TrackballSettings.tsxと同じ
 const MAX_ACCEL = 10;
@@ -33,6 +33,15 @@ interface BallPanelProps {
   onGestureModeChange: (mode: number, g: GestureModeConfig) => Promise<void>;
   gestureThreshold: GestureThreshold | null;
   onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
+  // ジェスチャーウェーブ（ジェスチャー発動時にLEDを流す）。nullなら非対応ファーム
+  gestureWaveEnable: boolean | null;
+  onGestureWaveEnableChange: (v: boolean) => Promise<void>;
+  gestureWaveStyle: number[] | null;
+  onGestureWaveStyleChange: (mode: number, style: number) => Promise<void>;
+  gestureWaveColor: GestureWaveColor[] | null;
+  onGestureWaveColorChange: (mode: number, c: GestureWaveColor) => Promise<void>;
+  gestureWaveSpeed: number[] | null;
+  onGestureWaveSpeedChange: (mode: number, speed: number) => Promise<void>;
   onOpenTab: () => void;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
@@ -133,10 +142,10 @@ export function BallPanel(p: BallPanelProps) {
           </select>
           {/* オートマウスのON/OFFは選択欄の横に置く。他のレイヤーに設定済みなら、そのレイヤーだけに出す（2026-10-27、本人希望） */}
           {L > 0 && !amlElsewhere && (
-            <span className={`ball-panel__aml ${disabled ? 'ball-panel__aml--disabled' : ''}`}>
+            <button type="button" className={`ball-panel__aml ${amlHere ? 'ball-panel__aml--on' : ''}`}
+              disabled={disabled} aria-pressed={amlHere} onClick={() => toggleAml(!amlHere)}>
               オートマウス
-              <HeaderToggle checked={amlHere} disabled={disabled} onChange={toggleAml} />
-            </span>
+            </button>
           )}
         </div>
 
@@ -183,15 +192,24 @@ export function BallPanel(p: BallPanelProps) {
             const gm = gestureModes && isGesture && motion !== 'g' ? gestureModes[Number(motion.slice(1))] : null;
             const cfg = gm ?? (motion === 'g' ? gesture : null);
             if (!cfg) return null;
-            const dirs = [['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const;
+            const dirs = [['up', '上 ↑', 'continuousUp'], ['down', '下 ↓', 'continuousDown'],
+              ['left', '左 ←', 'continuousLeft'], ['right', '右 →', 'continuousRight']] as const;
+            const mi = gm ? Number(motion.slice(1)) : -1;
             return (
               <div className="ball-panel__gesture">
-                {dirs.map(([dir, label]) => (
+                {dirs.map(([dir, label, contKey]) => (
                   <div key={dir} className="gesture-row">
                     <span className="gesture-dir">{label}</span>
                     <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
                       {getKeyDisplayLabel(cfg[dir], p.keyLayout) || '未設定'}
                     </button>
+                    {gm && (
+                      <label className="ball-panel__cont">
+                        <input type="checkbox" disabled={disabled} checked={gm[contKey]}
+                          onChange={e => p.onGestureModeChange(mi, { ...gm, [contKey]: e.target.checked })} />
+                        連続入力
+                      </label>
+                    )}
                   </div>
                 ))}
               </div>
@@ -207,6 +225,44 @@ export function BallPanel(p: BallPanelProps) {
                 onCommit={v => p.onGestureThresholdChange({ ...p.gestureThreshold!, v })} />
             </>
           )}
+          {isGesture && motion !== 'g' && p.gestureWaveEnable !== null && (() => {
+            const i = Number(motion.slice(1));
+            const off = disabled || !p.gestureWaveEnable;
+            const color = p.gestureWaveColor?.[i];
+            return (
+              <>
+                <ToggleRow label="ジェスチャーウェーブ" desc="" checked={p.gestureWaveEnable} disabled={disabled}
+                  onChange={v => run(() => p.onGestureWaveEnableChange(v))} />
+                {p.gestureWaveStyle && (
+                  <select className="trackball-bar__select" value={p.gestureWaveStyle[i]} disabled={off}
+                    onChange={e => p.onGestureWaveStyleChange(i, Number(e.target.value))}>
+                    <option value={0}>シャープ（瞬間的に光る）</option>
+                    <option value={1}>ブリージング（柔らかく流れる）</option>
+                  </select>
+                )}
+                {color && (
+                  <>
+                    <span className="ball-panel__label">色相</span>
+                    <SliderControl value={color.hue} min={0} max={255} step={1} disabled={off} unit=""
+                      onCommit={hue => p.onGestureWaveColorChange(i, { ...color, hue })} />
+                    <span className="ball-panel__label">彩度</span>
+                    <SliderControl value={color.sat} min={0} max={255} step={1} disabled={off} unit=""
+                      onCommit={sat => p.onGestureWaveColorChange(i, { ...color, sat })} />
+                    <span className="ball-panel__label">明るさ</span>
+                    <SliderControl value={color.val} min={0} max={255} step={1} disabled={off} unit=""
+                      onCommit={val => p.onGestureWaveColorChange(i, { ...color, val })} />
+                  </>
+                )}
+                {p.gestureWaveSpeed && (
+                  <>
+                    <span className="ball-panel__label">ウェーブの速さ</span>
+                    <SliderControl value={p.gestureWaveSpeed[i]} min={1} max={255} step={1} disabled={off} unit=""
+                      onCommit={v => p.onGestureWaveSpeedChange(i, v)} />
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
         {editDir && isGesture && (
           <KeyConfigModal
@@ -229,9 +285,6 @@ export function BallPanel(p: BallPanelProps) {
           />
         )}
 
-        <button type="button" className="ball-panel__more" onClick={p.onOpenTab}>
-          その他の設定（連続入力・ジェスチャーウェーブ・シェイクなど）は「トラックボール設定」タブで →
-        </button>
       </div>
     </>
   );

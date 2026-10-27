@@ -211,7 +211,8 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
       </div>
       {showDescBar && (
         <div className="key-desc-bar">
-          {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
+          {/* 説明が長くても1行に収め、バーの高さ（＝パネルの大きさ）を変えない */}
+          <span className="key-desc-bar__text">{hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}</span>
         </div>
       )}
     </div>

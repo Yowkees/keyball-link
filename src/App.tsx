@@ -146,7 +146,7 @@ export default function App() {
     return {
       ballGeometry,
       ballLabel: label,
-      ballTitle: `トラックボール（レイヤー${layer}）: ${label}。クリックで右側にトラックボールの設定を表示します`,
+      ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },
     };
   };
@@ -1135,6 +1135,14 @@ export default function App() {
                           onGestureModeChange={handleGestureModeChange}
                           gestureThreshold={state.gestureThreshold}
                           onGestureThresholdChange={handleGestureThresholdChange}
+                          gestureWaveEnable={state.gestureWaveEnable}
+                          onGestureWaveEnableChange={handleGestureWaveEnableChange}
+                          gestureWaveStyle={state.gestureWaveStyle}
+                          onGestureWaveStyleChange={handleGestureWaveStyleChange}
+                          gestureWaveColor={state.gestureWaveColor}
+                          onGestureWaveColorChange={handleGestureWaveColorChange}
+                          gestureWaveSpeed={state.gestureWaveSpeed}
+                          onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
                           onOpenTab={() => setActiveTab('trackball')}
                           keyLayout={keyLayout}
                           avail={fwAvail}

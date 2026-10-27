@@ -1024,6 +1024,14 @@ body { background: var(--bg); overflow-x: hidden; }
   padding-top: 8px;
   border-top: 1px solid var(--border);
 }
+/* LED設定パネル：縦に余裕ができたので各設定の間を広めに取る（2026-10-27） */
+.led-settings { gap: 14px; }
+.led-settings__body { display: flex; flex-direction: column; gap: 12px; }
+.led-settings__body .led-panel__sliders { gap: 18px 28px; padding-top: 14px; }
+.led-settings__note { margin: 0; min-height: 1.5em; }
+/* オフ中にレイヤー0の光り方を見せている時は、操作できないのでグレーにする */
+.led-settings__body--preview .led-panel__bar,
+.led-settings__body--preview .led-panel__sliders { opacity: .45; }
 .led-panel__slider {
   display: flex;
   align-items: center;

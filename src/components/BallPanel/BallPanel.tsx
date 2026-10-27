@@ -60,14 +60,20 @@ export function BallPanel(p: BallPanelProps) {
   const precisionOn = precision?.layer === L;
   const amlHere = settings.autoMouseEnable && settings.autoMouseLayer === L;
 
-  // 別のレイヤーで使っている機能は、選択肢に出さない（本人希望）
+  // 選択肢には全ての機能を並べ、別のレイヤーで使っている機能はグレーにして「（レイヤー○）」と添える（本人希望）。
+  // スクロールはレイヤー0とオートマウスのレイヤーでは、ジェスチャーはオートマウスのレイヤーでは選べない。
   const usedElsewhere = (l: number) => l !== LAYER_NONE && l !== L;
-  const options: { key: string; label: string }[] = [
-    { key: 'cursor', label: 'カーソル' },
-    ...(L !== 0 && !amlHere && !usedElsewhere(settings.scrollLayer) ? [{ key: 'scroll', label: 'スクロール' }] : []),
+  const opt = (key: string, label: string, used: number, blocked: boolean) => ({
+    key,
+    label: usedElsewhere(used) ? `${label}（レイヤー${used}）` : label,
+    disabled: usedElsewhere(used) || blocked,
+  });
+  const options: { key: string; label: string; disabled: boolean }[] = [
+    { key: 'cursor', label: 'カーソル', disabled: false },
+    opt('scroll', 'スクロール', settings.scrollLayer, L === 0 || amlHere),
     ...(gestureModes
-      ? gestureModes.flatMap((m, i) => (!amlHere && !usedElsewhere(m.layer) ? [{ key: `g${i}`, label: `ジェスチャー${i + 1}` }] : []))
-      : gesture && !amlHere && !usedElsewhere(gesture.layer) ? [{ key: 'g', label: 'ジェスチャー' }] : []),
+      ? gestureModes.map((m, i) => opt(`g${i}`, `ジェスチャー${i + 1}`, m.layer, amlHere))
+      : gesture ? [opt('g', 'ジェスチャー', gesture.layer, amlHere)] : []),
   ];
   const amlElsewhere = settings.autoMouseEnable && settings.autoMouseLayer !== L;
   const precElsewhere = precision ? usedElsewhere(precision.layer) : false;
@@ -123,13 +129,13 @@ export function BallPanel(p: BallPanelProps) {
             disabled={disabled}
             onChange={e => chooseMotion(e.target.value)}
           >
-            {options.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+            {options.map(o => <option key={o.key} value={o.key} disabled={o.disabled}>{o.label}</option>)}
           </select>
-          {/* オートマウスのON/OFFは選択欄の横に置く（2026-10-27、本人希望） */}
-          {L > 0 && (
-            <span className={`ball-panel__aml ${disabled || amlElsewhere ? 'ball-panel__aml--disabled' : ''}`}>
+          {/* オートマウスのON/OFFは選択欄の横に置く。他のレイヤーに設定済みなら、そのレイヤーだけに出す（2026-10-27、本人希望） */}
+          {L > 0 && !amlElsewhere && (
+            <span className={`ball-panel__aml ${disabled ? 'ball-panel__aml--disabled' : ''}`}>
               オートマウス
-              <HeaderToggle checked={amlHere} disabled={disabled || amlElsewhere} onChange={toggleAml} />
+              <HeaderToggle checked={amlHere} disabled={disabled} onChange={toggleAml} />
             </span>
           )}
         </div>

@@ -64,6 +64,7 @@ export function LedPanel({
       <div className="led-panel__title">LED設定</div>
       <LEDSettings
         config={shown}
+        offPreview={led}
         onChange={c => {
           const enabled = c.effectId !== 0;
           onLayerLedChange(target, { ...layerCfg, ...c, effectId: enabled ? c.effectId : layerCfg.effectId, enabled });

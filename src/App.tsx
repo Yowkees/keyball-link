@@ -17,6 +17,7 @@ import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
+import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { PRESETS } from './lib/presets';
 import './index.css';
 
@@ -110,6 +111,8 @@ export default function App() {
   );
   const ballSide: BallSide = state.detectedBallSide ?? manualBallSide;
   const ballSideAuto = state.detectedBallSide !== null;
+  // Remapと同じキー配置（via.jsonから生成）。キーマップの表示に使う（2026-10-27、本人希望）
+  const kleGeometry = state.model ? KLE_GEOMETRY[state.model]?.[ballSide] : undefined;
   const [keyLayout, setKeyLayout] = useState<KeyLayout>(() =>
     (localStorage.getItem('keyLayout') as KeyLayout) ?? 'JIS'
   );
@@ -970,6 +973,7 @@ export default function App() {
                                   keycodes={codes}
                                   selectedIndex={null}
                                   ballSide={ballSide}
+                                  geometry={kleGeometry}
                                   keyLayout={keyLayout}
                                   onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
                                   onKeyDrop={() => {}}
@@ -1000,6 +1004,7 @@ export default function App() {
                           keycodes={layerKeycodes}
                           selectedIndex={selectedKeyIndex}
                           ballSide={ballSide}
+                          geometry={kleGeometry}
                           keyLayout={keyLayout}
                           onKeyClick={handleKeyClick}
                           onKeyDrop={handleKeyDrop}

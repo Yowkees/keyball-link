@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDescription } from '../../lib/keycodes';
-import { Key } from './Key';
+import { Key, type KeyRect } from './Key';
+import type { KleKeyGeometry } from '../../layouts/kleGeometry';
 
 const KEY_SIZE = 52;
 const GAP = 4;
@@ -49,17 +50,56 @@ interface KeyboardLayoutProps {
   // キー配列（上下の余白込み）に使ってよい高さの上限。画面の縦が短い時にApp側で測って
   // 渡す（2026-10-07、本人要望「キーマップタブを縦スクロールなしでウィンドウ内に収める」）
   maxBoxHeight?: number | null;
+  // Remapと同じキー配置（via.jsonから生成したKLE座標、"行,列"→位置）。あれば格子状の配置の代わりに使う
+  // （2026-10-27、本人希望）。全てのキーの座標がそろっている時だけ使い、欠けていれば従来の配置に戻る
+  geometry?: Record<string, KleKeyGeometry>;
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null }: KeyboardLayoutProps) {
+// KLE座標（1=キー1個分）をpxに直し、全体が(0,0)から始まるようにずらす。傾いたキーは回転後の
+// 四隅も含めて全体の大きさを求める。
+function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>): { rects: KeyRect[]; width: number; height: number } | null {
+  const U = KEY_SIZE + GAP;
+  const raw: KeyRect[] = [];
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const k of layout) {
+    const g = geometry[`${k.row},${k.col}`];
+    if (!g) return null;
+    const left = g.x * U, top = g.y * U;
+    const width = (g.w ?? 1) * U - GAP, height = (g.h ?? 1) * U - GAP;
+    const rotate = g.r ?? 0;
+    const ox = rotate ? (g.rx ?? 0) * U - left : 0;
+    const oy = rotate ? (g.ry ?? 0) * U - top : 0;
+    raw.push({ left, top, width, height, rotate, originX: ox, originY: oy });
+    const rad = (rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+    for (const [dx, dy] of [[0, 0], [width, 0], [0, height], [width, height]]) {
+      // 回転の中心（左上からox,oy）を基準に回した四隅
+      const px = left + ox + (dx - ox) * c - (dy - oy) * s;
+      const py = top + oy + (dx - ox) * s + (dy - oy) * c;
+      minX = Math.min(minX, px); minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+    }
+  }
+  // 影や選択枠が切れないよう、ほんの少し余白をとる
+  const pad = 4;
+  const rects = raw.map(r => ({ ...r, left: r.left - minX + pad, top: r.top - minY + pad }));
+  return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2 };
+}
+
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
-  const maxX = Math.max(...layout.map(k => {
+  // ボールの位置にあるキーは表示しないので、座標の計算からも外す
+  const visibleLayout = layout.filter(k => k.ball !== ballSide);
+  const kle = geometry ? kleRects(visibleLayout, geometry) : null;
+  const rectById = new Map<string, KeyRect>();
+  if (kle) visibleLayout.forEach((k, i) => rectById.set(k.id, kle.rects[i]));
+
+  const maxX = kle ? kle.width : Math.max(...layout.map(k => {
     const extra = isRightSide(k) ? splitGapPx : 0;
     return k.x * (KEY_SIZE + GAP) + (k.w ?? 1) * KEY_SIZE + ((k.w ?? 1) - 1) * GAP + extra;
   }));
   const maxY = Math.max(...layout.map(k => k.y + 1));
-  const height = maxY * (KEY_SIZE + GAP);
+  const height = kle ? kle.height : maxY * (KEY_SIZE + GAP);
 
   // 表示先（.layout-scroll、この直上の親要素）の実際の横幅を測り、キー配列の
   // 自然な横幅(maxX)より広ければその分だけ拡大表示し、逆に狭ければ縮小して
@@ -101,6 +141,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             ballSide={ballSide}
             keyLayout={keyLayout}
             xExtra={isRightSide(k) ? splitGapPx : 0}
+            rect={rectById.get(k.id)}
             onClick={() => onKeyClick(i)}
             onDrop={code => onKeyDrop(i, code)}
             onHover={() => setHoverDesc(getKeyDescription(keycodes[i] ?? 0, keyLayout))}

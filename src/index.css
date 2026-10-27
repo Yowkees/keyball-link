@@ -666,6 +666,8 @@ body { background: var(--bg); overflow-x: hidden; }
   transition: background 0.1s, border-color 0.1s, transform 0.08s, box-shadow 0.1s;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  /* Remapと同じ配置で傾いている親指キーは、--key-rotで角度を受け取る（Key.tsx） */
+  transform: rotate(var(--key-rot, 0deg));
 }
 
 .key:hover {
@@ -697,7 +699,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .key--dragover {
   background: color-mix(in srgb, var(--accent) 30%, var(--key-bg)) !important;
   border-color: var(--accent) !important;
-  transform: scale(1.06);
+  transform: rotate(var(--key-rot, 0deg)) scale(1.06);
 }
 
 .key__label {

@@ -59,6 +59,7 @@ interface KeyboardLayoutProps {
   ballLabel?: string;
   ballTitle?: string;
   onBallClick?: () => void;
+  ballSelected?: boolean;
 }
 
 interface BallRect { cx: number; cy: number; d: number }
@@ -130,7 +131,7 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
   return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2, ball };
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballLabel, ballTitle, onBallClick }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
 
   // ボールの位置にあるキーは表示しないので、座標の計算からも外す
@@ -196,7 +197,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
         {kle?.ball && (
           <button
             type="button"
-            className="kb-ball"
+            className={`kb-ball ${ballSelected ? 'kb-ball--selected' : ''}`}
             style={{ left: kle.ball.cx - kle.ball.d / 2, top: kle.ball.cy - kle.ball.d / 2, width: kle.ball.d, height: kle.ball.d }}
             title={ballTitle}
             onClick={onBallClick}

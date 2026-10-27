@@ -114,6 +114,8 @@ export default function App() {
   const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
+  // キーマップのトラックボールを選んでいる時は、右側のパネルにトラックボール設定を出す
+  const [ballSelected, setBallSelected] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('keymap');
   const [theme, setTheme] = useState<Theme>(() =>
     (localStorage.getItem('theme') as Theme) ?? 'light'
@@ -143,8 +145,8 @@ export default function App() {
     return {
       ballGeometry,
       ballLabel: label,
-      ballTitle: `トラックボール（レイヤー${layer}）: ${label}。クリックでトラックボール設定を開きます`,
-      onBallClick: () => setActiveTab('trackball'),
+      ballTitle: `トラックボール（レイヤー${layer}）: ${label}。クリックで右側にトラックボールの設定を表示します`,
+      onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },
     };
   };
   const [keyLayout, setKeyLayout] = useState<KeyLayout>(() =>
@@ -326,6 +328,7 @@ export default function App() {
   const handleKeyClick = (index: number) => {
     if (pendingOrder) { showToast('並べ替え中はキー編集できません。保存または取り消してください。'); return; }
     setSelectedKeyIndex(index);
+    setBallSelected(false);
     setGuideStep(prev => prev === 'click' ? 'assign' : prev);
   };
 
@@ -741,6 +744,48 @@ export default function App() {
   const accelAvailable = !isConnected || state.gesture !== null || chip === 'rp2040'
     || state.model === 'keyball39' || state.model === 'keyballplus';
 
+  // トラックボール設定の中身。「トラックボール設定」タブと、キーマップタブでトラックボールを
+  // 押した時の右側のパネル（compact）で同じものを使う（2026-10-27、本人希望）
+  const renderTrackballSettings = (compact: boolean) => (
+    <TrackballSettingsTab
+      compact={compact}
+      header={compact ? `Layer ${state.currentLayer} のボール: ${getBallFunctionLabel(state.currentLayer, state)}` : undefined}
+          isConnected={isConnected}
+          layerCount={state.info?.layers ?? 4}
+          avail={fwAvail}
+          trackball={state.trackball}
+          onTrackballChange={handleTrackballChange}
+          settings={state.kbSettings}
+          onChange={handleKbSettingsChange}
+          accelAvailable={accelAvailable}
+          dpiCurve={state.dpiCurve}
+          onDpiCurveChange={handleDpiCurveChange}
+          gesture={state.gesture}
+          onGestureChange={handleGestureChange}
+          gestureModes={state.gestureModes}
+          onGestureModeChange={handleGestureModeChange}
+          gestureThreshold={state.gestureThreshold}
+          onGestureThresholdChange={handleGestureThresholdChange}
+          gestureWaveSpeed={state.gestureWaveSpeed}
+          onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
+          gestureWaveEnable={state.gestureWaveEnable}
+          onGestureWaveEnableChange={handleGestureWaveEnableChange}
+          gestureWaveStyle={state.gestureWaveStyle}
+          onGestureWaveStyleChange={handleGestureWaveStyleChange}
+          gestureWaveColor={state.gestureWaveColor}
+          onGestureWaveColorChange={handleGestureWaveColorChange}
+          shake={state.shake}
+          onShakeChange={handleShakeChange}
+          dflick={state.dflick}
+          onDFlickChange={handleDFlickChange}
+          precision={state.precision}
+          onPrecisionChange={handlePrecisionChange}
+          scrollInertia={state.scrollInertia}
+          onScrollInertiaChange={handleScrollInertiaChange}
+          keyLayout={keyLayout}
+    />
+  );
+
   return (
     <div className="app">
       {toast && (
@@ -1009,6 +1054,7 @@ export default function App() {
                                   ballSide={ballSide}
                                   geometry={kleGeometry}
                                   {...ballProps(li)}
+                                  onBallClick={() => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(null); setBallSelected(true); }}
                                   keyLayout={keyLayout}
                                   onKeyClick={(index) => { setShowAllLayers(false); setCurrentLayer(li); setSelectedKeyIndex(index); }}
                                   onKeyDrop={() => {}}
@@ -1031,7 +1077,7 @@ export default function App() {
                           // キー本体（.keyの中）のクリックはKey側のonClickで選択処理をするので、
                           // ここでは無視する。それ以外（キーとキーの間の余白など）をクリックした
                           // 時だけ選択を解除する（本人要望・2026-09-18）。
-                          if (!(e.target as HTMLElement).closest('.key')) setSelectedKeyIndex(null);
+                          if (!(e.target as HTMLElement).closest('.key, .kb-ball')) { setSelectedKeyIndex(null); setBallSelected(false); }
                         }}
                       >
                         <KeyboardLayout
@@ -1041,6 +1087,7 @@ export default function App() {
                           ballSide={ballSide}
                           geometry={kleGeometry}
                           {...ballProps(state.currentLayer)}
+                          ballSelected={ballSelected}
                           keyLayout={keyLayout}
                           onKeyClick={handleKeyClick}
                           onKeyDrop={handleKeyDrop}
@@ -1072,6 +1119,8 @@ export default function App() {
                   <div className="keymap-right-panel" style={keymapLeftHeight ? { height: keymapLeftHeight, maxHeight: keymapLeftHeight } : undefined}>
                     {pendingOrder ? (
                       <div className="key-config-panel__empty">並べ替え中はキー編集できません</div>
+                    ) : ballSelected ? (
+                      renderTrackballSettings(true)
                     ) : (
                       <KeyConfigPanel
                         key={`${state.currentLayer}-${selectedKeyIndex ?? 'none'}`}
@@ -1135,43 +1184,7 @@ export default function App() {
 
             {activeTab === 'feedback' && <FeedbackTab />}
 
-            {activeTab === 'trackball' && (
-              <TrackballSettingsTab
-                isConnected={isConnected}
-                layerCount={state.info?.layers ?? 4}
-                avail={fwAvail}
-                trackball={state.trackball}
-                onTrackballChange={handleTrackballChange}
-                settings={state.kbSettings}
-                onChange={handleKbSettingsChange}
-                accelAvailable={accelAvailable}
-                dpiCurve={state.dpiCurve}
-                onDpiCurveChange={handleDpiCurveChange}
-                gesture={state.gesture}
-                onGestureChange={handleGestureChange}
-                gestureModes={state.gestureModes}
-                onGestureModeChange={handleGestureModeChange}
-                gestureThreshold={state.gestureThreshold}
-                onGestureThresholdChange={handleGestureThresholdChange}
-                gestureWaveSpeed={state.gestureWaveSpeed}
-                onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
-                gestureWaveEnable={state.gestureWaveEnable}
-                onGestureWaveEnableChange={handleGestureWaveEnableChange}
-                gestureWaveStyle={state.gestureWaveStyle}
-                onGestureWaveStyleChange={handleGestureWaveStyleChange}
-                gestureWaveColor={state.gestureWaveColor}
-                onGestureWaveColorChange={handleGestureWaveColorChange}
-                shake={state.shake}
-                onShakeChange={handleShakeChange}
-                dflick={state.dflick}
-                onDFlickChange={handleDFlickChange}
-                precision={state.precision}
-                onPrecisionChange={handlePrecisionChange}
-                scrollInertia={state.scrollInertia}
-                onScrollInertiaChange={handleScrollInertiaChange}
-                keyLayout={keyLayout}
-              />
-            )}
+            {activeTab === 'trackball' && renderTrackballSettings(false)}
 
             {activeTab === 'settings' && (
               <SettingsTab

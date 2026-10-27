@@ -51,6 +51,9 @@ interface TrackballSettingsTabProps {
   scrollInertia: ScrollInertiaConfig | null;
   onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
   keyLayout: KeyLayout;
+  // キーマップタブの右側の狭いパネルに出す時はtrue。上に小さなタブを並べ、選んだ項目だけを表示する
+  compact?: boolean;
+  header?: string;  // compactの時、一番上に出す一行（今のレイヤーでのボールの働きなど）
 }
 
 // トップレベル「トラックボール設定」タブ。全項目をカードにして画面いっぱいに並べる
@@ -62,9 +65,10 @@ export function TrackballSettingsTab({
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   shake, onShakeChange, dflick, onDFlickChange,
-  precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, keyLayout,
+  precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, keyLayout, compact = false, header,
 }: TrackballSettingsTabProps) {
   const [saving, setSaving] = useState(false);
+  const [compactKey, setCompactKey] = useState('ball');
   const disabled = !isConnected || saving;
   const switchableLayers = Array.from({ length: Math.max(layerCount - 1, 0) }, (_, i) => i + 1);
   const layersInclBase = Array.from({ length: Math.max(layerCount, 0) }, (_, i) => i);
@@ -181,6 +185,28 @@ export function TrackballSettingsTab({
   // 並び順: ボール動作・精密モード → スクロール設定 → ジェスチャー → オートマウスレイヤー → シェイク・ダブルフリック
   const order = ['ball', 'scroll', 'gesture', 'aml', 'motion'];
   const ordered = order.map(k => cards.find(c => c.key === k)).filter((c): c is BoardCard => !!c);
+  if (compact) {
+    const SHORT: Record<string, string> = { ball: 'ボール', scroll: 'スクロール', gesture: 'ジェスチャー', aml: 'オートマウス', motion: 'シェイク等' };
+    const current = ordered.find(c => c.key === compactKey) ?? ordered[0];
+    return (
+      <div className="tb-compact">
+        {header && <div className="tb-compact__header">{header}</div>}
+        <div className="tb-compact__tabs">
+          {ordered.map(c => (
+            <button key={c.key} type="button" className={`tb-compact__tab ${c.key === current?.key ? 'tb-compact__tab--active' : ''}`} onClick={() => setCompactKey(c.key)}>
+              {SHORT[c.key] ?? c.title}
+            </button>
+          ))}
+        </div>
+        {current && (
+          <div className="tb-compact__body">
+            <div className="tb-compact__title">{current.title}</div>
+            {current.render(0)}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="settings-tab">
       <SettingsSidebarBoard cards={ordered} />

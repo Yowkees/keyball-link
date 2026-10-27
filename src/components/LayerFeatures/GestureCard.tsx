@@ -45,16 +45,15 @@ interface GestureCardProps {
   layerWarn: LayerWarn | null;
   changeGestureLayer: (v: number) => void;
   changeGestureModeLayer: (mode: number, v: number) => void;
-  initialModeTab?: number;  // 最初に開くジェスチャーモード（キーマップのトラックボールから開いた時に使う）
 }
 
 export function GestureCard({
   gesture, onGestureChange, gestureModes, onGestureModeChange, gestureThreshold, onGestureThresholdChange,
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
-  disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer, initialModeTab = 0,
+  disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
 }: GestureCardProps) {
-  const [gestureModeTab, setGestureModeTab] = useState(initialModeTab);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
+  const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
   const [editDir, setEditDir] = useState<keyof GestureConfig | null>(null);
   const [editTap, setEditTap] = useState(false);

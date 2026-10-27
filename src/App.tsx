@@ -18,6 +18,7 @@ import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { KLE_GEOMETRY } from './layouts/kleGeometry';
+import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
 import './index.css';
 
@@ -744,12 +745,8 @@ export default function App() {
   const accelAvailable = !isConnected || state.gesture !== null || chip === 'rp2040'
     || state.model === 'keyball39' || state.model === 'keyballplus';
 
-  // トラックボール設定の中身。「トラックボール設定」タブと、キーマップタブでトラックボールを
-  // 押した時の右側のパネル（compact）で同じものを使う（2026-10-27、本人希望）
-  const renderTrackballSettings = (compact: boolean) => (
+  const renderTrackballSettings = () => (
     <TrackballSettingsTab
-      compact={compact}
-      compactLayer={state.currentLayer}
           isConnected={isConnected}
           layerCount={state.info?.layers ?? 4}
           avail={fwAvail}
@@ -1120,7 +1117,27 @@ export default function App() {
                     {pendingOrder ? (
                       <div className="key-config-panel__empty">並べ替え中はキー編集できません</div>
                     ) : ballSelected ? (
-                      renderTrackballSettings(true)
+                      <div className="key-config-panel ball-panel-wrap">
+                        <BallPanel
+                          key={state.currentLayer}
+                          initialLayer={state.currentLayer}
+                          layerCount={state.info?.layers ?? 4}
+                          disabled={!isConnected}
+                          settings={state.kbSettings}
+                          onChange={handleKbSettingsChange}
+                          trackball={state.trackball}
+                          onTrackballChange={handleTrackballChange}
+                          precision={state.precision}
+                          onPrecisionChange={handlePrecisionChange}
+                          gesture={state.gesture}
+                          onGestureChange={handleGestureChange}
+                          gestureModes={state.gestureModes}
+                          onGestureModeChange={handleGestureModeChange}
+                          gestureThreshold={state.gestureThreshold}
+                          onGestureThresholdChange={handleGestureThresholdChange}
+                          onOpenTab={() => setActiveTab('trackball')}
+                        />
+                      </div>
                     ) : (
                       <KeyConfigPanel
                         key={`${state.currentLayer}-${selectedKeyIndex ?? 'none'}`}
@@ -1184,7 +1201,7 @@ export default function App() {
 
             {activeTab === 'feedback' && <FeedbackTab />}
 
-            {activeTab === 'trackball' && renderTrackballSettings(false)}
+            {activeTab === 'trackball' && renderTrackballSettings()}
 
             {activeTab === 'settings' && (
               <SettingsTab

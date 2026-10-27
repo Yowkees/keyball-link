@@ -749,7 +749,7 @@ export default function App() {
   const renderTrackballSettings = (compact: boolean) => (
     <TrackballSettingsTab
       compact={compact}
-      header={compact ? `Layer ${state.currentLayer} のボール: ${getBallFunctionLabel(state.currentLayer, state)}` : undefined}
+      compactLayer={state.currentLayer}
           isConnected={isConnected}
           layerCount={state.info?.layers ?? 4}
           avail={fwAvail}

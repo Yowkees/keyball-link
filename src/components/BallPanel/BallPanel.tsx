@@ -4,9 +4,11 @@ import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } fro
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
 // キーマップのトラックボールを押した時に、右側に出すトラックボールの設定（2026-10-27、本人希望）。
-// LED設定パネル（LedPanel）と同じ作り: 上にレイヤーのタブと「動き」の選択欄、その下にスイッチと
-// スライダー。レイヤーごとに「ボールを何として動かすか」を選ぶと、そのレイヤーの連動設定
-// （スクロールレイヤー・精密モードの連動レイヤー・ジェスチャーnの連動レイヤー）を書き換える。
+// LED設定パネル（LedPanel）と同じ作り: 上に「動き」の選択欄、その下にスイッチとスライダー。
+// 対象のレイヤーはキー配列の上で選んでいるレイヤー（LED設定も同じ。2026-10-27、本人希望）。
+// 動きを選ぶと、そのレイヤーの連動設定（スクロールレイヤー・精密モードの連動レイヤー・
+// ジェスチャーnの連動レイヤー）を書き換える。別のレイヤーで使っている機能は、そちらで外すまで
+// 選べない（本人希望。勝手に移すと分かりにくいため）。
 // 細かい設定は「トラックボール設定」タブにあり、ここには選んだ動きに関係するものだけを出す。
 
 const MAX_CPI_INDEX = 17;   // TrackballSettings.tsxと同じ
@@ -14,8 +16,7 @@ const MAX_ACCEL = 10;
 const SCROLL_DIV_MAX = 7;   // ScrollLayerCard.tsxと同じ
 
 interface BallPanelProps {
-  initialLayer: number;
-  layerCount: number;
+  layer: number;   // キー配列で選んでいるレイヤー
   disabled: boolean;
   settings: KbSettings;
   onChange: (s: KbSettings) => Promise<void>;
@@ -33,7 +34,7 @@ interface BallPanelProps {
 }
 
 export function BallPanel(p: BallPanelProps) {
-  const [layer, setLayer] = useState(p.initialLayer);
+  const layer = p.layer;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const disabled = p.disabled || busy;
@@ -54,17 +55,25 @@ export function BallPanel(p: BallPanelProps) {
   };
   const motion = motionOf(L);
   const amlHere = settings.autoMouseEnable && settings.autoMouseLayer === L;
-  const elsewhere = (l: number) => (l !== LAYER_NONE && l !== L ? `（今はレイヤー${l}）` : '');
-
+  // 別のレイヤーで使っている機能は選べない。選択欄には使っているレイヤーを書く
+  const usedElsewhere = (l: number) => l !== LAYER_NONE && l !== L;
+  const usedNote = (l: number) => (usedElsewhere(l) ? `（レイヤー${l}で使用中）` : '');
+  const scrollBusy = usedElsewhere(settings.scrollLayer);
+  const precBusy = precision ? usedElsewhere(precision.layer) : true;
   const options: { key: string; label: string; disabled?: boolean }[] = [
     { key: 'cursor', label: 'カーソル' },
-    ...(precision ? [{ key: 'precision', label: `カーソル（ゆっくり）${elsewhere(precision.layer)}` }] : []),
-    { key: 'scroll', label: `スクロール${elsewhere(settings.scrollLayer)}`, disabled: L === 0 || amlHere },
-    ...(precision ? [{ key: 'slowscroll', label: 'スクロール（ゆっくり）', disabled: L === 0 || amlHere }] : []),
+    ...(precision ? [{ key: 'precision', label: `カーソル（ゆっくり）${usedNote(precision.layer)}`, disabled: precBusy }] : []),
+    { key: 'scroll', label: `スクロール${usedNote(settings.scrollLayer)}${L === 0 ? '（レイヤー0は不可）' : ''}`, disabled: scrollBusy || L === 0 || amlHere },
+    ...(precision ? [{
+      key: 'slowscroll',
+      label: `スクロール（ゆっくり）${scrollBusy ? usedNote(settings.scrollLayer) : precBusy ? usedNote(precision.layer) : ''}`,
+      disabled: scrollBusy || precBusy || L === 0 || amlHere,
+    }] : []),
     ...(gestureModes
-      ? gestureModes.map((m, i) => ({ key: `g${i}`, label: `ジェスチャー${i + 1}${elsewhere(m.layer)}`, disabled: amlHere }))
-      : gesture ? [{ key: 'g', label: `ジェスチャー${elsewhere(gesture.layer)}`, disabled: amlHere }] : []),
+      ? gestureModes.map((m, i) => ({ key: `g${i}`, label: `ジェスチャー${i + 1}${usedNote(m.layer)}`, disabled: usedElsewhere(m.layer) || amlHere }))
+      : gesture ? [{ key: 'g', label: `ジェスチャー${usedNote(gesture.layer)}`, disabled: usedElsewhere(gesture.layer) || amlHere }] : []),
   ];
+  const amlElsewhere = settings.autoMouseEnable && settings.autoMouseLayer !== L;
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -105,32 +114,12 @@ export function BallPanel(p: BallPanelProps) {
   });
 
   const tb = p.trackball;
-  const layers = Array.from({ length: Math.max(p.layerCount, 1) }, (_, i) => i);
-  const layerTabs = (
-    <>
-      <div className="led-panel__targets ball-panel__targets">
-        {layers.map(l => (
-          <button
-            key={l}
-            className={`led-panel__target ${l === L ? 'led-panel__target--active' : ''} ${motionOf(l) !== 'cursor' ? 'led-panel__target--on' : ''}`}
-            onClick={() => { setLayer(l); setMsg(null); }}
-          >
-            レイヤー{l}
-          </button>
-        ))}
-      </div>
-      <select className="led-panel__target-select ball-panel__target-select" value={L} onChange={e => { setLayer(Number(e.target.value)); setMsg(null); }}>
-        {layers.map(l => <option key={l} value={l}>レイヤー{l}</option>)}
-      </select>
-    </>
-  );
-
   return (
     <>
       <div className="led-panel__title">トラックボール設定</div>
       <div className="led-panel ball-panel">
         <div className="led-panel__toprow">
-          {layerTabs}
+          <span className="ball-panel__layer">レイヤー{L}</span>
           <select
             className="trackball-bar__select led-panel__effect-select"
             value={motion}
@@ -143,10 +132,12 @@ export function BallPanel(p: BallPanelProps) {
 
         {L > 0 && (
           <ToggleRow
-            label="ボールを動かすとこのレイヤーに切り替える（オートマウス）"
+            label={amlElsewhere
+              ? `ボールを動かすとこのレイヤーに切り替える（オートマウス。レイヤー${settings.autoMouseLayer}で使用中）`
+              : 'ボールを動かすとこのレイヤーに切り替える（オートマウス）'}
             desc=""
             checked={amlHere}
-            disabled={disabled}
+            disabled={disabled || amlElsewhere}
             onChange={toggleAml}
           />
         )}

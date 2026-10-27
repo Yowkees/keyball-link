@@ -3593,3 +3593,4 @@ p[data-tip] { width: fit-content; }
   font-size: 11.5px; color: var(--accent); cursor: pointer;
 }
 .ball-panel__more:hover { text-decoration: underline; }
+.ball-panel__layer { font-size: 12.5px; font-weight: 700; white-space: nowrap; align-self: center; }

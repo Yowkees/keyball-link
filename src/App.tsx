@@ -1108,6 +1108,7 @@ export default function App() {
                         onLayerLedChange={handleLayerLedChange}
                         switchableLayers={Array.from({ length: Math.max((state.info?.layers ?? 4) - 1, 0) }, (_, i) => i + 1)}
                         allowedEffectIds={ledAllowedEffectIds}
+                        layer={state.currentLayer}
                       />
                     </div>
                   )}
@@ -1120,8 +1121,7 @@ export default function App() {
                       <div className="key-config-panel ball-panel-wrap">
                         <BallPanel
                           key={state.currentLayer}
-                          initialLayer={state.currentLayer}
-                          layerCount={state.info?.layers ?? 4}
+                          layer={state.currentLayer}
                           disabled={!isConnected}
                           settings={state.kbSettings}
                           onChange={handleKbSettingsChange}

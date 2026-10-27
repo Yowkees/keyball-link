@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { LedConfig, LayerLedConfig } from '../../lib/protocol';
 import { LAYER_LED_DEFAULT } from '../LayerFeatures/LayerLedCard';
 import { ToggleRow } from '../SettingsControls/SettingsControls';
@@ -13,6 +12,7 @@ interface LedPanelProps {
   onLayerLedChange: (layer: number, cfg: LayerLedConfig) => void;
   switchableLayers: number[];   // レイヤー連動LEDの対象にできるレイヤー番号
   allowedEffectIds?: readonly number[];  // 指定時、エフェクト選択肢をこのIDのみに絞る（AVR接続時など）
+  layer: number;  // キー配列で選んでいるレイヤー。このレイヤーの光り方を設定する（2026-10-27、本人希望）
 }
 
 // 「通常」のLED設定と「レイヤー連動LED」を、同じ設定UI（エフェクト・色相バー・スライダー）を
@@ -22,9 +22,10 @@ interface LedPanelProps {
 // 保存は画面右上の「保存」ボタン（EEPROM書き込み）に一本化し、ここには置かない。
 export function LedPanel({
   led, onLedChange, layerLedEnable, layerLeds, onLayerLedEnableChange, onLayerLedChange, switchableLayers,
-  allowedEffectIds,
+  allowedEffectIds, layer,
 }: LedPanelProps) {
-  const [target, setTarget] = useState<'normal' | number>('normal');
+  // 対象はキー配列で選んでいるレイヤー（パネル内のレイヤーのタブは廃止。トラックボールのパネルと同じ）
+  const target: 'normal' | number = layer === 0 || !switchableLayers.includes(layer) || layerLedEnable === null ? 'normal' : layer;
 
   if (!led) {
     return (
@@ -37,42 +38,7 @@ export function LedPanel({
     );
   }
 
-  // タブ形式（横並びボタン）は画面が広い時用。1カラムに畳むほど狭い時は
-  // 横にはみ出してしまうため、同じ選択肢をドロップダウンでも用意しておき、
-  // CSS側（幅980px以下）でどちらを表示するか切り替える（本人要望）。
-  const targetTabs = layerLedEnable !== null && switchableLayers.length > 0 ? (
-    <>
-      <div className="led-panel__targets">
-        <button
-          className={`led-panel__target ${target === 'normal' ? 'led-panel__target--active' : ''}`}
-          onClick={() => setTarget('normal')}
-        >
-          レイヤー0
-        </button>
-        {switchableLayers.map(l => (
-          <button
-            key={l}
-            className={`led-panel__target ${target === l ? 'led-panel__target--active' : ''} ${layerLeds[l]?.enabled ? 'led-panel__target--on' : ''}`}
-            onClick={() => setTarget(l)}
-          >
-            レイヤー{l}
-          </button>
-        ))}
-      </div>
-      <select
-        className="led-panel__target-select"
-        value={String(target)}
-        onChange={e => setTarget(e.target.value === 'normal' ? 'normal' : Number(e.target.value))}
-      >
-        <option value="normal">レイヤー0</option>
-        {switchableLayers.map(l => (
-          <option key={l} value={l}>
-            レイヤー{l}{layerLeds[l]?.enabled ? '（有効）' : ''}
-          </option>
-        ))}
-      </select>
-    </>
-  ) : undefined;
+  const targetTabs = <span className="ball-panel__layer">{layerLedEnable === null && layer !== 0 ? 'レイヤー0（このファームは全レイヤー共通）' : `レイヤー${target === 'normal' ? 0 : target}`}</span>;
 
   // レイヤー0（通常）とレイヤー1以降とで表示するパネルの高さが変わらないよう、
   // どちらの場合も必ずこの行を出す。レイヤー0は常時有効な基本設定なのでON/OFFはできず、

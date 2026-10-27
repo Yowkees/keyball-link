@@ -1021,8 +1021,8 @@ body { background: var(--bg); overflow-x: hidden; }
 .led-settings .led-panel__slider-label { flex-basis: 40px; font-size: 12px; }
 .led-settings .led-panel__slider-value { width: 38px; font-size: 12px; }
 .led-settings .led-panel__toprow { flex-wrap: nowrap; }
-.led-settings__note { white-space: nowrap; }
-.led-settings__note { margin: 0; }
+/* .settings-desc（後ろで定義）の下余白が残ると上にずれるため、詳細度を上げて打ち消し、選択欄の中心に揃える */
+.led-settings .led-settings__note { margin: 0; line-height: 1.2; white-space: nowrap; }
 /* オフ中にレイヤー0の光り方を見せている時は、操作できないのでグレーにする */
 .led-settings__body--preview .led-panel__bar,
 .led-settings__body--preview .led-panel__sliders { opacity: .45; }

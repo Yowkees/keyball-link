@@ -510,16 +510,6 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 /* このレイヤーに何らかの連動機能（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）が
    割り当てられていることを示す小さなバッジ。詳細はtitle属性のツールチップと下の連動機能表示で確認できる */
-.layer-tab__badge {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 1px var(--bg3);
-}
 .ball-toggle {
   margin-left: auto;
   display: flex;

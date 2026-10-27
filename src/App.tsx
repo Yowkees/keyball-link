@@ -987,7 +987,6 @@ export default function App() {
                             >
                               <span className="layer-tab__dot" style={{ background: getLayerDotColor(i, state) }} />
                               L{i}{pendingOrder && src !== i ? ` ←${src}` : ''}
-                              {features.length > 0 && <span className="layer-tab__badge" />}
                             </button>
                           );
                         })}

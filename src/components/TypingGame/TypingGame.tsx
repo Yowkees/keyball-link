@@ -14,8 +14,8 @@ type Level = 'easy' | 'normal' | 'hard';
 // speed: カードの動く速さ（画面の幅・高さに対する％／秒） / small: カードを小さくする
 const LEVELS: Record<Level, { name: string; words: number; onField: number; speed: number; small: boolean; desc: string }> = {
   easy:   { name: 'かんたん',   words: 10, onField: 3, speed: 3,  small: false, desc: '短い言葉・ゆっくり' },
-  normal: { name: 'ふつう',     words: 15, onField: 4, speed: 6,  small: false, desc: 'いろいろな長さ' },
-  hard:   { name: 'むずかしい', words: 20, onField: 5, speed: 10, small: true,  desc: '長い言葉・小さく速いカード' },
+  normal: { name: 'ふつう',     words: 15, onField: 5, speed: 9,  small: false, desc: 'いろいろな長さ' },
+  hard:   { name: 'むずかしい', words: 20, onField: 6, speed: 15, small: true,  desc: '長い言葉・小さく速いカード' },
 };
 const BEST_KEY = (lv: Level) => `typingGameBest_${lv}`;
 const LEVEL_KEY = 'typingGameLevel';

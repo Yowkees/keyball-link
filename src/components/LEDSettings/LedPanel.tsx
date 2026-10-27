@@ -38,7 +38,7 @@ export function LedPanel({
     );
   }
 
-  const targetTabs = <span className="ball-panel__layer">{layerLedEnable === null && layer !== 0 ? 'レイヤー0（このファームは全レイヤー共通）' : `レイヤー${target === 'normal' ? 0 : target}`}</span>;
+  const targetTabs = undefined;  // レイヤーはキー配列の上で選ぶ（パネル内には表示しない）
 
   // レイヤー0（通常）とレイヤー1以降とで表示するパネルの高さが変わらないよう、
   // どちらの場合も必ずこの行を出す。レイヤー0は常時有効な基本設定なのでON/OFFはできず、

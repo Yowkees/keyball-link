@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import type { KbSettings, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold } from '../../lib/protocol';
+import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
+import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
+import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, cpiIndexToValue } from '../../lib/protocol';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 
@@ -31,6 +34,8 @@ interface BallPanelProps {
   gestureThreshold: GestureThreshold | null;
   onGestureThresholdChange: (t: GestureThreshold) => Promise<void>;
   onOpenTab: () => void;
+  keyLayout: KeyLayout;
+  avail: FirmwareAvail;
 }
 
 export function BallPanel(p: BallPanelProps) {
@@ -41,39 +46,32 @@ export function BallPanel(p: BallPanelProps) {
   const L = layer;
   const { settings, precision, gesture, gestureModes } = p;
 
-  // 今の動き
+  // 今の動き（カーソル・スクロール・ジェスチャーn）。精密モード（ゆっくり）はカーソル・スクロールに
+  // 付けられる別のON/OFF（2026-10-27、本人希望で詳細設定側に移した）
   const motionOf = (l: number): string => {
-    const scroll = settings.scrollLayer === l;
-    const prec = precision?.layer === l;
     const gi = gestureModes ? gestureModes.findIndex(m => m.layer === l) : -1;
-    if (scroll && prec) return 'slowscroll';
-    if (scroll) return 'scroll';
+    if (settings.scrollLayer === l) return 'scroll';
     if (gi >= 0) return `g${gi}`;
     if (!gestureModes && gesture?.layer === l) return 'g';
-    if (prec) return 'precision';
     return 'cursor';
   };
   const motion = motionOf(L);
+  const isGesture = motion.startsWith('g');
+  const precisionOn = precision?.layer === L;
   const amlHere = settings.autoMouseEnable && settings.autoMouseLayer === L;
-  // 別のレイヤーで使っている機能は選べない。選択欄には使っているレイヤーを書く
+
+  // 別のレイヤーで使っている機能は、選択肢に出さない（本人希望）
   const usedElsewhere = (l: number) => l !== LAYER_NONE && l !== L;
-  const usedNote = (l: number) => (usedElsewhere(l) ? `（レイヤー${l}で使用中）` : '');
-  const scrollBusy = usedElsewhere(settings.scrollLayer);
-  const precBusy = precision ? usedElsewhere(precision.layer) : true;
-  const options: { key: string; label: string; disabled?: boolean }[] = [
+  const options: { key: string; label: string }[] = [
     { key: 'cursor', label: 'カーソル' },
-    ...(precision ? [{ key: 'precision', label: `カーソル（ゆっくり）${usedNote(precision.layer)}`, disabled: precBusy }] : []),
-    { key: 'scroll', label: `スクロール${usedNote(settings.scrollLayer)}${L === 0 ? '（レイヤー0は不可）' : ''}`, disabled: scrollBusy || L === 0 || amlHere },
-    ...(precision ? [{
-      key: 'slowscroll',
-      label: `スクロール（ゆっくり）${scrollBusy ? usedNote(settings.scrollLayer) : precBusy ? usedNote(precision.layer) : ''}`,
-      disabled: scrollBusy || precBusy || L === 0 || amlHere,
-    }] : []),
+    ...(L !== 0 && !amlHere && !usedElsewhere(settings.scrollLayer) ? [{ key: 'scroll', label: 'スクロール' }] : []),
     ...(gestureModes
-      ? gestureModes.map((m, i) => ({ key: `g${i}`, label: `ジェスチャー${i + 1}${usedNote(m.layer)}`, disabled: usedElsewhere(m.layer) || amlHere }))
-      : gesture ? [{ key: 'g', label: `ジェスチャー${usedNote(gesture.layer)}`, disabled: usedElsewhere(gesture.layer) || amlHere }] : []),
+      ? gestureModes.flatMap((m, i) => (!amlHere && !usedElsewhere(m.layer) ? [{ key: `g${i}`, label: `ジェスチャー${i + 1}` }] : []))
+      : gesture && !amlHere && !usedElsewhere(gesture.layer) ? [{ key: 'g', label: 'ジェスチャー' }] : []),
   ];
   const amlElsewhere = settings.autoMouseEnable && settings.autoMouseLayer !== L;
+  const precElsewhere = precision ? usedElsewhere(precision.layer) : false;
+  const [editDir, setEditDir] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -81,13 +79,11 @@ export function BallPanel(p: BallPanelProps) {
     try { await fn(); } finally { setBusy(false); }
   };
 
-  // このレイヤーの動きを key にする（他の機能のこのレイヤーへの連動は外し、選んだ機能が別の
-  // レイヤーに付いていた場合はこのレイヤーへ移す）
+  // このレイヤーの動きを key にする（このレイヤーに付いていた他の動きの連動は外す）。
+  // ジェスチャーと精密モードは同時に使えないので、ジェスチャーにした時は精密モードを外す。
   const chooseMotion = (key: string) => run(async () => {
-    const wantScroll = key === 'scroll' || key === 'slowscroll';
-    const wantPrec = key === 'precision' || key === 'slowscroll';
-    const newScroll = wantScroll ? L : settings.scrollLayer === L ? LAYER_NONE : settings.scrollLayer;
-    if (newScroll !== settings.scrollLayer) await p.onChange({ ...settings, scrollLayer: newScroll });
+    if (settings.scrollLayer === L && key !== 'scroll') await p.onChange({ ...settings, scrollLayer: LAYER_NONE });
+    if (key === 'scroll' && settings.scrollLayer !== L) await p.onChange({ ...settings, scrollLayer: L });
     if (gestureModes) {
       for (let i = 0; i < gestureModes.length; i++) {
         const m = gestureModes[i];
@@ -98,14 +94,16 @@ export function BallPanel(p: BallPanelProps) {
       if (key === 'g' && gesture.layer !== L) await p.onGestureChange({ ...gesture, layer: L });
       else if (key !== 'g' && gesture.layer === L) await p.onGestureChange({ ...gesture, layer: LAYER_NONE });
     }
-    if (precision) {
-      const newPrec = wantPrec ? L : precision.layer === L ? LAYER_NONE : precision.layer;
-      if (newPrec !== precision.layer) await p.onPrecisionChange({ ...precision, layer: newPrec });
-    }
+    if (key.startsWith('g') && precision && precision.layer === L) await p.onPrecisionChange({ ...precision, layer: LAYER_NONE });
+  });
+
+  const togglePrecision = (on: boolean) => run(async () => {
+    if (!precision) return;
+    await p.onPrecisionChange({ ...precision, layer: on ? L : LAYER_NONE });
   });
 
   const toggleAml = (on: boolean) => run(async () => {
-    if (on && (motion.startsWith('scroll') || motion === 'slowscroll' || motion.startsWith('g'))) {
+    if (on && (motion === 'scroll' || isGesture)) {
       setMsg('スクロール・ジェスチャーのレイヤーはオートマウスにできません。先に動きを「カーソル」にしてください');
       return;
     }
@@ -119,14 +117,13 @@ export function BallPanel(p: BallPanelProps) {
       <div className="led-panel__title">トラックボール設定</div>
       <div className="led-panel ball-panel">
         <div className="led-panel__toprow">
-          <span className="ball-panel__layer">レイヤー{L}</span>
           <select
             className="trackball-bar__select led-panel__effect-select"
             value={motion}
             disabled={disabled}
             onChange={e => chooseMotion(e.target.value)}
           >
-            {options.map(o => <option key={o.key} value={o.key} disabled={o.disabled}>{o.label}</option>)}
+            {options.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
           </select>
         </div>
 
@@ -144,7 +141,7 @@ export function BallPanel(p: BallPanelProps) {
         {msg && <p className="settings-desc" style={{ color: 'var(--red)' }}>⚠ {msg}</p>}
 
         <div className="led-panel__sliders ball-panel__sliders">
-          {tb && (motion === 'cursor' || motion === 'precision') && (
+          {tb && motion === 'cursor' && (
             <>
               <span className="ball-panel__label">速さ（CPI）</span>
               <SliderControl value={tb.cpiIndex} min={0} max={MAX_CPI_INDEX} step={1} disabled={disabled} unit=""
@@ -154,7 +151,7 @@ export function BallPanel(p: BallPanelProps) {
                 format={v => (v === 0 ? 'オフ' : String(v))} onCommit={v => p.onTrackballChange({ ...tb, accel: v })} />
             </>
           )}
-          {tb && (motion === 'scroll' || motion === 'slowscroll') && (
+          {tb && motion === 'scroll' && (
             <>
               <span className="ball-panel__label">スクロール速度</span>
               <SliderControl value={tb.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1} disabled={disabled} unit="" invert
@@ -165,27 +162,73 @@ export function BallPanel(p: BallPanelProps) {
                 onChange={v => run(() => p.onChange({ ...settings, scrollInvertH: v }))} />
             </>
           )}
-          {precision && (motion === 'precision' || motion === 'slowscroll') && (
+          {precision && !isGesture && (
             <>
-              <span className="ball-panel__label">ゆっくりの度合い（減速レベル）</span>
-              <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled} unit="分の1"
-                onCommit={div => p.onPrecisionChange({ ...precision, div })} />
+              <ToggleRow
+                label={precElsewhere ? `ゆっくり動かす（精密モード。レイヤー${precision.layer}で使用中）` : 'ゆっくり動かす（精密モード）'}
+                desc="" checked={precisionOn} disabled={disabled || precElsewhere} onChange={togglePrecision}
+              />
+              {precisionOn && (
+                <>
+                  <span className="ball-panel__label">減速レベル</span>
+                  <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled} unit="分の1"
+                    onCommit={div => p.onPrecisionChange({ ...precision, div })} />
+                </>
+              )}
             </>
           )}
-          {p.gestureThreshold && motion.startsWith('g') && (
+          {isGesture && (() => {
+            const gm = gestureModes && isGesture && motion !== 'g' ? gestureModes[Number(motion.slice(1))] : null;
+            const cfg = gm ?? (motion === 'g' ? gesture : null);
+            if (!cfg) return null;
+            const dirs = [['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const;
+            return (
+              <div className="ball-panel__gesture">
+                {dirs.map(([dir, label]) => (
+                  <div key={dir} className="gesture-row">
+                    <span className="gesture-dir">{label}</span>
+                    <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
+                      {getKeyDisplayLabel(cfg[dir], p.keyLayout) || '未設定'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          {p.gestureThreshold && isGesture && (
             <>
-              <span className="ball-panel__label">ジェスチャーの感度（横）</span>
+              <span className="ball-panel__label">感度（横）</span>
               <SliderControl value={p.gestureThreshold.h} min={10} max={200} step={5} disabled={disabled} unit="" invert
                 onCommit={h => p.onGestureThresholdChange({ ...p.gestureThreshold!, h })} />
-              <span className="ball-panel__label">ジェスチャーの感度（縦）</span>
+              <span className="ball-panel__label">感度（縦）</span>
               <SliderControl value={p.gestureThreshold.v} min={10} max={200} step={5} disabled={disabled} unit="" invert
                 onCommit={v => p.onGestureThresholdChange({ ...p.gestureThreshold!, v })} />
             </>
           )}
         </div>
+        {editDir && isGesture && (
+          <KeyConfigModal
+            keyIndex={-1}
+            currentCode={(motion === 'g' ? gesture![editDir] : gestureModes![Number(motion.slice(1))][editDir])}
+            keyLayout={p.keyLayout}
+            defaultPanel="通常"
+            hideHold
+            avail={p.avail}
+            excludeCode={isGestureExcludedKeycode}
+            onSelect={async kc => {
+              if (motion === 'g') await p.onGestureChange({ ...gesture!, [editDir]: kc });
+              else {
+                const i = Number(motion.slice(1));
+                await p.onGestureModeChange(i, { ...gestureModes![i], [editDir]: kc });
+              }
+              setEditDir(null);
+            }}
+            onClose={() => setEditDir(null)}
+          />
+        )}
 
         <button type="button" className="ball-panel__more" onClick={p.onOpenTab}>
-          {motion.startsWith('g') ? 'ジェスチャーの割り当て' : 'その他の設定'}は「トラックボール設定」タブで →
+          その他の設定（連続入力・ジェスチャーウェーブ・シェイクなど）は「トラックボール設定」タブで →
         </button>
       </div>
     </>

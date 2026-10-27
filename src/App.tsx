@@ -1136,6 +1136,8 @@ export default function App() {
                           gestureThreshold={state.gestureThreshold}
                           onGestureThresholdChange={handleGestureThresholdChange}
                           onOpenTab={() => setActiveTab('trackball')}
+                          keyLayout={keyLayout}
+                          avail={fwAvail}
                         />
                       </div>
                     ) : (

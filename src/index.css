@@ -488,8 +488,8 @@ body { background: var(--bg); overflow-x: hidden; }
   gap: 7px;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  padding: 5px 9px;
+  font-size: 12.5px;
+  padding: 7px 13px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
@@ -937,8 +937,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .led-panel__effect-select {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 160px;
-  margin-left: auto;
+  max-width: 220px;
 }
 
 /* 「通常」／各レイヤーを切り替えて、同じLED設定UIで編集対象を変える */
@@ -3593,4 +3592,4 @@ p[data-tip] { width: fit-content; }
   font-size: 11.5px; color: var(--accent); cursor: pointer;
 }
 .ball-panel__more:hover { text-decoration: underline; }
-.ball-panel__layer { font-size: 12.5px; font-weight: 700; white-space: nowrap; align-self: center; }
+.ball-panel__gesture { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; }

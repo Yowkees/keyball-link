@@ -3730,3 +3730,6 @@ p[data-tip] { width: fit-content; }
 .typing-game__score { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); }
 .typing-game__combo { font-size: 13px; font-weight: 800; color: #e8b44a; animation: typing-pop-char .25s ease-out; display: inline-block; }
 .typing-game__final { margin: 0; font-family: var(--font-mono); font-size: 34px; font-weight: 800; color: var(--accent); }
+
+/* ファームの種類ごとの書き込み回数（FirmwareFlasher.tsx） */
+.fw-flash-count { font-size: 11px; color: var(--text-dim); margin-left: 6px; }

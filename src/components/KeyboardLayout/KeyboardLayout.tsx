@@ -57,6 +57,8 @@ interface KeyboardLayoutProps {
   // ボールに書く機能の名前。あればボールを丸で描く（2026-10-27、本人希望）
   ballGeometry?: KleKeyGeometry[];
   ballOffset?: { x: number; y: number };   // ボールの位置の微調整（キー1個分＝1。右・下がプラス）
+  // 左手ボールの時に、右手ボールの時の位置を左右反転して使うための、右手ボールの時の配置
+  ballMirror?: { geometry: Record<string, KleKeyGeometry>; ballGeometry?: KleKeyGeometry[]; ballOffset?: { x: number; y: number } };
   ballLabel?: string;
   ballTitle?: string;
   onBallClick?: () => void;
@@ -64,6 +66,21 @@ interface KeyboardLayoutProps {
 }
 
 interface BallRect { cx: number; cy: number; d: number }
+
+// 片手分（キーのidが prefix で始まるキー）の、傾きも含めた外側の四角
+function halfBox(rects: KeyRect[], layout: LayoutDef[], prefix: string) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  rects.forEach((r, i) => {
+    if (!layout[i].id.startsWith(prefix)) return;
+    const rad = (r.rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+    for (const [dx, dy] of [[0, 0], [r.width, 0], [0, r.height], [r.width, r.height]]) {
+      const px = r.left + r.originX + (dx - r.originX) * c - (dy - r.originY) * s;
+      const py = r.top + r.originY + (dx - r.originX) * s + (dy - r.originY) * c;
+      x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py);
+    }
+  });
+  return { x0, y0, x1, y1 };
+}
 
 // KLE座標（1=キー1個分）をpxに直し、全体が(0,0)から始まるようにずらす。傾いたキーは回転後の
 // 四隅も含めて全体の大きさを求める。
@@ -134,7 +151,7 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
   return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2, ball };
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballOffset, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballOffset, ballMirror, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
   // 説明のバーは高さ固定（2行分）。長い説明は全文が収まるまで文字を小さくする
   // （高さが変わるとパネル全体の大きさが変わるため。省略すると読めないので「…」にはしない）
@@ -148,7 +165,25 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
 
   // ボールの位置にあるキーは表示しないので、座標の計算からも外す
   const visibleLayout = layout.filter(k => k.ball !== ballSide);
-  const kle = geometry ? kleRects(visibleLayout, geometry, ballGeometry, ballOffset) : null;
+  let kle = geometry ? kleRects(visibleLayout, geometry, ballGeometry, ballOffset) : null;
+  // 左手ボール: 右手ボールの時の「右手側のキーの外側の端・上端からボールの中心までの距離」を測り、
+  // 左手側のキーの外側の端・上端から同じ距離の所に置く（ぴったり左右反転させる）
+  if (kle?.ball && ballSide === 'left' && ballMirror) {
+    const rLayout = layout.filter(k => k.ball !== 'right');
+    const r = kleRects(rLayout, ballMirror.geometry, ballMirror.ballGeometry, ballMirror.ballOffset);
+    if (r?.ball) {
+      const rb = halfBox(r.rects, rLayout, 'R'), lb = halfBox(kle.rects, visibleLayout, 'L');
+      const cx = lb.x0 + (rb.x1 - r.ball.cx), cy = lb.y0 + (r.ball.cy - rb.y0), d = r.ball.d;
+      // 反転した位置が今の表示範囲からはみ出す時は、全体をずらして広げる
+      const sx = Math.max(0, 4 - (cx - d / 2)), sy = Math.max(0, 4 - (cy - d / 2));
+      kle = {
+        rects: kle.rects.map(k => ({ ...k, left: k.left + sx, top: k.top + sy })),
+        width: Math.max(kle.width + sx, cx + sx + d / 2 + 4),
+        height: Math.max(kle.height + sy, cy + sy + d / 2 + 4),
+        ball: { cx: cx + sx, cy: cy + sy, d },
+      };
+    }
+  }
   const rectById = new Map<string, KeyRect>();
   if (kle) visibleLayout.forEach((k, i) => rectById.set(k.id, kle.rects[i]));
 

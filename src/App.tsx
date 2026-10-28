@@ -126,19 +126,26 @@ export default function App() {
   // Remapと同じキー配置（via.jsonから生成）。キーマップの表示に使う（2026-10-27、本人希望）
   const kleGeometry = state.model ? KLE_GEOMETRY[state.model]?.[ballSide] : undefined;
   // トラックボールの位置: ボールの位置にあるキー（今は隠しているキー）の、反対側にボールがある時の座標
-  const ballGeometry = (() => {
+  const ballGeometryFor = (side: BallSide) => {
     if (!state.model) return undefined;
-    const other = KLE_GEOMETRY[state.model]?.[ballSide === 'right' ? 'left' : 'right'];
+    const other = KLE_GEOMETRY[state.model]?.[side === 'right' ? 'left' : 'right'];
     if (!other) return undefined;
-    const keys = LAYOUTS[state.model].filter(k => k.ball === ballSide).map(k => other[`${k.row},${k.col}`]).filter(Boolean);
+    const keys = LAYOUTS[state.model].filter(k => k.ball === side).map(k => other[`${k.row},${k.col}`]).filter(Boolean);
     return keys.length ? keys : undefined;
-  })();
+  };
+  const ballGeometry = ballGeometryFor(ballSide);
+  // 左手ボールの時は、右手ボールの時の位置をそのまま左右反転して使う（2026-10-28、本人希望）。
+  // 位置は右手ボールの見た目で調整しているため（BALL_OFFSET_RIGHT）
+  const ballMirror = ballSide === 'left' && state.model && KLE_GEOMETRY[state.model]?.right
+    ? { geometry: KLE_GEOMETRY[state.model].right, ballGeometry: ballGeometryFor('right'), ballOffset: BALL_OFFSET_RIGHT[state.model] }
+    : undefined;
   const ballProps = (layer: number) => {
     const label = getBallFunctionLabel(layer, state);
     return {
       ballGeometry,
       // 右手ボールの位置の微調整（2026-10-28、本人希望）。キー1個分＝1、右・下がプラス
       ballOffset: ballSide === 'right' ? BALL_OFFSET_RIGHT[state.model ?? ''] : undefined,
+      ballMirror,
       ballLabel: label,
       ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },

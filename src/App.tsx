@@ -931,7 +931,8 @@ export default function App() {
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>マクロ拡張</button>
               <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
               <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
-              <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>タイピングゲーム</button>
+              {/* タイピングゲームはまだ開発だけで公開する（本番では隠す。2026-10-28、本人希望） */}
+              {isDevHost && <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>タイピングゲーム</button>}
               <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
             </div>
 
@@ -1205,7 +1206,7 @@ export default function App() {
               <FirmwareFlasher detectedModel={state.model} productId={state.productId} isHIDConnected={isConnected} onReboot={reboot} />
             )}
 
-            {activeTab === 'typing' && <TypingGame />}
+            {isDevHost && activeTab === 'typing' && <TypingGame />}
 
             {activeTab === 'feedback' && <FeedbackTab />}
 

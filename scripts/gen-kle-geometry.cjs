@@ -91,6 +91,9 @@ for (const [model, file] of Object.entries(SOURCES)) {
     if (model === 'keyballplus') {
       const PLUS_THUMBS = { '7,3': 3, '7,4': 4, '7,5': 5, '3,5': 7.75, '3,4': 8.75, '3,3': 9.75 };
       for (const [id, x] of Object.entries(PLUS_THUMBS)) if (map[id]) map[id] = { x, y: 3.7 };
+      // 一番内側の親指キーだけ、内側が下がるように少し（写真で約4度）傾いている。キーの中心を軸に回す
+      const TILT = { '7,5': 4, '3,5': -4 };
+      for (const [id, r] of Object.entries(TILT)) if (map[id]) map[id] = { ...map[id], r, rx: map[id].x + 0.5, ry: map[id].y + 0.5 };
     }
     out[model][side] = map;
   }

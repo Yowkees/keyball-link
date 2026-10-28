@@ -117,12 +117,8 @@ export default function App() {
   const [manualBallSide, setManualBallSide] = useState<BallSide>(() =>
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
   );
-  // 【一時的】左右の見た目を確かめるため、ボールの自動検出を切っている（2026-10-28、本人希望）。
-  // 確認が終わったら true に戻すこと
-  const BALL_AUTO_DETECT = false;
-  const detectedBallSide = BALL_AUTO_DETECT ? state.detectedBallSide : null;
-  const ballSide: BallSide = detectedBallSide ?? manualBallSide;
-  const ballSideAuto = detectedBallSide !== null;
+  const ballSide: BallSide = state.detectedBallSide ?? manualBallSide;
+  const ballSideAuto = state.detectedBallSide !== null;
   // Remapと同じキー配置（via.jsonから生成）。キーマップの表示に使う（2026-10-27、本人希望）
   const kleGeometry = state.model ? KLE_GEOMETRY[state.model]?.[ballSide] : undefined;
   // トラックボールの位置: ボールの位置にあるキー（今は隠しているキー）の、反対側にボールがある時の座標

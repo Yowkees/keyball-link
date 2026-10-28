@@ -42,6 +42,7 @@ if (isDevHost && typeof document !== 'undefined') document.title = 'Keyball Link
 const BALL_OFFSET_RIGHT: Record<string, { x: number; y: number }> = {
   keyball44: { x: 0.25, y: 0.08 },
   keyball39: { x: -0.14, y: 0.07 },
+  keyballplus: { x: -0.1, y: 0.18 },   // 実機写真から測ったボールの中心に合わせた
 };
 
 const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];

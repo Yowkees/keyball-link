@@ -85,6 +85,13 @@ for (const [model, file] of Object.entries(SOURCES)) {
       if (k.r) { g.r = k.r; g.rx = round(k.rx); g.ry = round(k.ry); }
       map[`${row},${k.col}`] = g;
     }
+    // Keyball+はvia.jsonがKeyball39と同じ（専用のKLEデータが無い）。指のキーの並びは39と同じだが、
+    // 親指キーだけ違い、傾いておらず横一列に並ぶ。本人提供の実機写真（右手ボール）から測った位置で置き換える
+    // （2026-10-28）。左手側の親指キー 7,3/7,4/7,5、右手側の 3,5/3,4/3,3 を、上端をそろえて1個分ずつ並べる。
+    if (model === 'keyballplus') {
+      const PLUS_THUMBS = { '7,3': 3, '7,4': 4, '7,5': 5, '3,5': 7.75, '3,4': 8.75, '3,3': 9.75 };
+      for (const [id, x] of Object.entries(PLUS_THUMBS)) if (map[id]) map[id] = { x, y: 3.7 };
+    }
     out[model][side] = map;
   }
 }

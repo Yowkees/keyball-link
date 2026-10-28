@@ -89,7 +89,8 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
     }
   }
   // トラックボール: ボールの位置にあるキーのうち、表示中のキーと重ならないものの範囲の中心に丸を置く。
-  // 大きさは、周りのキーとすき間が空く大きさまで（最大でキー約1.5個分）。
+  // 大きさはどの機種でも同じ（キー約1.55個分。2026-10-28、本人指摘「機種によってボールの大きさが違う」）。
+  // 一番狭いKeyball44でも周りのキーに重ならない大きさにしている。
   let ball: BallRect | null = null;
   if (ballGeometry && ballGeometry.length) {
     // 表示中のキーの範囲（傾いたキーは回転後の外接する四角）
@@ -119,7 +120,7 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
         if (dd + center > best) { best = dd + center; cx = x; cy = y; }
       }
     }
-    const d = Math.max(KEY_SIZE, Math.min(U * 1.6, (distTo(cx, cy) - GAP * 2) * 2));
+    const d = U * 1.55;
     ball = { cx, cy, d };
     minX = Math.min(minX, cx - d / 2); maxX = Math.max(maxX, cx + d / 2);
     minY = Math.min(minY, cy - d / 2); maxY = Math.max(maxY, cy + d / 2);

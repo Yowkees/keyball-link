@@ -111,8 +111,12 @@ export default function App() {
   const [manualBallSide, setManualBallSide] = useState<BallSide>(() =>
     (localStorage.getItem('ballSide') as BallSide) ?? 'right'
   );
-  const ballSide: BallSide = state.detectedBallSide ?? manualBallSide;
-  const ballSideAuto = state.detectedBallSide !== null;
+  // 【一時的】左右の見た目を確かめるため、ボールの自動検出を切っている（2026-10-28、本人希望）。
+  // 確認が終わったら true に戻すこと
+  const BALL_AUTO_DETECT = false;
+  const detectedBallSide = BALL_AUTO_DETECT ? state.detectedBallSide : null;
+  const ballSide: BallSide = detectedBallSide ?? manualBallSide;
+  const ballSideAuto = detectedBallSide !== null;
   // Remapと同じキー配置（via.jsonから生成）。キーマップの表示に使う（2026-10-27、本人希望）
   const kleGeometry = state.model ? KLE_GEOMETRY[state.model]?.[ballSide] : undefined;
   // トラックボールの位置: ボールの位置にあるキー（今は隠しているキー）の、反対側にボールがある時の座標
@@ -127,6 +131,8 @@ export default function App() {
     const label = getBallFunctionLabel(layer, state);
     return {
       ballGeometry,
+      // Keyball44の右手ボールは、計算した位置より少し右下に置く（2026-10-28、本人希望）
+      ballOffset: state.model === 'keyball44' && ballSide === 'right' ? { x: 0.15, y: 0.15 } : undefined,
       ballLabel: label,
       ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },

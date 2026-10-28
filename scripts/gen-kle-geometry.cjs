@@ -89,8 +89,9 @@ for (const [model, file] of Object.entries(SOURCES)) {
     // 親指キーだけ違い、傾いておらず横一列に並ぶ。本人提供の実機写真（右手ボール）から測った位置で置き換える
     // （2026-10-28）。左手側の親指キー 7,3/7,4/7,5、右手側の 3,5/3,4/3,3 を、上端をそろえて1個分ずつ並べる。
     if (model === 'keyballplus') {
-      const PLUS_THUMBS = { '7,3': 3, '7,4': 4, '7,5': 5, '3,5': 7.75, '3,4': 8.75, '3,3': 9.75 };
-      for (const [id, x] of Object.entries(PLUS_THUMBS)) if (map[id]) map[id] = { x, y: 3.7 };
+      // 一番内側（7,5 と 3,5）は、本人の見た目の指定で少し内側・下へずらす（2026-10-28）
+      const PLUS_THUMBS = { '7,3': [3, 3.7], '7,4': [4, 3.7], '7,5': [5.1, 3.8], '3,5': [7.65, 3.8], '3,4': [8.75, 3.7], '3,3': [9.75, 3.7] };
+      for (const [id, [x, y]] of Object.entries(PLUS_THUMBS)) if (map[id]) map[id] = { x, y };
       // 一番内側の親指キーだけ、内側が下がるように少し（写真で約4度）傾いている。キーの中心を軸に回す
       const TILT = { '7,5': 4, '3,5': -4 };
       for (const [id, r] of Object.entries(TILT)) if (map[id]) map[id] = { ...map[id], r, rx: map[id].x + 0.5, ry: map[id].y + 0.5 };

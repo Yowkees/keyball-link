@@ -38,6 +38,12 @@ const isDevHost = typeof location !== 'undefined'
 // 開発ではブラウザのタブ名を変えて、本番と見分けられるようにする（2026-10-09、本人希望）
 if (isDevHost && typeof document !== 'undefined') document.title = 'Keyball Link 開発用';
 
+// キー配列に描くトラックボール（右手ボールの時）の位置の微調整（2026-10-28、本人が見た目で指定）
+const BALL_OFFSET_RIGHT: Record<string, { x: number; y: number }> = {
+  keyball44: { x: 0.25, y: 0.08 },
+  keyball39: { x: -0.14, y: 0.07 },
+};
+
 const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];
 const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
   { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },
@@ -131,8 +137,8 @@ export default function App() {
     const label = getBallFunctionLabel(layer, state);
     return {
       ballGeometry,
-      // Keyball44の右手ボールは、計算した位置より少し右下に置く（2026-10-28、本人希望）
-      ballOffset: state.model === 'keyball44' && ballSide === 'right' ? { x: 0.15, y: 0.15 } : undefined,
+      // 右手ボールの位置の微調整（2026-10-28、本人希望）。キー1個分＝1、右・下がプラス
+      ballOffset: ballSide === 'right' ? BALL_OFFSET_RIGHT[state.model ?? ''] : undefined,
       ballLabel: label,
       ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },

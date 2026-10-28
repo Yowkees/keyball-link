@@ -9,6 +9,7 @@ interface LEDSettingsProps {
   headerLeft?: ReactNode;   // エフェクト選択の左隣に表示する要素（レイヤー選択タブなど）
   extraRow?: ReactNode;     // エフェクト選択の下・色相バーの上に追加する行
   allowedEffectIds?: readonly number[];  // 指定時、選択肢をこのIDのみに絞る（AVR接続時など）
+  offPreview?: LedConfig;   // 「オフ」の時に代わりに見せる設定（レイヤー1以降でレイヤー0の光り方を見せる）
 }
 
 // スライダー操作のたびにonChange（EEPROM書き込みを伴うHIDコマンド）を即送信すると、
@@ -30,14 +31,15 @@ function buildGradient(cfg: LedConfig): string {
   return `linear-gradient(90deg, ${stops.join(', ')})`;
 }
 
-function LedSlider({ label, value, max, onChange }: {
-  label: string; value: number; max: number; onChange: (v: number) => void;
+// hidden の時も場所は取っておき、エフェクトによってパネルの高さが変わらないようにする
+function LedSlider({ label, value, max, onChange, hidden, disabled }: {
+  label: string; value: number; max: number; onChange: (v: number) => void; hidden?: boolean; disabled?: boolean;
 }) {
   return (
-    <div className="led-panel__slider">
+    <div className="led-panel__slider" style={hidden ? { visibility: 'hidden' } : undefined}>
       <span className="led-panel__slider-label">{label}</span>
       <input
-        type="range" min={0} max={max} value={value}
+        type="range" min={0} max={max} value={value} disabled={disabled || hidden}
         onChange={e => onChange(Number(e.target.value))}
         className="slider"
       />
@@ -46,7 +48,7 @@ function LedSlider({ label, value, max, onChange }: {
   );
 }
 
-export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEffectIds }: LEDSettingsProps) {
+export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEffectIds, offPreview }: LEDSettingsProps) {
   const [local, setLocal] = useState(config);
   const effects = allowedEffectIds
     ? LED_EFFECTS.filter(e => allowedEffectIds.includes(e.id))
@@ -84,13 +86,16 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
     }, COMMIT_DELAY_MS);
   };
 
-  const isFixedHue = (LED_FIXED_HUE_EFFECT_IDS as readonly number[]).includes(local.effectId);
-  const showColor = local.effectId !== 0;
+  // 「オフ」でレイヤー0の光り方を見せる時は、その値をグレーで表示するだけにする（操作不可）
+  const previewing = local.effectId === 0 && !!offPreview;
+  const view = previewing ? offPreview : local;
+  const isFixedHue = (LED_FIXED_HUE_EFFECT_IDS as readonly number[]).includes(view.effectId);
+  const showColor = view.effectId !== 0;
   const showHue   = showColor && !isFixedHue;  // クリスマス・ハロウィン・イースターは色相固定
-  const showSpeed = local.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(local.effectId);
+  const showSpeed = view.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(view.effectId);
 
   return (
-    <div className="led-panel">
+    <div className="led-panel led-settings">
       <div className="led-panel__toprow">
         {headerLeft}
         <select
@@ -108,34 +113,35 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
             <option key={e.id} value={e.id}>{e.label}</option>
           ))}
         </select>
+        {/* 説明は選択欄の横に置く（下に置くと説明が無い時に空白ができ、出すと高さが変わるため） */}
+        {(previewing || isFixedHue) && (
+          <span className="settings-desc led-settings__note">
+            {previewing ? 'オフの間はレイヤー0の光り方で光ります' : '色相固定のエフェクトです（彩度・明度は調整できます）'}
+          </span>
+        )}
       </div>
 
       {extraRow}
 
-      <div className="led-panel__bar">
-        <div className="led-panel__bar-fill" style={{ background: buildGradient(local) }} />
-        {showHue && (
-          <div className="led-panel__marker" style={{ left: `${(local.hue / 255 * 100).toFixed(1)}%` }} />
-        )}
-      </div>
+      <div className={`led-settings__body ${previewing ? 'led-settings__body--preview' : ''}`}>
+        <div className="led-panel__bar">
+          <div className="led-panel__bar-fill" style={{ background: buildGradient(view) }} />
+          {showHue && (
+            <div className="led-panel__marker" style={{ left: `${(view.hue / 255 * 100).toFixed(1)}%` }} />
+          )}
+        </div>
 
-      {isFixedHue && (
-        <p className="settings-desc">このエフェクトは色相固定（テーマカラー）です。彩度・明度は調整できます。</p>
-      )}
 
-      <div className="led-panel__sliders">
-        {showHue && (
-          <LedSlider label="色相" value={local.hue} max={255} onChange={v => commitDebounced({ ...local, hue: v })} />
-        )}
-        {showColor && (
-          <LedSlider label="彩度" value={local.sat} max={255} onChange={v => commitDebounced({ ...local, sat: v })} />
-        )}
-        {showColor && (
-          <LedSlider label="明度" value={local.val} max={200} onChange={v => commitDebounced({ ...local, val: v })} />
-        )}
-        {showSpeed && (
-          <LedSlider label="速度" value={local.speed} max={255} onChange={v => commitDebounced({ ...local, speed: v })} />
-        )}
+        <div className="led-panel__sliders">
+          <LedSlider label="色相" value={view.hue} max={255} hidden={!showHue} disabled={previewing}
+            onChange={v => commitDebounced({ ...local, hue: v })} />
+          <LedSlider label="彩度" value={view.sat} max={255} hidden={!showColor} disabled={previewing}
+            onChange={v => commitDebounced({ ...local, sat: v })} />
+          <LedSlider label="明度" value={view.val} max={200} hidden={!showColor} disabled={previewing}
+            onChange={v => commitDebounced({ ...local, val: v })} />
+          <LedSlider label="速度" value={view.speed} max={255} hidden={!showSpeed} disabled={previewing}
+            onChange={v => commitDebounced({ ...local, speed: v })} />
+        </div>
       </div>
     </div>
   );

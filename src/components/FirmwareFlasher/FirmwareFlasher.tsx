@@ -265,21 +265,14 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           {/* 2026-10-06〜: 上から「モデル」→「AVR版/RP2040版」→「ビルド済み/ファイル」の順に選ぶ */}
           <p className="fw-field-label">モデル</p>
             <div className="model-selector">
-              {(Object.keys(MODEL_LABELS) as ModelKey[]).map(model => {
-                const total = (BUILTIN_FIRMWARE_AVR[model] ? (flashCounts[flashCountKey(model, false)] ?? 0) : 0) +
-                  (BUILTIN_FIRMWARE_AVR_LED[model] ? (flashCounts[flashCountKey(model, true)] ?? 0) : 0) +
-                  (BUILTIN_FIRMWARE_RP2040[model] ? (flashCounts[flashCountKey(model, false, 'rp2040')] ?? 0) : 0);
-                return (
-                  <button key={model}
-                    className={`btn btn--layer ${selectedModel === model ? 'btn--layer-active' : ''}`}
-                    onClick={() => setSelectedModel(model)} disabled={isWorking}>
-                    {MODEL_LABELS[model]}
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
-                      (書き込み回数: {total})
-                    </span>
-                  </button>
-                );
-              })}
+              {/* 書き込み回数は機種の合計ではなく、ファームの種類ごと（AVR版・LED版・RP2040版）に下のボタンに出す（2026-10-27、本人希望） */}
+              {(Object.keys(MODEL_LABELS) as ModelKey[]).map(model => (
+                <button key={model}
+                  className={`btn btn--layer ${selectedModel === model ? 'btn--layer-active' : ''}`}
+                  onClick={() => setSelectedModel(model)} disabled={isWorking}>
+                  {MODEL_LABELS[model]}
+                </button>
+              ))}
               {detectedModel && (
                 <span className="detected-model">
                   {detectedModel === selectedModel ? '✓ 接続中と一致' : `⚠ 接続中: ${MODEL_LABELS[detectedModel]}`}
@@ -293,12 +286,19 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
               onClick={() => setChip('avr')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel])}
               title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
               AVR版（Pro Micro等）
+              {/* 通常版・LED版に分かれている機種は、下のバージョンのボタンにそれぞれの回数を出す */}
+              {BUILTIN_FIRMWARE_AVR[selectedModel] && !BUILTIN_FIRMWARE_AVR_LED[selectedModel] && (
+                <span className="fw-flash-count">(書き込み回数: {flashCounts[flashCountKey(selectedModel, false)] ?? 0})</span>
+              )}
             </button>
             {RP2040_PUBLIC_RELEASE && (
               <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
                 onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
                 title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
                 RP2040版（RP2040 ProMicro）
+                {BUILTIN_FIRMWARE_RP2040[selectedModel] && (
+                  <span className="fw-flash-count">(書き込み回数: {flashCounts[flashCountKey(selectedModel, false, 'rp2040')] ?? 0})</span>
+                )}
               </button>
             )}
           </div>

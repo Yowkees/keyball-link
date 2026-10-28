@@ -488,8 +488,8 @@ body { background: var(--bg); overflow-x: hidden; }
   gap: 7px;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  padding: 5px 9px;
+  font-size: 12.5px;
+  padding: 7px 13px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
@@ -510,24 +510,9 @@ body { background: var(--bg); overflow-x: hidden; }
 }
 /* このレイヤーに何らかの連動機能（オートマウス/スクロール/ジェスチャー/精密モード/LED連動）が
    割り当てられていることを示す小さなバッジ。詳細はtitle属性のツールチップと下の連動機能表示で確認できる */
-.layer-tab__badge {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 1px var(--bg3);
-}
-.layer-toolbar__features {
-  font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.layer-toolbar__aml {
+  /* オートマウスのレイヤーに出す文字（ONボタンと同じ色） */
+  font-family: var(--font-heading); font-weight: 600; font-size: 12.5px; color: var(--accent); white-space: nowrap;
 }
 .ball-toggle {
   margin-left: auto;
@@ -636,7 +621,10 @@ body { background: var(--bg); overflow-x: hidden; }
 
 /* キー説明バー（ホバー時に何ができるか表示） */
 .key-desc-bar {
-  min-height: 38px;
+  /* 高さは2行分で固定（長い説明はKeyboardLayout.tsxで文字を小さくして収める） */
+  height: 54px;
+  overflow: hidden;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -647,7 +635,7 @@ body { background: var(--bg); overflow-x: hidden; }
   border-radius: 8px;
   font-size: 13px;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.45;
   max-width: 560px;
   transition: color 0.1s;
 }
@@ -666,6 +654,8 @@ body { background: var(--bg); overflow-x: hidden; }
   transition: background 0.1s, border-color 0.1s, transform 0.08s, box-shadow 0.1s;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  /* Remapと同じ配置で傾いている親指キーは、--key-rotで角度を受け取る（Key.tsx） */
+  transform: rotate(var(--key-rot, 0deg));
 }
 
 .key:hover {
@@ -697,7 +687,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .key--dragover {
   background: color-mix(in srgb, var(--accent) 30%, var(--key-bg)) !important;
   border-color: var(--accent) !important;
-  transform: scale(1.06);
+  transform: rotate(var(--key-rot, 0deg)) scale(1.06);
 }
 
 .key__label {
@@ -935,8 +925,7 @@ body { background: var(--bg); overflow-x: hidden; }
 .led-panel__effect-select {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 160px;
-  margin-left: auto;
+  max-width: 220px;
 }
 
 /* 「通常」／各レイヤーを切り替えて、同じLED設定UIで編集対象を変える */
@@ -1023,6 +1012,20 @@ body { background: var(--bg); overflow-x: hidden; }
   padding-top: 8px;
   border-top: 1px solid var(--border);
 }
+/* LED設定パネル：縦に余裕ができたので各設定の間を広めに取る（2026-10-27） */
+.led-settings { gap: 14px; }
+.led-settings__body { display: flex; flex-direction: column; gap: 12px; }
+.led-settings__body .led-panel__sliders { gap: 22px 44px; padding-top: 16px; }
+/* 色相などの各パラメータ：名前・スライダー・数値の間を広げて詰まって見えないようにする */
+.led-settings .led-panel__slider { gap: 16px; }
+.led-settings .led-panel__slider-label { flex-basis: 40px; font-size: 12px; }
+.led-settings .led-panel__slider-value { width: 38px; font-size: 12px; }
+.led-settings .led-panel__toprow { flex-wrap: nowrap; }
+/* .settings-desc（後ろで定義）の下余白が残ると上にずれるため、詳細度を上げて打ち消し、選択欄の中心に揃える */
+.led-settings .led-settings__note { margin: 0; line-height: 1.2; white-space: nowrap; }
+/* オフ中にレイヤー0の光り方を見せている時は、操作できないのでグレーにする */
+.led-settings__body--preview .led-panel__bar,
+.led-settings__body--preview .led-panel__sliders { opacity: .45; }
 .led-panel__slider {
   display: flex;
   align-items: center;
@@ -3555,3 +3558,178 @@ p[data-tip] { width: fit-content; }
 .btn-fixed-label { display: inline-grid; }
 .btn-fixed-label > span { grid-area: 1 / 1; text-align: center; }
 .btn-fixed-label__sizer { visibility: hidden; }
+
+/* キー配列の中に描くトラックボール（KeyboardLayout.tsx）。見た目は普通のキー（.key）に合わせる。
+   押すとトラックボール設定のタブへ移る */
+.kb-ball {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--key-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text);
+  padding: 4px;
+  text-align: center;
+  transition: background 0.1s, border-color 0.1s;
+}
+.kb-ball:hover { background: var(--key-hover); border-color: var(--accent); }
+.kb-ball--selected {
+  background: var(--key-sel) !important;
+  border-color: var(--accent) !important;
+  color: var(--key-sel-fg);
+}
+.kb-ball--selected .key__label { color: var(--key-sel-fg); }
+
+/* キーマップのトラックボールを押した時の右側のパネル（BallPanel.tsx）。LED設定パネルと同じ部品を使う */
+.ball-panel-wrap { padding: 12px 14px; overflow-y: auto; gap: 8px; }  /* LED設定と同じく見出しとの間に余白 */
+.ball-panel__targets { flex-wrap: wrap; flex-shrink: 1; }
+.ball-panel__curve { margin-top: 8px; }
+.ball-panel__note { margin-top: 14px; }
+.ball-panel__cont { display: flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
+.ball-panel__label { font-size: 12px; color: var(--text-dim); margin-top: 6px; display: block; }
+.ball-panel__sliders { display: flex; flex-direction: column; gap: 2px; }
+.ball-panel__more {
+  margin-top: 12px; align-self: flex-start; background: none; border: none; padding: 0;
+  font-size: 11.5px; color: var(--accent); cursor: pointer;
+}
+.ball-panel__more:hover { text-decoration: underline; }
+.ball-panel__gesture { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; }
+
+/* ===== タイピングゲームタブ（TypingGame.tsx） ===== */
+.typing-game { display: flex; flex-direction: column; gap: 10px; max-width: 1100px; margin: 0 auto; width: 100%; }
+.typing-game__head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.typing-game__title { font-family: var(--font-heading); font-weight: 700; font-size: 17px; color: var(--text); }
+.typing-game__stage { font-size: 12.5px; color: var(--accent); font-weight: 600; }
+.typing-game__left { font-size: 12.5px; color: var(--text-dim); }
+.typing-game__best { margin-left: auto; font-size: 12.5px; color: var(--text-dim); font-family: var(--font-mono); }
+.typing-game__field {
+  position: relative; height: 440px; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg2);
+  user-select: none;
+}
+.typing-game__center {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 16px; text-align: center;
+}
+.typing-game__lead { font-size: 15px; color: var(--text); margin: 0; }
+.typing-game__rules { margin: 0; padding-left: 18px; text-align: left; font-size: 13px; color: var(--text-dim); line-height: 1.8; }
+.typing-game__start { min-width: 140px; }
+.typing-game__result {
+  display: grid; grid-template-columns: auto auto; gap: 6px 24px; font-size: 13.5px; color: var(--text-dim); text-align: left;
+}
+.typing-game__result b { color: var(--text); font-family: var(--font-mono); text-align: right; }
+.typing-game__new { margin: 0; color: var(--accent); font-weight: 700; }
+.typing-game__msg { margin: 0; font-size: 13px; color: var(--text-dim); text-align: center; min-height: 1.5em; }
+
+.typing-game__msg--warn { color: var(--red); font-weight: 600; }
+/* 日本語入力を受け取る見えない入力欄（変換候補の窓がカードの近くに出るよう、カードの位置に動かす） */
+.typing-game__input {
+  position: absolute; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
+  pointer-events: none; left: 50%; top: 50%;
+}
+
+.typing-card {
+  position: absolute; transform: translate(-50%, -50%);
+  min-width: 150px; padding: 14px 20px; border-radius: 12px;
+  border: 2px solid var(--border); background: var(--key-bg); color: var(--text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); cursor: pointer;
+  transition: opacity .15s, border-color .15s, box-shadow .15s;
+}
+.typing-card:hover { border-color: var(--accent); }
+.typing-card__body { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.typing-card__text { font-size: 20px; font-weight: 700; }
+.typing-card__kana { font-size: 13px; color: var(--text-dim); }
+.typing-card__romaji { font-family: var(--font-mono); font-size: 18px; letter-spacing: .03em; margin-top: 2px; }
+.typing-card__typed { color: var(--accent); font-weight: 700; }
+.typing-card__rest { color: var(--text-dim); }
+.typing-card__wrong { color: var(--red); font-weight: 700; }
+.typing-card__last { display: inline-block; animation: typing-pop-char .18s ease-out; }
+.typing-card--active {
+  border-color: var(--accent); cursor: default; z-index: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.typing-card--dim { opacity: .4; }
+/* 正解・間違いの時にカード全体に一瞬かぶせる色 */
+.typing-card__flash { position: absolute; inset: -2px; border-radius: 12px; pointer-events: none; }
+.typing-card__flash--ok { animation: typing-flash-ok .25s ease-out forwards; }
+.typing-card__flash--miss { animation: typing-flash-miss .45s ease-out forwards; }
+.typing-card__body--shake { animation: typing-shake .3s; }
+/* 打ち終わった時の「クリア！」 */
+.typing-pop {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+  font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--accent);
+  animation: typing-clear .8s ease-out forwards; white-space: nowrap;
+}
+.typing-pop--bonus { color: #e8b44a; font-size: 26px; }
+.typing-pop--lost { color: var(--red); }
+@keyframes typing-pop-char { 0% { transform: translateY(-5px) scale(1.4); } 100% { transform: none; } }
+@keyframes typing-flash-ok {
+  0% { box-shadow: 0 0 0 3px var(--accent), 0 0 16px var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  100% { box-shadow: none; background: transparent; }
+}
+@keyframes typing-flash-miss {
+  0%, 40% { box-shadow: 0 0 0 3px var(--red), 0 0 16px var(--red); background: color-mix(in srgb, var(--red) 18%, transparent); }
+  100% { box-shadow: none; background: transparent; }
+}
+@keyframes typing-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-7px); } 40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); } 80% { transform: translateX(3px); }
+}
+@keyframes typing-clear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); }
+  25% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(1); }
+}
+@media (max-width: 700px) {
+  .typing-card { min-width: 0; padding: 10px 12px; }
+  .typing-card__text { font-size: 16px; }
+}
+/* タイピングゲームの難易度選び */
+.typing-game__levels { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.typing-level {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 150px; padding: 10px 16px;
+  border-radius: 10px; border: 2px solid var(--border); background: var(--key-bg); color: var(--text); cursor: pointer;
+}
+.typing-level b { font-size: 15px; }
+.typing-level span { font-size: 11.5px; color: var(--text-dim); }
+.typing-level:hover { border-color: var(--accent); }
+.typing-level--on { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.typing-level--on b { color: var(--accent); }
+.typing-game__again { display: flex; gap: 10px; }
+/* むずかしい: カードを小さくする */
+.typing-game__field--small .typing-card { min-width: 0; padding: 8px 12px; }
+.typing-game__field--small .typing-card__text { font-size: 15px; }
+.typing-game__field--small .typing-card__kana { font-size: 11px; }
+.typing-game__field--small .typing-card__romaji { font-size: 14px; }
+
+/* タイピングゲーム: 残り時間のバー・ボーナスカード・ライフ・点数 */
+.typing-card__timer {
+  position: absolute; left: 10px; right: 10px; bottom: 4px; height: 4px; border-radius: 2px;
+  background: color-mix(in srgb, var(--text-dim) 20%, transparent); overflow: hidden; pointer-events: none;
+}
+.typing-card__timer > span {
+  display: block; height: 100%; width: calc(var(--life, 1) * 100%); background: var(--accent); border-radius: 2px;
+}
+.typing-card[data-low="1"] .typing-card__timer > span { background: var(--red); }
+.typing-card[data-low="1"]:not(.typing-card--active) { border-color: var(--red); }
+.typing-card--bonus {
+  min-width: 0; padding: 8px 12px; border-color: #e8b44a;
+  background: color-mix(in srgb, #e8b44a 16%, var(--key-bg));
+  box-shadow: 0 0 14px color-mix(in srgb, #e8b44a 55%, transparent);
+}
+.typing-card--bonus .typing-card__text { font-size: 15px; color: #e8b44a; }
+.typing-card--bonus .typing-card__timer > span { background: #e8b44a; }
+.typing-game__lives { font-size: 16px; letter-spacing: 2px; }
+.typing-game__life { color: var(--red); }
+.typing-game__life--lost { color: color-mix(in srgb, var(--text-dim) 40%, transparent); }
+.typing-game__score { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); }
+.typing-game__combo { font-size: 13px; font-weight: 800; color: #e8b44a; animation: typing-pop-char .25s ease-out; display: inline-block; }
+.typing-game__final { margin: 0; font-family: var(--font-mono); font-size: 34px; font-weight: 800; color: var(--accent); }
+
+/* ファームの種類ごとの書き込み回数（FirmwareFlasher.tsx） */
+.fw-flash-count { font-size: 11px; color: var(--text-dim); margin-left: 6px; }

@@ -16,7 +16,6 @@ interface MatrixTestPanelProps {
 }
 
 export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SPLIT_GAP_PX }: MatrixTestPanelProps) {
-  const [active, setActive] = useState(false);
   const [pressed, setPressed] = useState<Set<string>>(new Set());
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [scale, setScale] = useState(1);
@@ -70,34 +69,18 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
     }
   }, [onGetMatrix]);
 
-  const startTest = () => {
+  // テストマトリクスの項目を開いている間は自動でテストし、閉じたら止める（2026-10-27、本人希望。
+  // 開始・ログクリア・終了のボタンは無くした。押したことのあるキーの記録は、開き直すと消える）
+  useEffect(() => {
     activeRef.current = true;
-    setActive(true);
-    setPressed(new Set());
-    setTouched(new Set());
-    pollLoop();
-  };
-
-  const stopTest = () => {
-    activeRef.current = false;
-    setActive(false);
-    setPressed(new Set());
-  };
-
-  useEffect(() => () => { activeRef.current = false; }, []);
+    const timer = setTimeout(() => { pollLoop(); }, 0);
+    return () => { activeRef.current = false; clearTimeout(timer); };
+  }, [pollLoop]);
 
   return (
     <div className="led-test-panel led-test-panel--embedded">
       <div className="led-test-controls">
-        {!active ? (
-          <button className="btn btn--primary" onClick={startTest}>テスト開始</button>
-        ) : (
-          <>
-            <span className="led-test-index" style={{ color: 'var(--accent)' }}>● テスト中</span>
-            <button className="btn btn--ghost" onClick={() => setTouched(new Set())}>ログクリア</button>
-            <button className="btn btn--ghost" onClick={stopTest}>終了</button>
-          </>
-        )}
+        <span className="led-test-index" style={{ color: 'var(--accent)' }}>● テスト中（キーを押すと反応します）</span>
       </div>
 
       {/* wrapRef でコンテナ幅を計測し、内側を transform: scale で拡大 */}
@@ -120,7 +103,6 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
                 className={[
                   'matrix-key',
                   isPressed ? 'matrix-key--pressed' : isTouched ? 'matrix-key--touched' : '',
-                  !active   ? 'matrix-key--idle' : '',
                 ].filter(Boolean).join(' ')}
                 title={`${k.id} (row=${k.row}, col=${k.col})`}
               >

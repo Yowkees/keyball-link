@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDescription } from '../../lib/keycodes';
-import { Key } from './Key';
+import { Key, type KeyRect } from './Key';
+import type { KleKeyGeometry } from '../../layouts/kleGeometry';
 
 const KEY_SIZE = 52;
 const GAP = 4;
@@ -49,17 +50,149 @@ interface KeyboardLayoutProps {
   // キー配列（上下の余白込み）に使ってよい高さの上限。画面の縦が短い時にApp側で測って
   // 渡す（2026-10-07、本人要望「キーマップタブを縦スクロールなしでウィンドウ内に収める」）
   maxBoxHeight?: number | null;
+  // Remapと同じキー配置（via.jsonから生成したKLE座標、"行,列"→位置）。あれば格子状の配置の代わりに使う
+  // （2026-10-27、本人希望）。全てのキーの座標がそろっている時だけ使い、欠けていれば従来の配置に戻る
+  geometry?: Record<string, KleKeyGeometry>;
+  // トラックボールを描く位置（ボールの位置にあるキーの、反対側のボール配置の時の座標。KLE単位）と、
+  // ボールに書く機能の名前。あればボールを丸で描く（2026-10-27、本人希望）
+  ballGeometry?: KleKeyGeometry[];
+  ballOffset?: { x: number; y: number };   // ボールの位置の微調整（キー1個分＝1。右・下がプラス）
+  // 左手ボールの時に、右手ボールの時の位置を左右反転して使うための、右手ボールの時の配置
+  ballMirror?: { geometry: Record<string, KleKeyGeometry>; ballGeometry?: KleKeyGeometry[]; ballOffset?: { x: number; y: number } };
+  ballLabel?: string;
+  ballTitle?: string;
+  onBallClick?: () => void;
+  ballSelected?: boolean;
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null }: KeyboardLayoutProps) {
-  const [hoverDesc, setHoverDesc] = useState<string | null>(null);
+interface BallRect { cx: number; cy: number; d: number }
 
-  const maxX = Math.max(...layout.map(k => {
+// 片手分（キーのidが prefix で始まるキー）の、傾きも含めた外側の四角
+function halfBox(rects: KeyRect[], layout: LayoutDef[], prefix: string) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  rects.forEach((r, i) => {
+    if (!layout[i].id.startsWith(prefix)) return;
+    const rad = (r.rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+    for (const [dx, dy] of [[0, 0], [r.width, 0], [0, r.height], [r.width, r.height]]) {
+      const px = r.left + r.originX + (dx - r.originX) * c - (dy - r.originY) * s;
+      const py = r.top + r.originY + (dx - r.originX) * s + (dy - r.originY) * c;
+      x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py);
+    }
+  });
+  return { x0, y0, x1, y1 };
+}
+
+// KLE座標（1=キー1個分）をpxに直し、全体が(0,0)から始まるようにずらす。傾いたキーは回転後の
+// 四隅も含めて全体の大きさを求める。
+function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>, ballGeometry?: KleKeyGeometry[], ballOffset?: { x: number; y: number }): { rects: KeyRect[]; width: number; height: number; ball: BallRect | null } | null {
+  const U = KEY_SIZE + GAP;
+  const raw: KeyRect[] = [];
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const k of layout) {
+    const g = geometry[`${k.row},${k.col}`];
+    if (!g) return null;
+    const left = g.x * U, top = g.y * U;
+    const width = (g.w ?? 1) * U - GAP, height = (g.h ?? 1) * U - GAP;
+    const rotate = g.r ?? 0;
+    const ox = rotate ? (g.rx ?? 0) * U - left : 0;
+    const oy = rotate ? (g.ry ?? 0) * U - top : 0;
+    raw.push({ left, top, width, height, rotate, originX: ox, originY: oy });
+    const rad = (rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+    for (const [dx, dy] of [[0, 0], [width, 0], [0, height], [width, height]]) {
+      // 回転の中心（左上からox,oy）を基準に回した四隅
+      const px = left + ox + (dx - ox) * c - (dy - oy) * s;
+      const py = top + oy + (dx - ox) * s + (dy - oy) * c;
+      minX = Math.min(minX, px); minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+    }
+  }
+  // トラックボール: ボールの位置にあるキーのうち、表示中のキーと重ならないものの範囲の中心に丸を置く。
+  // 大きさはどの機種でも同じ（キー約1.55個分。2026-10-28、本人指摘「機種によってボールの大きさが違う」）。
+  // 一番狭いKeyball44でも周りのキーに重ならない大きさにしている。
+  let ball: BallRect | null = null;
+  if (ballGeometry && ballGeometry.length) {
+    // 表示中のキーの範囲（傾いたキーは回転後の外接する四角）
+    const boxes = raw.map(r => {
+      const rad = (r.rotate * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+      const pts = [[0, 0], [r.width, 0], [0, r.height], [r.width, r.height]].map(([dx, dy]) => [
+        r.left + r.originX + (dx - r.originX) * c - (dy - r.originY) * s,
+        r.top + r.originY + (dx - r.originX) * s + (dy - r.originY) * c,
+      ]);
+      return { x0: Math.min(...pts.map(p => p[0])), y0: Math.min(...pts.map(p => p[1])), x1: Math.max(...pts.map(p => p[0])), y1: Math.max(...pts.map(p => p[1])) };
+    });
+    const overlaps = (x0: number, y0: number, x1: number, y1: number) => boxes.some(b => x0 < b.x1 && x1 > b.x0 && y0 < b.y1 && y1 > b.y0);
+    const free = ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }))
+      .filter(b => !overlaps(b.x0, b.y0, b.x1, b.y1));
+    const area = free.length ? free : ballGeometry.map(g => ({ x0: g.x * U, y0: g.y * U, x1: (g.x + (g.w ?? 1)) * U - GAP, y1: (g.y + (g.h ?? 1)) * U - GAP }));
+    // ボールの位置の範囲（少し広めに）の中で、周りのキーから一番離れられる場所を探して中心にする
+    // （2026-10-27、本人指摘「小さすぎる」。範囲の真ん中に置くと片側のキーが近く、小さくなっていた）
+    const ax0 = Math.min(...area.map(b => b.x0)) - U * 0.5, ax1 = Math.max(...area.map(b => b.x1)) + U * 0.5;
+    const ay0 = Math.min(...area.map(b => b.y0)) - U * 0.5, ay1 = Math.max(...area.map(b => b.y1)) + U * 0.5;
+    const distTo = (x: number, y: number) => Math.min(...boxes.map(b => Math.hypot(Math.max(b.x0 - x, 0, x - b.x1), Math.max(b.y0 - y, 0, y - b.y1))));
+    let cx = (ax0 + ax1) / 2, cy = (ay0 + ay1) / 2, best = -1;
+    for (let i = 0; i <= 24; i++) {
+      for (let j = 0; j <= 16; j++) {
+        const x = ax0 + ((ax1 - ax0) * i) / 24, y = ay0 + ((ay1 - ay0) * j) / 16;
+        const dd = Math.min(distTo(x, y), U * 0.8);  // 最大の大きさに届けば、なるべく範囲の真ん中寄りを選ぶ
+        const center = -Math.hypot(x - (ax0 + ax1) / 2, y - (ay0 + ay1) / 2) * 0.001;
+        if (dd + center > best) { best = dd + center; cx = x; cy = y; }
+      }
+    }
+    const d = U * 1.55;
+    if (ballOffset) { cx += ballOffset.x * U; cy += ballOffset.y * U; }
+    ball = { cx, cy, d };
+    minX = Math.min(minX, cx - d / 2); maxX = Math.max(maxX, cx + d / 2);
+    minY = Math.min(minY, cy - d / 2); maxY = Math.max(maxY, cy + d / 2);
+  }
+  // 影や選択枠が切れないよう、ほんの少し余白をとる
+  const pad = 4;
+  const rects = raw.map(r => ({ ...r, left: r.left - minX + pad, top: r.top - minY + pad }));
+  if (ball) ball = { ...ball, cx: ball.cx - minX + pad, cy: ball.cy - minY + pad };
+  return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2, ball };
+}
+
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballOffset, ballMirror, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
+  const [hoverDesc, setHoverDesc] = useState<string | null>(null);
+  // 説明のバーは高さ固定（2行分）。長い説明は全文が収まるまで文字を小さくする
+  // （高さが変わるとパネル全体の大きさが変わるため。省略すると読めないので「…」にはしない）
+  const descRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = descRef.current;
+    if (!el) return;
+    el.style.fontSize = '';
+    for (let fs = 12.5; fs >= 9 && el.scrollHeight > el.clientHeight; fs -= 0.5) el.style.fontSize = `${fs}px`;
+  }, [hoverDesc]);
+
+  // ボールの位置にあるキーは表示しないので、座標の計算からも外す
+  const visibleLayout = layout.filter(k => k.ball !== ballSide);
+  let kle = geometry ? kleRects(visibleLayout, geometry, ballGeometry, ballOffset) : null;
+  // 左手ボール: 右手ボールの時の「右手側のキーの外側の端・上端からボールの中心までの距離」を測り、
+  // 左手側のキーの外側の端・上端から同じ距離の所に置く（ぴったり左右反転させる）
+  if (kle?.ball && ballSide === 'left' && ballMirror) {
+    const rLayout = layout.filter(k => k.ball !== 'right');
+    const r = kleRects(rLayout, ballMirror.geometry, ballMirror.ballGeometry, ballMirror.ballOffset);
+    if (r?.ball) {
+      const rb = halfBox(r.rects, rLayout, 'R'), lb = halfBox(kle.rects, visibleLayout, 'L');
+      const cx = lb.x0 + (rb.x1 - r.ball.cx), cy = lb.y0 + (r.ball.cy - rb.y0), d = r.ball.d;
+      // 反転した位置が今の表示範囲からはみ出す時は、全体をずらして広げる
+      const sx = Math.max(0, 4 - (cx - d / 2)), sy = Math.max(0, 4 - (cy - d / 2));
+      kle = {
+        rects: kle.rects.map(k => ({ ...k, left: k.left + sx, top: k.top + sy })),
+        width: Math.max(kle.width + sx, cx + sx + d / 2 + 4),
+        height: Math.max(kle.height + sy, cy + sy + d / 2 + 4),
+        ball: { cx: cx + sx, cy: cy + sy, d },
+      };
+    }
+  }
+  const rectById = new Map<string, KeyRect>();
+  if (kle) visibleLayout.forEach((k, i) => rectById.set(k.id, kle.rects[i]));
+
+  const maxX = kle ? kle.width : Math.max(...layout.map(k => {
     const extra = isRightSide(k) ? splitGapPx : 0;
     return k.x * (KEY_SIZE + GAP) + (k.w ?? 1) * KEY_SIZE + ((k.w ?? 1) - 1) * GAP + extra;
   }));
   const maxY = Math.max(...layout.map(k => k.y + 1));
-  const height = maxY * (KEY_SIZE + GAP);
+  const height = kle ? kle.height : maxY * (KEY_SIZE + GAP);
 
   // 表示先（.layout-scroll、この直上の親要素）の実際の横幅を測り、キー配列の
   // 自然な横幅(maxX)より広ければその分だけ拡大表示し、逆に狭ければ縮小して
@@ -101,16 +234,30 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             ballSide={ballSide}
             keyLayout={keyLayout}
             xExtra={isRightSide(k) ? splitGapPx : 0}
+            rect={rectById.get(k.id)}
             onClick={() => onKeyClick(i)}
             onDrop={code => onKeyDrop(i, code)}
             onHover={() => setHoverDesc(getKeyDescription(keycodes[i] ?? 0, keyLayout))}
             onHoverEnd={() => setHoverDesc(null)}
           />
         ))}
+        {kle?.ball && (
+          <button
+            type="button"
+            className={`kb-ball ${ballSelected ? 'kb-ball--selected' : ''}`}
+            style={{ left: kle.ball.cx - kle.ball.d / 2, top: kle.ball.cy - kle.ball.d / 2, width: kle.ball.d, height: kle.ball.d }}
+            title={ballTitle}
+            onClick={onBallClick}
+            onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
+            onMouseLeave={() => setHoverDesc(null)}
+          >
+            <span className="key__label">{ballLabel ?? 'カーソル'}</span>
+          </button>
+        )}
       </div>
       </div>
       {showDescBar && (
-        <div className="key-desc-bar">
+        <div className="key-desc-bar" ref={descRef}>
           {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
         </div>
       )}

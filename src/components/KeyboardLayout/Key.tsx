@@ -19,11 +19,16 @@ interface KeyProps {
   onDrop: (keycode: number) => void;
   onHover?: () => void;
   onHoverEnd?: () => void;
+  mark?: KeyMark;
 }
+
+// タイピング練習の目印。target=押すキー / hold=押したままにするキー / shift=一緒に押すShift / wrong=間違えて押したキー
+export type KeyMark = 'target' | 'hold' | 'shift' | 'wrong';
+const MARK_NOTE: Record<KeyMark, string> = { target: '', hold: '押したまま', shift: 'Shift', wrong: '押したキー' };
 
 export interface KeyRect { left: number; top: number; width: number; height: number; rotate: number; originX: number; originY: number }
 
-export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, rect, onClick, onDrop, onHover, onHoverEnd }: KeyProps) {
+export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, rect, onClick, onDrop, onHover, onHoverEnd, mark }: KeyProps) {
   const [dragOver, setDragOver] = useState(false);
 
   const isBall     = layout.ball === ballSide;
@@ -46,7 +51,8 @@ export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, re
       onMouseEnter={onHover}
       onMouseLeave={onHoverEnd}
       style={{ position: 'absolute', left: x, top: y, width: w, height: h, ...rot }}
-      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''}`}
+      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''} ${mark ? `key--mark-${mark}` : ''}`}
+      data-note={mark ? MARK_NOTE[mark] || undefined : undefined}
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={e => {

@@ -8,7 +8,7 @@ import { FirmwareFlasher } from './components/FirmwareFlasher/FirmwareFlasher';
 import { SettingsTab } from './components/SettingsTab/SettingsTab';
 import { TrackballSettingsTab } from './components/TrackballSettingsTab/TrackballSettingsTab';
 import { MatrixTestPanel } from './components/MatrixTestPanel/MatrixTestPanel';
-import { TypingGame } from './components/TypingGame/TypingGame';
+import { TypingTab } from './components/TypingGame/TypingTab';
 import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
@@ -323,6 +323,12 @@ export default function App() {
   const layerKeycodes = layout && displayKeymap[state.currentLayer]
     ? layout.map(k => displayKeymap[state.currentLayer]?.[k.row]?.[k.col] ?? 0)
     : [];
+
+  // タイピングの記号・数字の練習で使う、つないでいるKeyballのキー配列（2026-10-29〜）
+  const typingBoard = useMemo(
+    () => (state.connectionState === 'connected' && layout && state.keymap.length ? { layout, keymap: state.keymap, ballSide, keyLayout } : null),
+    [state.connectionState, layout, state.keymap, ballSide, keyLayout],
+  );
 
   const handleKeyClick = (index: number) => {
     if (pendingOrder) { showToast('並べ替え中はキー編集できません。保存または取り消してください。'); return; }
@@ -1206,7 +1212,17 @@ export default function App() {
               <FirmwareFlasher detectedModel={state.model} productId={state.productId} isHIDConnected={isConnected} onReboot={reboot} />
             )}
 
-            {isDevHost && activeTab === 'typing' && <TypingGame />}
+            {isDevHost && activeTab === 'typing' && (
+              <TypingTab
+                board={typingBoard}
+                boardProps={layout ? {
+                  layout, ballSide, keyLayout, geometry: kleGeometry, ballGeometry, ballMirror,
+                  ballOffset: ballSide === 'right' ? BALL_OFFSET_RIGHT[state.model ?? ''] : undefined,
+                  splitGapPx: keymapSplitGap, showDescBar: false, maxBoxHeight: 300,
+                } : null}
+                ballLabelFor={l => getBallFunctionLabel(l, state)}
+              />
+            )}
 
             {activeTab === 'feedback' && <FeedbackTab />}
 

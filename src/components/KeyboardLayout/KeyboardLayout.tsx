@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDescription } from '../../lib/keycodes';
-import { Key, type KeyRect } from './Key';
+import { Key, type KeyRect, type KeyMark } from './Key';
 import type { KleKeyGeometry } from '../../layouts/kleGeometry';
 
 const KEY_SIZE = 52;
@@ -63,6 +63,8 @@ interface KeyboardLayoutProps {
   ballTitle?: string;
   onBallClick?: () => void;
   ballSelected?: boolean;
+  // キーに付ける目印（キーの番号→種類）。タイピング練習で「押すキー」などを光らせる（2026-10-29〜）
+  marks?: Record<number, KeyMark>;
 }
 
 interface BallRect { cx: number; cy: number; d: number }
@@ -151,7 +153,7 @@ function kleRects(layout: LayoutDef[], geometry: Record<string, KleKeyGeometry>,
   return { rects, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2, ball };
 }
 
-export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballOffset, ballMirror, ballLabel, ballTitle, onBallClick, ballSelected = false }: KeyboardLayoutProps) {
+export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyLayout, onKeyClick, onKeyDrop, showDescBar = true, splitGapPx = SPLIT_GAP_PX, maxBoxHeight = null, geometry, ballGeometry, ballOffset, ballMirror, ballLabel, ballTitle, onBallClick, ballSelected = false, marks }: KeyboardLayoutProps) {
   const [hoverDesc, setHoverDesc] = useState<string | null>(null);
   // 説明のバーは高さ固定（2行分）。長い説明は全文が収まるまで文字を小さくする
   // （高さが変わるとパネル全体の大きさが変わるため。省略すると読めないので「…」にはしない）
@@ -231,6 +233,7 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             layout={k}
             keycode={keycodes[i] ?? 0}
             selected={selectedIndex === i}
+            mark={marks?.[i]}
             ballSide={ballSide}
             keyLayout={keyLayout}
             xExtra={isRightSide(k) ? splitGapPx : 0}

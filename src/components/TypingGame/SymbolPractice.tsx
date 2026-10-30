@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
 import { KeyboardLayout } from '../KeyboardLayout/KeyboardLayout';
-import type { KeyMark } from '../KeyboardLayout/Key';
+import type { KeyMark, KeyHeat } from '../KeyboardLayout/Key';
 import { makeFinder, type Board, type KeyWay } from './keyFinder';
 import { charToKeycode } from '../../lib/textToMacro';
 
@@ -23,7 +23,7 @@ const COURSES: Record<Course, { name: string; desc: string }> = {
   real: { name: '実際の文',   desc: 'メールアドレス・URL・コードなど' },
   weak: { name: '苦手な文字', desc: 'これまでの記録で苦手な文字だけ' },
 };
-const ITEMS = 10;   // 1回の練習のお題の数
+const ITEMS = 20;   // 1回の練習のお題の数（2026-10-30に10→20。合格ラインも90%→95%に）
 // よく使う順。記号のコースは最初の6個から始め、覚えたら3個ずつ増やす
 const SYMBOL_ORDER = [...'-.,/@_():;!?#&*+="\'[]{}<>%$~^|`'];
 const DIGITS = [...'0123456789'];
@@ -33,18 +33,25 @@ const REAL = [
   '50% OFF!', '$1,980', 'a-b_c.txt', 'Q&A', "it's OK", '<b>Hi</b>', 'git commit -m "fix"',
   'user@host:~$', 'const x = {a: 1};', '3.14 * r^2', 'A|B|C', '#keyball', 'v1.2.3', 'TODO: 3/15',
   'https://example.com/?q=1&page=2', 'tel: 03-1234-5678', 'price = 1200 * 1.1;',
+  'info@keyball.jp', 'C:\\Users\\me', 'a && b || c', 'list[0] = "x";', '[OK] done!', '(^_^)/',
+  'x += 1; y -= 2;', '10:00-18:00', '#1 / #2 / #3', 'f(x) = 2x + 1', '{"id": 7}', 'see: p.42',
+  'npm run build', 'cd ~/keyball', 'Hello, World!', 'mail@ex.co.jp',
 ];
 // 縦に並んだキー（普通のキーボードとずれて迷いやすいB・N・T・Y・V・Zなど）を多く含む言葉
 const LETTER_WORDS = [
   'bring', 'vivid', 'typing', 'beyond', 'navy', 'token', 'brave', 'noble', 'verb', 'hybrid',
   'victory', 'zebra', 'buzz', 'convey', 'bunny', 'ebony', 'envy', 'tiny', 'bytes', 'gravity',
   'mobile', 'banana', 'cabin', 'velvet', 'tidy', 'ninety', 'combo', 'bounty', 'vintage', 'hymn',
+  'bonny', 'bygone', 'novice', 'baby', 'tyre', 'betray', 'nebula', 'vibe', 'zone', 'bentley',
 ];
 // 親指キーの練習（言葉の間はスペース、最後はEnter。\n がEnter）
 const THUMB = [
   'keyball is fun\n', 'thumb keys\n', 'space and enter\n', 'type with thumbs\n', 'one two three\n',
   'good morning\n', 'see you soon\n', 'it is ok\n', 'nice day\n', 'let us go\n', 'red blue green\n',
-  'a b c d e\n', 'yes or no\n', 'thank you\n', 'new line\n',
+  'a b c d e\n', 'yes or no\n', 'thank you\n', 'new line\n', 'big ball\n', 'happy keys\n',
+  'left and right\n', 'up down\n', 'hello world\n', 'go go go\n', 'small but strong\n',
+  'cat and dog\n', 'tea time\n', 'all done\n', 'one more time\n', 'you can do it\n',
+  'light and dark\n', 'top to bottom\n', 'ready set go\n',
 ];
 // 覚え具合: streak=続けて間違えずにヒントを待たず打てた回数。2回でヒントを2秒遅らせ、4回で「覚えた」
 const HINT_DELAY = [0, 2000, 5000];
@@ -139,7 +146,7 @@ interface Run {
   msg: string | null;
 }
 const EMPTY_RUN: Run = { items: [], idx: 0, pos: 0, hint: false, stage: 0, missed: false, wrong: null, wrongN: 0, okN: 0, msg: null };
-interface Result { chars: number; miss: number; ms: number; weak: string[]; newlyLearned: string[]; acc: number }
+interface Result { chars: number; miss: number; ms: number; weak: string[]; newlyLearned: string[]; acc: number; perMiss: Record<string, number> }
 
 export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props) {
   const finder = useMemo(() => (board ? makeFinder(board) : null), [board]);
@@ -227,7 +234,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     const weak = Object.entries(s.perMiss).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c);
     const newlyLearned = all.filter(c => (m[c]?.streak ?? 0) >= 4 && !s.learnedBefore.has(c));
     const acc = s.chars + s.miss ? Math.round(s.chars / (s.chars + s.miss) * 100) : 100;
-    setResult({ chars: s.chars, miss: s.miss, ms: s.last - s.start, weak, newlyLearned, acc });
+    setResult({ chars: s.chars, miss: s.miss, ms: s.last - s.start, weak, newlyLearned, acc, perMiss: { ...s.perMiss } });
     setPhase('result');
     trial?.onDone({ acc, passed: acc >= trial.pass });
   };
@@ -328,6 +335,28 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     marks[way.key] = 'target';
   }
   if (phase === 'play' && run.wrong !== null) marks[run.wrong] = 'wrong';
+  // 間違えやすいキーのヒートマップ。結果の画面は今回の間違い、自由練習の始める前はこれまでの間違いを出す。
+  // 同じキーで打つ文字（a と A、レイヤー違いの文字など）はまとめ、最も間違えたキーを4として4段階で色を付ける
+  const heatFrom = (miss: Record<string, number>) => {
+    if (!finder) return undefined;
+    const byKey: Record<number, { n: number; chars: string[] }> = {};
+    for (const [c, n] of Object.entries(miss)) {
+      const w = n > 0 ? finder.find(c) : null;
+      if (!w) continue;
+      const e = (byKey[w.key] ??= { n: 0, chars: [] });
+      e.n += n;
+      if (!e.chars.includes(shown(c))) e.chars.push(shown(c));
+    }
+    const max = Math.max(0, ...Object.values(byKey).map(e => e.n));
+    const heat: Record<number, KeyHeat> = {};
+    for (const [k, e] of Object.entries(byKey))
+      heat[+k] = { level: Math.max(1, Math.ceil(e.n / max * 4)) as KeyHeat['level'], note: `${e.chars.slice(0, 3).join('')} ${e.n}回` };
+    return heat;
+  };
+  const heat = phase === 'result' && result ? heatFrom(result.perMiss)
+    : phase === 'ready' && !trial ? heatFrom(Object.fromEntries(all.map(c => [c, mastery[c]?.miss ?? 0])))
+    : undefined;
+  const hasHeat = !!heat && Object.keys(heat).length > 0;
   const codes = board.layout.map(k => board.keymap[showLayer]?.[k.row]?.[k.col] ?? 0);
   const canStart = course === 'weak' ? weakPool.length >= 3 : course === 'sym' ? symPool.length > 0 : true;
 
@@ -432,8 +461,9 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
 
       <div className="sym-practice__board">
         <div className="sym-practice__layer">
-          レイヤー{showLayer}を表示中
-          {phase !== 'play' && <span className="sym-practice__legend">覚え具合: {['learning', 'almost', 'done'].map((k, i) => <span key={k} className={`sym-chip sym-chip--${k}`}>{['練習中', 'もう少し', '覚えた'][i]}</span>)}</span>}
+          {hasHeat ? (phase === 'result' ? '今回間違えたキー' : 'これまで間違えたキー') : `レイヤー${showLayer}を表示中`}
+          {hasHeat && <span className="sym-practice__legend">少ない{[1, 2, 3, 4].map(l => <span key={l} className={`sym-heat sym-heat--${l}`} />)}多い</span>}
+          {phase !== 'play' && !hasHeat && <span className="sym-practice__legend">覚え具合: {['learning', 'almost', 'done'].map((k, i) => <span key={k} className={`sym-chip sym-chip--${k}`}>{['練習中', 'もう少し', '覚えた'][i]}</span>)}</span>}
         </div>
         <div className="layout-scroll">
           <KeyboardLayout
@@ -441,6 +471,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
             keycodes={codes}
             selectedIndex={null}
             marks={marks}
+            heat={heat}
             ballLabel={ballLabelFor(showLayer)}
             onKeyClick={() => {}}
             onKeyDrop={() => {}}

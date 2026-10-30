@@ -3826,6 +3826,17 @@ p[data-tip] { width: fit-content; }
 .key--mark-hold[data-note]::after { background: #4a8fe8; }
 .key--mark-shift[data-note]::after { background: #a26be0; }
 .key--mark-wrong[data-note]::after { background: var(--red); }
+/* 間違えやすいキーのヒートマップ（黄→赤の4段階） */
+.key--heat-1 { --heat: #e8c547; }
+.key--heat-2 { --heat: #e8964a; }
+.key--heat-3 { --heat: #e0663f; }
+.key--heat-4 { --heat: var(--red); }
+.key--heat { border-color: var(--heat) !important; background: color-mix(in srgb, var(--heat) 32%, var(--key-bg)) !important; }
+.key--heat-4 { background: color-mix(in srgb, var(--heat) 48%, var(--key-bg)) !important; }
+.key--heat[data-note]::after { background: var(--heat); }
+.sym-heat { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sym-heat--1 { background: #e8c547; } .sym-heat--2 { background: #e8964a; }
+.sym-heat--3 { background: #e0663f; } .sym-heat--4 { background: var(--red); }
 @keyframes sym-key-pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }

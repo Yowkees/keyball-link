@@ -4,6 +4,7 @@ import { KeyboardLayout } from '../KeyboardLayout/KeyboardLayout';
 import type { KeyMark, KeyHeat } from '../KeyboardLayout/Key';
 import { makeFinder, type Board, type KeyWay } from './keyFinder';
 import { charToKeycode } from '../../lib/textToMacro';
+import { newRomaji, typeKey, isFinished, guide, type RomajiState } from './romaji';
 
 // 記号・数字の練習（2026-10-29〜、本人希望）。Keyballをやめてしまう一番の原因
 // 「レイヤーにある記号・数字の場所が分からない」をなくすための練習。
@@ -12,47 +13,97 @@ import { charToKeycode } from '../../lib/textToMacro';
 // 覚えてきた文字はヒントを遅らせ（すぐ → 2秒迷ったら → 5秒迷ったら）、最後は見ずに打てるようにする。
 // 間違えた時は「レイヤーキーを押せていない」「Shiftが要る」など、何が違ったかを教える。
 
-// letters・thumb は神の試練（TrialTab）だけで使うコース（自由練習のコース一覧には出さない）
-export type Course = 'num' | 'sym' | 'real' | 'weak' | 'letters' | 'thumb';
+// letters・thumb・jsym は神の試練（TrialTab）だけで使うコース（自由練習のコース一覧には出さない）
+// 2026-10-30〜 本人希望で日本語（ローマ字で打つ）のお題が中心。記号・苦手な文字のコースだけは記号の並びのまま
+export type Course = 'num' | 'sym' | 'real' | 'weak' | 'letters' | 'thumb' | 'jsym';
 const FREE_COURSES: Course[] = ['num', 'sym', 'real', 'weak'];
 const COURSES: Record<Course, { name: string; desc: string }> = {
   letters: { name: '縦の道', desc: '縦に並んだキー' },
   thumb:   { name: '親指', desc: 'スペースとEnter' },
-  num:  { name: '数字',       desc: '日付・時刻・金額・電話番号' },
+  jsym:    { name: '記号の入った文', desc: '「」？！（）などの入った日本語' },
+  num:  { name: '数字',       desc: '日付・時刻・金額などの入った日本語' },
   sym:  { name: '記号',       desc: 'よく使う記号から少しずつ増やす' },
-  real: { name: '実際の文',   desc: 'メールアドレス・URL・コードなど' },
+  real: { name: '実際の文',   desc: 'メールアドレス・URLなどの入った日本語' },
   weak: { name: '苦手な文字', desc: 'これまでの記録で苦手な文字だけ' },
 };
 const ITEMS = 20;   // 1回の練習のお題の数（2026-10-30に10→20。合格ラインも90%→95%に）
 // よく使う順。記号のコースは最初の6個から始め、覚えたら3個ずつ増やす
 const SYMBOL_ORDER = [...'-.,/@_():;!?#&*+="\'[]{}<>%$~^|`'];
 const DIGITS = [...'0123456789'];
-const REAL = [
-  'yamada_taro@example.jp', 'https://www.example.com/', '~/Documents/report.pdf', '2026/10/29 12:30',
-  '090-1234-5678', '(10+20)*3=90', 'x = [1, 2, 3];', 'if (a > b) { c(); }', 'name: "Keyball"',
-  '50% OFF!', '$1,980', 'a-b_c.txt', 'Q&A', "it's OK", '<b>Hi</b>', 'git commit -m "fix"',
-  'user@host:~$', 'const x = {a: 1};', '3.14 * r^2', 'A|B|C', '#keyball', 'v1.2.3', 'TODO: 3/15',
-  'https://example.com/?q=1&page=2', 'tel: 03-1234-5678', 'price = 1200 * 1.1;',
-  'info@keyball.jp', 'C:\\Users\\me', 'a && b || c', 'list[0] = "x";', '[OK] done!', '(^_^)/',
-  'x += 1; y -= 2;', '10:00-18:00', '#1 / #2 / #3', 'f(x) = 2x + 1', '{"id": 7}', 'see: p.42',
-  'npm run build', 'cd ~/keyball', 'Hello, World!', 'mail@ex.co.jp',
-];
-// 縦に並んだキー（普通のキーボードとずれて迷いやすいB・N・T・Y・V・Zなど）を多く含む言葉
-const LETTER_WORDS = [
-  'bring', 'vivid', 'typing', 'beyond', 'navy', 'token', 'brave', 'noble', 'verb', 'hybrid',
-  'victory', 'zebra', 'buzz', 'convey', 'bunny', 'ebony', 'envy', 'tiny', 'bytes', 'gravity',
-  'mobile', 'banana', 'cabin', 'velvet', 'tidy', 'ninety', 'combo', 'bounty', 'vintage', 'hymn',
-  'bonny', 'bygone', 'novice', 'baby', 'tyre', 'betray', 'nebula', 'vibe', 'zone', 'bentley',
-];
+// お題。text=画面に出す文、kana=打つ読み（ローマ字で打つ。英数字・記号はそのまま打つ）
+interface Item { text: string; kana: string }
+const ja = ([text, kana]: [string, string]): Item => ({ text, kana });
+const ascii = (s: string): Item => ({ text: s, kana: s });
+// 実際の文: メールアドレス・URL・日付などの入った日本語（？！（）〜は全角で見せて、半角で打つ）
+const REAL: Item[] = ([
+  ['お問い合わせは info@keyball.jp まで', 'おといあわせは info@keyball.jp まで'],
+  ['詳しくは https://example.com/ へ', 'くわしくは https://example.com/ へ'],
+  ['会議は 10/30 14:00〜', 'かいぎは 10/30 14:00~'],
+  ['ファイル名：report_v2.pdf', 'ふぁいるめい:report_v2.pdf'],
+  ['電話番号は 090-1234-5678 です', 'でんわばんごうは 090-1234-5678 です'],
+  ['価格：$19.99（約3,000円）', 'かかく:$19.99(やく3,000えん)'],
+  ['「Keyball」で検索', '「Keyball」でけんさく'],
+  ['締め切りは 2026/11/15（日）', 'しめきりは 2026/11/15(にち)'],
+  ['git commit -m "修正"', 'git commit -m "しゅうせい"'],
+  ['~/Documents に保存', '~/Documents にほぞん'],
+  ['#keyball を付けて投稿', '#keyball をつけてとうこう'],
+  ['今日のTODO：3件', 'きょうのTODO:3けん'],
+  ['送料無料（5,000円以上）', 'そうりょうむりょう(5,000えんいじょう)'],
+  ['ver.1.2.3 に更新', 'ver.1.2.3 にこうしん'],
+  ['50% OFF セール中！', '50% OFF せーるちゅう!'],
+  ['@yamada さんへ', '@yamada さんへ'],
+  ['第3章（p.42）', 'だい3しょう(p.42)'],
+  ['Wi-Fi のパスワード', 'Wi-Fi のぱすわーど'],
+  ['Q&A はこちら', 'Q&A はこちら'],
+  ['住所：千代田区1-2-3', 'じゅうしょ:ちよだく1-2-3'],
+  ['集合は 9:30 に駅前', 'しゅうごうは 9:30 にえきまえ'],
+  ['返信は yes / no で', 'へんしんは yes / no で'],
+  ['x = 10; を追加', 'x = 10; をついか'],
+  ['URLは https://keyball.jp/', 'URLは https://keyball.jp/'],
+  ['容量は 256GB です', 'ようりょうは 256GB です'],
+  ['ID：user_01', 'ID:user_01'],
+  ['気温は 25.5℃', 'きおんは 25.5ど'],
+  ['合計 1,980円（税込）', 'ごうけい 1,980えん(ぜいこみ)'],
+  ['予約番号 #A-1234', 'よやくばんごう #A-1234'],
+  ['「OK」を押す', '「OK」をおす'],
+] as [string, string][]).map(ja);
+// 縦に並んだキー（普通のキーボードとずれて迷いやすいB・N・T・Y・G・Hなど）を多く含む日本語
+const LETTER_WORDS: Item[] = ([
+  ['友達', 'ともだち'], ['田んぼ', 'たんぼ'], ['指', 'ゆび'], ['夏休み', 'なつやすみ'], ['ぶどう', 'ぶどう'],
+  ['とんぼ', 'とんぼ'], ['病院', 'びょういん'], ['旅人', 'たびびと'], ['粘土', 'ねんど'], ['晩ご飯', 'ばんごはん'],
+  ['花火', 'はなび'], ['綱引き', 'つなひき'], ['仲良し', 'なかよし'], ['夜空', 'よぞら'], ['人参', 'にんじん'],
+  ['雪だるま', 'ゆきだるま'], ['跳び箱', 'とびばこ'], ['生卵', 'なまたまご'], ['本棚', 'ほんだな'], ['帽子', 'ぼうし'],
+  ['手袋', 'てぶくろ'], ['元気', 'げんき'], ['ひよこ', 'ひよこ'], ['かぼちゃ', 'かぼちゃ'], ['筍', 'たけのこ'],
+  ['寝坊', 'ねぼう'], ['隼', 'はやぶさ'], ['バナナ', 'ばなな'], ['ボタン', 'ぼたん'], ['テレビ', 'てれび'],
+  ['ノート', 'のーと'], ['ネクタイ', 'ねくたい'], ['トンネル', 'とんねる'], ['ハンバーグ', 'はんばーぐ'], ['ベンチ', 'べんち'],
+  ['半分', 'はんぶん'], ['日本', 'にほん'], ['燕', 'つばめ'], ['鳩', 'はと'], ['蕎麦', 'そば'],
+] as [string, string][]).map(ja);
 // 親指キーの練習（言葉の間はスペース、最後はEnter。\n がEnter）
-const THUMB = [
-  'keyball is fun\n', 'thumb keys\n', 'space and enter\n', 'type with thumbs\n', 'one two three\n',
-  'good morning\n', 'see you soon\n', 'it is ok\n', 'nice day\n', 'let us go\n', 'red blue green\n',
-  'a b c d e\n', 'yes or no\n', 'thank you\n', 'new line\n', 'big ball\n', 'happy keys\n',
-  'left and right\n', 'up down\n', 'hello world\n', 'go go go\n', 'small but strong\n',
-  'cat and dog\n', 'tea time\n', 'all done\n', 'one more time\n', 'you can do it\n',
-  'light and dark\n', 'top to bottom\n', 'ready set go\n',
-];
+const THUMB: Item[] = ([
+  ['今日は いい 天気', 'きょうは いい てんき'], ['また 明日', 'また あした'], ['おはよう ございます', 'おはよう ございます'],
+  ['ありがとう ございました', 'ありがとう ございました'], ['では また', 'では また'], ['よろしく お願いします', 'よろしく おねがいします'],
+  ['お先に 失礼します', 'おさきに しつれいします'], ['少し 待って', 'すこし まって'], ['右 左 上 下', 'みぎ ひだり うえ した'],
+  ['親指で 押す', 'おやゆびで おす'], ['春 夏 秋 冬', 'はる なつ あき ふゆ'], ['赤 青 黄色', 'あか あお きいろ'],
+  ['いち に さん', 'いち に さん'], ['駅で 会おう', 'えきで あおう'], ['お茶を どうぞ', 'おちゃを どうぞ'],
+  ['すぐ 行きます', 'すぐ いきます'], ['了解 です', 'りょうかい です'], ['今 どこ', 'いま どこ'],
+  ['お昼 何食べる', 'おひる なにたべる'], ['雨が 降って きた', 'あめが ふって きた'], ['ちょっと 休憩', 'ちょっと きゅうけい'],
+  ['会議は 三時から', 'かいぎは さんじから'], ['よく 頑張った', 'よく がんばった'], ['気を つけて', 'きを つけて'],
+  ['犬と 猫', 'いぬと ねこ'], ['また 遊ぼう', 'また あそぼう'], ['いい 感じ', 'いい かんじ'],
+  ['お疲れさま でした', 'おつかれさま でした'], ['楽しい 一日', 'たのしい いちにち'], ['Keyball 最高', 'Keyball さいこう'],
+] as [string, string][]).map(([t, k]) => ({ text: t, kana: k + '\n' }));
+// 記号の入った日本語（「」、。はそのまま [ ] , . で打つ。？！（）〜：＝は半角で打つ）
+const JSYM: Item[] = ([
+  ['「はい」と答えた。', '「はい」とこたえた。'], ['本当に？', 'ほんとうに?'], ['やった！', 'やった!'],
+  ['100円（税込）', '100えん(ぜいこみ)'], ['明日（土）は休み', 'あした(ど)はやすみ'], ['50%オフ！', '50%おふ!'],
+  ['りんご＆みかん', 'りんご&みかん'], ['#キーボール', '#きーぼーる'], ['10時〜12時', '10じ~12じ'],
+  ['答え：1+1=2', 'こたえ:1+1=2'], ['注意：熱い', 'ちゅうい:あつい'], ['3/15（金）', '3/15(きん)'],
+  ['電話：03-1234-5678', 'でんわ:03-1234-5678'], ['価格＝1,980円', 'かかく=1,980えん'], ['＜重要＞', '<じゅうよう>'],
+  ['税率は10%です。', 'ぜいりつは10%です。'], ['「よし！」と叫んだ。', '「よし!」とさけんだ。'], ['ねこ＆いぬ', 'ねこ&いぬ'],
+  ['@ホーム', '@ほーむ'], ['1/2を食べた', '1/2をたべた'], ['（笑）', '(わら)'], ['〜です', '~です'],
+  ['*印は必須', '*じるしはひっす'], ['Q&Aコーナー', 'Q&Aこーなー'], ['名前_最新.txt', 'なまえ_さいしん.txt'],
+  ['a>bのとき', 'a>bのとき'], ['「えー」、「うん」', '「えー」、「うん」'], ['[注]を見てね', '[ちゅう]をみてね'],
+  ['{名前}さんへ', '{なまえ}さんへ'], ['A or B？', 'A or B?'],
+] as [string, string][]).map(ja);
 // 覚え具合: streak=続けて間違えずにヒントを待たず打てた回数。2回でヒントを2秒遅らせ、4回で「覚えた」
 const HINT_DELAY = [0, 2000, 5000];
 const stageOf = (streak: number) => (streak < 2 ? 0 : streak < 4 ? 1 : 2);
@@ -81,15 +132,28 @@ const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 const tracked = (ch: string) => /[^a-zA-Z ]/.test(ch);
 // 画面に出す時の文字（スペースは␣、Enterは⏎）
 const shown = (c: string) => (c === ' ' ? '␣' : c === '\n' ? '⏎' : c);
+// [打ち終わった部分, この先のお手本]。「ん」を n 1つ打った後に子音が続く時は、
+// もう次の音を打ってよいので、お手本から余分な n を外して次の文字を案内する
+function ahead(s: RomajiState): [string, string] {
+  const [typed, rest] = guide(s);
+  const nx = s.units[s.idx + 1]?.[0];
+  if (s.buf === 'n' && s.units[s.idx]?.includes('nn') && nx && !'aiueoyn'.includes(nx[0])) return [typed, rest.slice(1)];
+  return [typed, rest];
+}
 
-const NUM_GEN = [
-  () => `${rand(2020, 2030)}/${pad(rand(1, 12))}/${pad(rand(1, 28))}`,
-  () => `${rand(0, 23)}:${pad(rand(0, 59))}`,
-  () => rand(1000, 99999).toLocaleString('en-US'),
-  () => `0${rand(70, 90)}-${rand(1000, 9999)}-${rand(1000, 9999)}`,
-  () => `${rand(0, 99)}.${rand(0, 99)}`,
-  () => String(rand(1000, 999999)),
-  () => `${rand(1, 100)}%`,
+const NUM_GEN: (() => [string, string])[] = [
+  () => { const [y, m, d] = [rand(2020, 2030), rand(1, 12), rand(1, 28)]; return [`${y}年${m}月${d}日`, `${y}ねん${m}がつ${d}にち`]; },
+  () => { const [h, mm] = [rand(1, 12), rand(1, 59)]; return [`${h}時${mm}分`, `${h}じ${mm}ふん`]; },
+  () => { const n = rand(100, 99999).toLocaleString('en-US'); return [`${n}円`, `${n}えん`]; },
+  () => { const n = `0${rand(70, 90)}-${rand(1000, 9999)}-${rand(1000, 9999)}`; return [`電話 ${n}`, `でんわ ${n}`]; },
+  () => { const n = rand(5, 90); return [`${n}%オフ`, `${n}%おふ`]; },
+  () => { const n = rand(1, 99); return [`第${n}回`, `だい${n}かい`]; },
+  () => { const n = rand(2, 30); return [`${n}人で行く`, `${n}にんでいく`]; },
+  () => { const n = `${rand(1, 42)}.${rand(1, 9)}`; return [`${n}キロ走った`, `${n}きろはしった`]; },
+  () => { const n = rand(2, 60); return [`残り${n}分`, `のこり${n}ふん`]; },
+  () => { const [a, b] = [rand(10, 23), pad(rand(0, 59))]; return [`${a}:${b}に集合`, `${a}:${b}にしゅうごう`]; },
+  () => { const n = rand(3, 12); return [`${n}月生まれ`, `${n}がつうまれ`]; },
+  () => { const n = rand(2, 999); return [`${n}ページ目`, `${n}ぺーじめ`]; },
 ];
 
 // 苦手さ: 間違えた割合・1文字にかかった時間・まだ覚えていないか
@@ -99,7 +163,7 @@ function weakness(r: Rec): number {
 }
 
 // 文字の集まりから、苦手な文字ほど出やすいように4文字ずつのお題を作る
-function drill(pool: string[], m: Mastery): string[] {
+function drill(pool: string[], m: Mastery): Item[] {
   const w = pool.map(c => 1 + weakness(m[c] ?? blank));
   const pick = (prev: string) => {
     for (;;) {
@@ -112,7 +176,7 @@ function drill(pool: string[], m: Mastery): string[] {
   return Array.from({ length: ITEMS }, () => {
     let s = '';
     for (let j = 0; j < 4; j++) s += pick(s.slice(-1));
-    return s;
+    return ascii(s);
   });
 }
 
@@ -136,7 +200,8 @@ interface Props {
 }
 
 interface Run {
-  items: string[]; idx: number; pos: number;
+  items: Item[]; idx: number;
+  rs: RomajiState | null;   // 今のお題の打ち進み（ローマ字の判定）
   hint: boolean;          // 今の文字のヒントを出しているか
   stage: number;          // 今の文字のヒントの段階（0=すぐ 1=2秒後 2=5秒後）
   missed: boolean;        // 今の文字で間違えたか
@@ -145,7 +210,7 @@ interface Run {
   okN: number;            // 増えるたびに「正解」の演出をやり直す
   msg: string | null;
 }
-const EMPTY_RUN: Run = { items: [], idx: 0, pos: 0, hint: false, stage: 0, missed: false, wrong: null, wrongN: 0, okN: 0, msg: null };
+const EMPTY_RUN: Run = { items: [], idx: 0, rs: null, hint: false, stage: 0, missed: false, wrong: null, wrongN: 0, okN: 0, msg: null };
 interface Result { chars: number; miss: number; ms: number; weak: string[]; newlyLearned: string[]; acc: number; perMiss: Record<string, number> }
 
 export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props) {
@@ -186,8 +251,9 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     [all, mastery],
   );
 
-  const item = run.items[run.idx] ?? '';
-  const want = item[run.pos] ?? '';
+  const item: Item = run.items[run.idx] ?? { text: '', kana: '' };
+  const [typed, rest] = run.rs ? ahead(run.rs) : ['', ''];
+  const want = rest[0] ?? '';
   const way: KeyWay | null = phase === 'play' && finder && want ? finder.find(want) : null;
 
   // 次の文字に進んだ時のヒントの段階（英字・スペースは5秒迷った時だけ出す）
@@ -201,7 +267,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     if (phase !== 'play' || run.hint) return;
     const t = setTimeout(() => put({ hint: true }), HINT_DELAY[run.stage]);
     return () => clearTimeout(t);
-  }, [phase, run.idx, run.pos, run.hint, run.stage]);
+  }, [phase, run.idx, run.okN, run.hint, run.stage]);
 
   // 間違えて押したキーの赤い目印は少しで消す
   useEffect(() => {
@@ -212,17 +278,19 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
 
   const start = () => {
     const items =
-      course === 'num' ? Array.from({ length: ITEMS }, () => NUM_GEN[rand(0, NUM_GEN.length - 1)]())
+      course === 'num' ? Array.from({ length: ITEMS }, () => ja(NUM_GEN[rand(0, NUM_GEN.length - 1)]()))
       : course === 'sym' ? drill(trial ? symbols.slice(0, 12) : symPool, masteryRef.current)
       : course === 'letters' ? shuffle(LETTER_WORDS).slice(0, ITEMS)
       : course === 'thumb' ? shuffle(THUMB).slice(0, ITEMS)
+      : course === 'jsym' ? shuffle(JSYM).slice(0, ITEMS)
       : course === 'weak' ? drill(weakPool, masteryRef.current)
       : shuffle(REAL).slice(0, ITEMS);
     // 打てない文字が入ったお題は使わない（そのキー配列に無い記号など）
-    const ok = items.filter(s => [...s].every(c => finder?.find(c)));
+    const ok = items.filter(it => newRomaji(it.kana, true).units.every(u => [...u[0]].every(c => finder?.find(c))));
     if (!ok.length) return;
     stats.current = { start: 0, last: 0, chars: 0, miss: 0, perMiss: {}, learnedBefore: new Set(learned) };
-    put({ items: ok, idx: 0, pos: 0, missed: false, wrong: null, msg: null, ...hintFor(ok[0][0]) });
+    const rs = newRomaji(ok[0].kana, true);
+    put({ items: ok, idx: 0, rs, missed: false, wrong: null, msg: null, ...hintFor(ahead(rs)[1][0]) });
     setResult(null);
     setPhase('play');
     // スタートのボタンにフォーカスが残ると、スペース・Enterでボタンが押されてやり直しになるので外す
@@ -271,25 +339,30 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     const r = live.current;
     if (e.key === 'Escape') { setPhase('ready'); return; }
     if (e.ctrlKey || e.metaKey) return;
-    if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { put({ msg: '日本語入力をオフ（英数）にしてから打ってください' }); return; }
+    if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { put({ msg: '日本語入力をオフ（英数）にして、ローマ字で打ってください' }); return; }
     // Enterは「\n」として扱う。それ以外の文字にならないキー（Shift・レイヤーキーだけ等）は無視
     const key = e.key === 'Enter' ? '\n' : e.key;
     if (key.length !== 1) return;
     e.preventDefault();
     const now = clock(), s = stats.current;
     if (!s.start) { s.start = now; s.last = now; }
-    const target = r.items[r.idx][r.pos];
-    if (key === target) {
+    if (!r.rs) return;
+    const target = ahead(r.rs)[1][0];
+    // ローマ字はどの打ち方でも正解（し＝shi/si など）。お手本と違う打ち方でも、打てた文字を記録する
+    const next = typeKey(r.rs, key);
+    if (next) {
       const dt = now - s.last;
       s.last = now; s.chars++;
       // 迷ってヒントを見てから打った時は「覚えた」に数えない
       const waited = r.hint && r.stage > 0;
-      record(target, v => ({ ...v, ok: v.ok + 1, time: v.time + dt, streak: r.missed ? 0 : waited ? v.streak : v.streak + 1 }));
-      let { idx, pos } = r;
-      pos++;
-      if (pos >= r.items[idx].length) { idx++; pos = 0; }
-      if (idx >= r.items.length) { put({ okN: r.okN + 1 }); finish(); return; }
-      put({ idx, pos, missed: false, msg: null, okN: r.okN + 1, ...hintFor(r.items[idx][pos]) });
+      record(key, v => ({ ...v, ok: v.ok + 1, time: v.time + dt, streak: r.missed ? 0 : waited ? v.streak : v.streak + 1 }));
+      let idx = r.idx, rs = next;
+      if (isFinished(rs)) {
+        idx++;
+        if (idx >= r.items.length) { put({ rs, okN: r.okN + 1 }); finish(); return; }
+        rs = newRomaji(r.items[idx].kana, true);
+      }
+      put({ idx, rs, missed: false, msg: null, okN: r.okN + 1, ...hintFor(ahead(rs)[1][0]) });
     } else {
       s.miss++;
       s.perMiss[target] = (s.perMiss[target] ?? 0) + 1;
@@ -373,7 +446,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
         {phase === 'ready' && trial && (
           <div className="typing-game__center">
             <p className="typing-game__lead">{trial.intro}</p>
-            <p className="settings-desc">合格の条件: 正確さ {trial.pass}% 以上 ／ 日本語入力はオフ（英数）にして打つ ／ やめる時は Esc</p>
+            <p className="settings-desc">合格の条件: 正確さ {trial.pass}% 以上 ／ 日本語入力はオフ（英数）にして、ローマ字で打つ ／ やめる時は Esc</p>
             <label className="sym-practice__opt">
               <input type="checkbox" checked={hintAlways} onChange={e => { setHintAlways(e.target.checked); save(HINT_KEY, e.target.checked ? '1' : '0'); }} />
               ヒントをいつもすぐに出す
@@ -391,7 +464,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
             <ul className="typing-game__rules">
               <li>下のキー配列で、押すキー（緑）と、押したままにするレイヤーキー・Shift（青・紫）が光ります</li>
               <li>覚えてきた文字は、ヒントが少し待ってから出るようになります。最後は見ずに打てるのが目標です</li>
-              <li>日本語入力はオフ（英数）にして打ちます。途中でやめる時は Esc</li>
+              <li>日本語は、日本語入力をオフ（英数）にしてローマ字で打ちます（し＝shi / si など、どの打ち方でもOK）。途中でやめる時は Esc</li>
             </ul>
             <div className="typing-game__levels">
               {FREE_COURSES.map(c => (
@@ -415,13 +488,17 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
 
         {phase === 'play' && (
           <div className="typing-game__center sym-practice__play">
-            <div key={run.idx} className="sym-practice__item">
-              {[...item].map((c, i) => (
-                <span
-                  key={i}
-                  className={i < run.pos ? 'sym-ch sym-ch--done' : i === run.pos ? `sym-ch sym-ch--now ${run.missed ? 'sym-ch--miss' : ''}` : 'sym-ch'}
-                >
-                  {i === run.pos && run.wrongN > 0 && run.missed && <span key={run.wrongN} className="sym-ch__shake" />}
+            {item.text !== item.kana && (
+              <div key={`ja${run.idx}`} className="sym-practice__ja">
+                <b>{item.text}</b>
+                <span>{item.kana.replace('\n', '')}</span>
+              </div>
+            )}
+            <div key={run.idx} className={`sym-practice__item ${item.text !== item.kana ? 'sym-practice__item--romaji' : ''}`}>
+              {[...typed].map((c, i) => <span key={`t${i}`} className="sym-ch sym-ch--done">{shown(c)}</span>)}
+              {[...rest].map((c, i) => (
+                <span key={`r${i}`} className={i === 0 ? `sym-ch sym-ch--now ${run.missed ? 'sym-ch--miss' : ''}` : 'sym-ch'}>
+                  {i === 0 && run.wrongN > 0 && run.missed && <span key={run.wrongN} className="sym-ch__shake" />}
                   {shown(c)}
                 </span>
               ))}

@@ -23,7 +23,7 @@ const BASE: Record<string, string[]> = {
   ぱ: ['pa'], ぴ: ['pi'], ぷ: ['pu'], ぺ: ['pe'], ぽ: ['po'],
   ぁ: ['xa', 'la'], ぃ: ['xi', 'li'], ぅ: ['xu', 'lu'], ぇ: ['xe', 'le'], ぉ: ['xo', 'lo'],
   ゃ: ['xya', 'lya'], ゅ: ['xyu', 'lyu'], ょ: ['xyo', 'lyo'], っ: ['xtu', 'ltu', 'xtsu', 'ltsu'],
-  ー: ['-'], '、': [','], '。': ['.'], ' ': [' '],
+  ー: ['-'], '、': [','], '。': ['.'], ' ': [' '], '「': ['['], '」': [']'],
 };
 
 // 「きゃ」のように2文字で1つの音になるもの
@@ -44,7 +44,7 @@ const COMBO: Record<string, string[]> = {
 };
 
 // 文字の区切りごとの打ち方の候補。2文字の音は、1文字ずつ打つ方法（き＋ゃ＝kixya）も候補に入れる
-function unitsOf(kana: string): string[][] {
+function unitsOf(kana: string, keepCase: boolean): string[][] {
   const units: string[][] = [];
   for (let i = 0; i < kana.length; i++) {
     const pair = kana.slice(i, i + 2);
@@ -54,8 +54,8 @@ function unitsOf(kana: string): string[][] {
       i++;
     } else {
       const c = kana[i];
-      // 英字・数字・記号はそのまま打つ
-      units.push(BASE[c] ?? [c.toLowerCase()]);
+      // 英字・数字・記号はそのまま打つ（keepCase の時は大文字も区別する。記号・数字の練習でShiftも練習するため）
+      units.push(BASE[c] ?? [keepCase ? c : c.toLowerCase()]);
     }
   }
   // 「っ」は次の音の最初の子音を重ねる打ち方（kka など）も候補にし、次の音とまとめて1つにする
@@ -79,8 +79,8 @@ export interface RomajiState {
   done: string;     // 打ち終わった区切りのローマ字
 }
 
-export function newRomaji(kana: string): RomajiState {
-  return { units: unitsOf(kana), idx: 0, buf: '', done: '' };
+export function newRomaji(kana: string, keepCase = false): RomajiState {
+  return { units: unitsOf(kana, keepCase), idx: 0, buf: '', done: '' };
 }
 
 export const isFinished = (s: RomajiState) => s.idx >= s.units.length;

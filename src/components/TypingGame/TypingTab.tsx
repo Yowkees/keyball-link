@@ -17,28 +17,28 @@ type Trial = {
 
 const TRIALS: Trial[] = [
   {
-    key: 'letters', kind: 'sym', course: 'letters', pass: 95, name: '縦の道', desc: '縦に並んだキーに指を慣らす',
-    intro: 'さあ行くぞい！Keyballのキーは縦にまっすぐ並んでおるのじゃ！指を縦にシュッと動かすのじゃ！B・N・T・Yあたりは迷いやすいぞ、気合いを入れて打つのじゃ！',
+    key: 'letters', kind: 'sym', course: 'letters', pass: 95, name: '縦の道', desc: '縦に並んだキーを含む日本語',
+    intro: 'さあ行くぞい！Keyballのキーは縦にまっすぐ並んでおるのじゃ！指を縦にシュッと動かすのじゃ！B・N・T・Yあたりは迷いやすいぞ！日本語はローマ字で、気合いを入れて打つのじゃ！',
     clear: 'わっはっは！見事じゃ見事じゃ！指が縦の道を覚えてきおったわい！次は親指の番じゃ！',
   },
   {
-    key: 'thumb', kind: 'sym', course: 'thumb', pass: 95, name: '親指の目覚め', desc: 'スペースとEnterを親指で',
+    key: 'thumb', kind: 'sym', course: 'thumb', pass: 95, name: '親指の目覚め', desc: '日本語の文をスペースとEnterで区切る',
     intro: '親指を鳴らせぃ！スペースとEnterは親指の役目じゃ！言葉の間はスペース、最後はEnter（⏎）でビシッと締めるのじゃ！親指こそKeyballの要なんじゃぞ！',
     clear: 'おおっ、親指が目覚めおった！よいぞよいぞ！ここからが本番じゃ、レイヤーの向こうへ突き進むのじゃ！',
   },
   {
-    key: 'num', kind: 'sym', course: 'num', pass: 95, name: '数の門', desc: 'レイヤーにある数字',
+    key: 'num', kind: 'sym', course: 'num', pass: 95, name: '数の門', desc: '日付・時刻・金額の入った日本語',
     intro: '数字はレイヤーの向こうに隠れておるのじゃ！光るキーを目印に、レイヤーキーを押したまま打つのじゃ！覚えた数字には、もう光はいらんぞい！',
     clear: 'よっしゃあ！数の門が開いたぞい！じゃが油断するでないぞ、本当の迷宮はこの先じゃ！',
   },
   {
-    key: 'sym', kind: 'sym', course: 'sym', pass: 95, name: '記号の迷宮', desc: 'よく使う記号12個',
+    key: 'sym', kind: 'sym', course: 'jsym', pass: 95, name: '記号の迷宮', desc: '「」？！（）などの入った日本語',
     intro: 'ここが記号の迷宮じゃ！多くの者がここで迷って去っていったわい。じゃが、おぬしなら大丈夫じゃ！迷ったら光が道を教えてくれる、ドーンと行くのじゃ！',
     clear: 'わっはっは！迷宮を抜けおった！おぬしの指は、もう記号の在りかを知っておるぞ！',
   },
   {
-    key: 'real', kind: 'sym', course: 'real', pass: 95, name: '真の言葉', desc: 'メールアドレス・URL・コード',
-    intro: 'メールアドレス、URL、コード！毎日使う真の言葉で、これまでの全てをぶつけてくるのじゃ！',
+    key: 'real', kind: 'sym', course: 'real', pass: 95, name: '真の言葉', desc: 'メールアドレス・URLの入った日本語',
+    intro: 'メールアドレスにURL、日付まで入った真の言葉じゃ！これまでの全てをぶつけてくるのじゃ！',
     clear: 'すばらしい！真の言葉を操れるようになったのう！残るは最後の試練だけじゃ、燃えてきたわい！',
   },
   {

@@ -3780,6 +3780,10 @@ p[data-tip] { width: fit-content; }
 .sym-practice { display: flex; flex-direction: column; gap: 10px; }
 .sym-practice__field { height: 300px; }
 .sym-practice__item { display: flex; gap: 4px; font-family: var(--font-mono); font-size: 40px; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+.sym-practice__ja { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sym-practice__ja b { font-size: 34px; font-weight: 700; }
+.sym-practice__ja span { font-size: 15px; color: var(--text-dim); }
+.sym-practice__item--romaji { font-size: 28px; gap: 2px; }
 .sym-ch { position: relative; min-width: .75em; padding: 2px 4px; border-radius: 8px; color: var(--text-dim); text-align: center; }
 .sym-ch--done { color: var(--accent); }
 .sym-ch--now {

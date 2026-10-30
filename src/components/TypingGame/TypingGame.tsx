@@ -13,7 +13,7 @@ import { pickWords, type Word } from './words';
 //  - 点数制。間違えずに打てた言葉が続く（コンボ）ほど点数が増える
 //  - たまに小さく速い金色のボーナスカードが出る（点数3倍・時間は短い）
 
-type Level = 'easy' | 'normal' | 'hard';
+export type Level = 'easy' | 'normal' | 'hard';
 // words: 1回のゲームで出る言葉の数 / onField: 画面に同時に出すカードの数
 // speed: カードの動く速さ（画面の幅・高さに対する％／秒） / life: カードの制限時間（秒） / small: カードを小さくする
 const LEVELS: Record<Level, { name: string; words: number; onField: number; speed: number; life: number; small: boolean; desc: string }> = {
@@ -75,7 +75,16 @@ const sec = (ms: number) => (ms / 1000).toFixed(2);
 const wordPoints = (w: Word, combo: number, bonus: boolean) =>
   Math.round(w.kana.length * 10 * (1 + Math.min(combo, 10) * 0.1) * (bonus ? BONUS_POINTS : 1));
 
-export function TypingGame() {
+// 神の試練として遊ぶ時の設定（無ければ自由に難易度を選んで遊ぶ）。ライフが残ったまま全部打てば合格
+export interface CardTrialSetting {
+  level: Level;
+  title: string;
+  intro: string;
+  onDone: (r: { passed: boolean }) => void;
+  onExit: () => void;
+}
+
+export function TypingGame({ trial }: { trial?: CardTrialSetting } = {}) {
   const [phase, setPhase] = useState<'ready' | 'play' | 'result'>('ready');
   const [queue, setQueue] = useState<Word[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -90,8 +99,9 @@ export function TypingGame() {
   const [combo, setCombo] = useState(0);
   const [lives, setLives] = useState(LIVES);
   const [result, setResult] = useState<Result | null>(null);
-  const [level, setLevel] = useState<Level>(loadLevel);
-  const [best, setBest] = useState<number | null>(() => loadBest(loadLevel()));
+  const [pickedLevel, setLevel] = useState<Level>(loadLevel);
+  const level = trial?.level ?? pickedLevel;
+  const [best, setBest] = useState<number | null>(() => loadBest(trial?.level ?? loadLevel()));
   const lv = LEVELS[level];
   const stats = useRef({ start: 0, phaseStart: 0, aim: 0, type: 0, miss: 0, keys: 0, cleared: 0, maxCombo: 0, wordMiss: false });
   const nextId = useRef(0);
@@ -219,6 +229,7 @@ export function TypingGame() {
     const input = inputRef.current;
     if (input) { input.blur(); input.value = ''; }
     setPhase('result');
+    trial?.onDone({ passed: !over });
   };
 
   // カードを場から外し、残りの言葉があれば新しいカードを出す。場も残りも無くなったら終わり
@@ -326,7 +337,7 @@ export function TypingGame() {
   return (
     <div className="typing-game">
       <div className="typing-game__head">
-        <span className="typing-game__title">タイピングゲーム</span>
+        <span className="typing-game__title">{trial ? trial.title : 'タイピングゲーム'}</span>
         {phase !== 'ready' && <span className="typing-game__stage">{lv.name}</span>}
         {phase === 'play' && (
           <>
@@ -353,7 +364,22 @@ export function TypingGame() {
           onInput={e => { if (!(e.nativeEvent as InputEvent).isComposing) e.currentTarget.value = ''; }}
         />
 
-        {phase === 'ready' && (
+        {phase === 'ready' && trial && (
+          <div className="typing-game__center">
+            <p className="typing-game__lead">{trial.intro}</p>
+            <ul className="typing-game__rules">
+              <li>動いているカードをトラックボールで狙ってクリックし、その言葉を打ちます</li>
+              <li>カードの下のバーは残り時間。時間切れでライフ（♥）が減り、0で不合格</li>
+              <li>日本語は日本語入力オン・オフどちらでも、英単語はオフ（英数）で打ちます。やめる時は Esc</li>
+            </ul>
+            <div className="typing-game__again">
+              <button className="btn btn--primary typing-game__start" onClick={start}>試練に挑む</button>
+              <button className="btn typing-game__start" onClick={trial.onExit}>試練の一覧へ</button>
+            </div>
+          </div>
+        )}
+
+        {phase === 'ready' && !trial && (
           <div className="typing-game__center">
             <p className="typing-game__lead">動いているカードから好きなものをトラックボールで狙ってクリックし、その言葉を打ちます。</p>
             <ul className="typing-game__rules">
@@ -432,7 +458,9 @@ export function TypingGame() {
 
         {phase === 'result' && result && (
           <div className="typing-game__center">
-            <p className="typing-game__lead">{result.over ? 'ゲームオーバー' : 'クリア！ おつかれさまでした'}</p>
+            {trial
+              ? <p className={`trial-verdict ${result.over ? 'trial-verdict--fail' : 'trial-verdict--pass'}`}>{result.over ? '不合格' : '合格'}</p>
+              : <p className="typing-game__lead">{result.over ? 'ゲームオーバー' : 'クリア！ おつかれさまでした'}</p>}
             <p className="typing-game__final">{result.score} 点</p>
             <div className="typing-game__result">
               <span>打てた言葉</span><b>{result.cleared} / {result.total} 語</b>
@@ -445,7 +473,9 @@ export function TypingGame() {
             {best !== null && result.score >= best && result.score > 0 && <p className="typing-game__new">ベスト更新！</p>}
             <div className="typing-game__again">
               <button className="btn btn--primary typing-game__start" onClick={start}>もう一度</button>
-              <button className="btn typing-game__start" onClick={() => setPhase('ready')}>難易度を変える</button>
+              {trial
+                ? <button className="btn typing-game__start" onClick={trial.onExit}>試練の一覧へ</button>
+                : <button className="btn typing-game__start" onClick={() => setPhase('ready')}>難易度を変える</button>}
             </div>
           </div>
         )}

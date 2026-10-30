@@ -12,8 +12,12 @@ import { charToKeycode } from '../../lib/textToMacro';
 // 覚えてきた文字はヒントを遅らせ（すぐ → 2秒迷ったら → 5秒迷ったら）、最後は見ずに打てるようにする。
 // 間違えた時は「レイヤーキーを押せていない」「Shiftが要る」など、何が違ったかを教える。
 
-type Course = 'num' | 'sym' | 'real' | 'weak';
+// letters・thumb は神の試練（TrialTab）だけで使うコース（自由練習のコース一覧には出さない）
+export type Course = 'num' | 'sym' | 'real' | 'weak' | 'letters' | 'thumb';
+const FREE_COURSES: Course[] = ['num', 'sym', 'real', 'weak'];
 const COURSES: Record<Course, { name: string; desc: string }> = {
+  letters: { name: '縦の道', desc: '縦に並んだキー' },
+  thumb:   { name: '親指', desc: 'スペースとEnter' },
   num:  { name: '数字',       desc: '日付・時刻・金額・電話番号' },
   sym:  { name: '記号',       desc: 'よく使う記号から少しずつ増やす' },
   real: { name: '実際の文',   desc: 'メールアドレス・URL・コードなど' },
@@ -29,6 +33,18 @@ const REAL = [
   '50% OFF!', '$1,980', 'a-b_c.txt', 'Q&A', "it's OK", '<b>Hi</b>', 'git commit -m "fix"',
   'user@host:~$', 'const x = {a: 1};', '3.14 * r^2', 'A|B|C', '#keyball', 'v1.2.3', 'TODO: 3/15',
   'https://example.com/?q=1&page=2', 'tel: 03-1234-5678', 'price = 1200 * 1.1;',
+];
+// 縦に並んだキー（普通のキーボードとずれて迷いやすいB・N・T・Y・V・Zなど）を多く含む言葉
+const LETTER_WORDS = [
+  'bring', 'vivid', 'typing', 'beyond', 'navy', 'token', 'brave', 'noble', 'verb', 'hybrid',
+  'victory', 'zebra', 'buzz', 'convey', 'bunny', 'ebony', 'envy', 'tiny', 'bytes', 'gravity',
+  'mobile', 'banana', 'cabin', 'velvet', 'tidy', 'ninety', 'combo', 'bounty', 'vintage', 'hymn',
+];
+// 親指キーの練習（言葉の間はスペース、最後はEnter。\n がEnter）
+const THUMB = [
+  'keyball is fun\n', 'thumb keys\n', 'space and enter\n', 'type with thumbs\n', 'one two three\n',
+  'good morning\n', 'see you soon\n', 'it is ok\n', 'nice day\n', 'let us go\n', 'red blue green\n',
+  'a b c d e\n', 'yes or no\n', 'thank you\n', 'new line\n',
 ];
 // 覚え具合: streak=続けて間違えずにヒントを待たず打てた回数。2回でヒントを2秒遅らせ、4回で「覚えた」
 const HINT_DELAY = [0, 2000, 5000];
@@ -56,6 +72,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 // 練習で覚え具合を記録する文字（数字と記号。英字・スペースは記録しない）
 const tracked = (ch: string) => /[^a-zA-Z ]/.test(ch);
+// 画面に出す時の文字（スペースは␣、Enterは⏎）
+const shown = (c: string) => (c === ' ' ? '␣' : c === '\n' ? '⏎' : c);
 
 const NUM_GEN = [
   () => `${rand(2020, 2030)}/${pad(rand(1, 12))}/${pad(rand(1, 28))}`,
@@ -93,10 +111,21 @@ function drill(pool: string[], m: Mastery): string[] {
 
 type BoardProps = Omit<ComponentProps<typeof KeyboardLayout>, 'keycodes' | 'selectedIndex' | 'onKeyClick' | 'onKeyDrop' | 'marks' | 'ballLabel'>;
 
+// 神の試練として遊ぶ時の設定（無ければ自由練習）
+export interface TrialSetting {
+  course: Course;
+  title: string;
+  intro: string;
+  pass: number;                                // 合格に必要な正確さ（%）
+  onDone: (r: { acc: number; passed: boolean }) => void;
+  onExit: () => void;
+}
+
 interface Props {
   board: Board | null;                         // 未接続の時はnull
   boardProps: BoardProps | null;
   ballLabelFor: (layer: number) => string;
+  trial?: TrialSetting;
 }
 
 interface Run {
@@ -110,12 +139,13 @@ interface Run {
   msg: string | null;
 }
 const EMPTY_RUN: Run = { items: [], idx: 0, pos: 0, hint: false, stage: 0, missed: false, wrong: null, wrongN: 0, okN: 0, msg: null };
-interface Result { chars: number; miss: number; ms: number; weak: string[]; newlyLearned: string[] }
+interface Result { chars: number; miss: number; ms: number; weak: string[]; newlyLearned: string[]; acc: number }
 
-export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
+export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props) {
   const finder = useMemo(() => (board ? makeFinder(board) : null), [board]);
   const [phase, setPhase] = useState<'ready' | 'play' | 'result'>('ready');
-  const [course, setCourse] = useState<Course>(loadCourse);
+  const [freeCourse, setCourse] = useState<Course>(loadCourse);
+  const course = trial?.course ?? freeCourse;
   const [hintAlways, setHintAlways] = useState(() => { try { return localStorage.getItem(HINT_KEY) === '1'; } catch { return false; } });
   const [mastery, setMastery] = useState<Mastery>(loadMastery);
   const masteryRef = useRef(mastery);
@@ -176,7 +206,9 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
   const start = () => {
     const items =
       course === 'num' ? Array.from({ length: ITEMS }, () => NUM_GEN[rand(0, NUM_GEN.length - 1)]())
-      : course === 'sym' ? drill(symPool, masteryRef.current)
+      : course === 'sym' ? drill(trial ? symbols.slice(0, 12) : symPool, masteryRef.current)
+      : course === 'letters' ? shuffle(LETTER_WORDS).slice(0, ITEMS)
+      : course === 'thumb' ? shuffle(THUMB).slice(0, ITEMS)
       : course === 'weak' ? drill(weakPool, masteryRef.current)
       : shuffle(REAL).slice(0, ITEMS);
     // 打てない文字が入ったお題は使わない（そのキー配列に無い記号など）
@@ -194,8 +226,10 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
     const s = stats.current, m = masteryRef.current;
     const weak = Object.entries(s.perMiss).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c);
     const newlyLearned = all.filter(c => (m[c]?.streak ?? 0) >= 4 && !s.learnedBefore.has(c));
-    setResult({ chars: s.chars, miss: s.miss, ms: s.last - s.start, weak, newlyLearned });
+    const acc = s.chars + s.miss ? Math.round(s.chars / (s.chars + s.miss) * 100) : 100;
+    setResult({ chars: s.chars, miss: s.miss, ms: s.last - s.start, weak, newlyLearned, acc });
     setPhase('result');
+    trial?.onDone({ acc, passed: acc >= trial.pass });
   };
 
   const record = (ch: string, f: (r: Rec) => Rec) => {
@@ -231,12 +265,14 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
     if (e.key === 'Escape') { setPhase('ready'); return; }
     if (e.ctrlKey || e.metaKey) return;
     if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { put({ msg: '日本語入力をオフ（英数）にしてから打ってください' }); return; }
-    if (e.key.length !== 1) return;   // Shift・レイヤーキーだけを押した時など
+    // Enterは「\n」として扱う。それ以外の文字にならないキー（Shift・レイヤーキーだけ等）は無視
+    const key = e.key === 'Enter' ? '\n' : e.key;
+    if (key.length !== 1) return;
     e.preventDefault();
     const now = clock(), s = stats.current;
     if (!s.start) { s.start = now; s.last = now; }
     const target = r.items[r.idx][r.pos];
-    if (e.key === target) {
+    if (key === target) {
       const dt = now - s.last;
       s.last = now; s.chars++;
       // 迷ってヒントを見てから打った時は「覚えた」に数えない
@@ -252,7 +288,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
       s.perMiss[target] = (s.perMiss[target] ?? 0) + 1;
       record(target, v => ({ ...v, miss: v.miss + 1, streak: 0 }));
       const w = finder?.find(target);
-      const d = w ? diagnose(e.key, target, w) : { msg: '違うキーです', key: null };
+      const d = w ? diagnose(key, target, w) : { msg: '違うキーです', key: null };
       put({ missed: true, hint: true, msg: d.msg, wrong: d.key, wrongN: r.wrongN + 1 });
     }
   };
@@ -266,7 +302,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
   const chooseCourse = (c: Course) => { setCourse(c); save(COURSE_KEY, c); };
   const chip = (c: string) => {
     const st = stageOf(mastery[c]?.streak ?? 0), seen = !!mastery[c];
-    return <span key={c} className={`sym-chip sym-chip--${!seen ? 'new' : ['learning', 'almost', 'done'][st]}`}>{c === ' ' ? '␣' : c}</span>;
+    return <span key={c} className={`sym-chip sym-chip--${!seen ? 'new' : ['learning', 'almost', 'done'][st]}`}>{shown(c)}</span>;
   };
 
   if (!board || !boardProps || !finder) {
@@ -274,8 +310,9 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
       <div className="sym-practice">
         <div className="typing-game__field sym-practice__field">
           <div className="typing-game__center">
-            <p className="typing-game__lead">Keyballをつなぐと、あなたのキー配列で記号・数字の練習ができます。</p>
-            <p className="settings-desc">画面右上の「接続」からKeyballをつないでください。</p>
+            <p className="typing-game__lead">{trial ? 'この試練は、つないだKeyballのキー配列を使います。' : 'Keyballをつなぐと、あなたのキー配列で記号・数字の練習ができます。'}</p>
+            <p className="settings-desc">画面右上の「キーボードに接続」からKeyballをつないでください。</p>
+            {trial && <button className="btn typing-game__start" onClick={trial.onExit}>試練の一覧へ</button>}
           </div>
         </div>
       </div>
@@ -297,14 +334,29 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
   return (
     <div className="sym-practice">
       <div className="typing-game__head">
-        <span className="typing-game__title">記号・数字の練習</span>
-        {phase !== 'ready' && <span className="typing-game__stage">{COURSES[course].name}</span>}
+        <span className="typing-game__title">{trial ? trial.title : '記号・数字の練習'}</span>
+        {!trial && phase !== 'ready' && <span className="typing-game__stage">{COURSES[course].name}</span>}
         {phase === 'play' && <span className="typing-game__left">{run.idx + 1} / {run.items.length}</span>}
         <span className="typing-game__best">覚えた文字 {learned.length} / {all.length}</span>
       </div>
 
       <div className="typing-game__field sym-practice__field">
-        {phase === 'ready' && (
+        {phase === 'ready' && trial && (
+          <div className="typing-game__center">
+            <p className="typing-game__lead">{trial.intro}</p>
+            <p className="settings-desc">合格の条件: 正確さ {trial.pass}% 以上 ／ 日本語入力はオフ（英数）にして打つ ／ やめる時は Esc</p>
+            <label className="sym-practice__opt">
+              <input type="checkbox" checked={hintAlways} onChange={e => { setHintAlways(e.target.checked); save(HINT_KEY, e.target.checked ? '1' : '0'); }} />
+              ヒントをいつもすぐに出す
+            </label>
+            <div className="typing-game__again">
+              <button className="btn btn--primary typing-game__start" onClick={start}>試練に挑む</button>
+              <button className="btn typing-game__start" onClick={trial.onExit}>試練の一覧へ</button>
+            </div>
+          </div>
+        )}
+
+        {phase === 'ready' && !trial && (
           <div className="typing-game__center">
             <p className="typing-game__lead">あなたのキー配列で、レイヤーにある記号・数字を覚える練習です。</p>
             <ul className="typing-game__rules">
@@ -313,7 +365,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
               <li>日本語入力はオフ（英数）にして打ちます。途中でやめる時は Esc</li>
             </ul>
             <div className="typing-game__levels">
-              {(Object.keys(COURSES) as Course[]).map(c => (
+              {FREE_COURSES.map(c => (
                 <button key={c} type="button" className={`typing-level ${course === c ? 'typing-level--on' : ''}`} onClick={() => chooseCourse(c)}>
                   <b>{COURSES[c].name}</b>
                   <span>{COURSES[c].desc}</span>
@@ -341,7 +393,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
                   className={i < run.pos ? 'sym-ch sym-ch--done' : i === run.pos ? `sym-ch sym-ch--now ${run.missed ? 'sym-ch--miss' : ''}` : 'sym-ch'}
                 >
                   {i === run.pos && run.wrongN > 0 && run.missed && <span key={run.wrongN} className="sym-ch__shake" />}
-                  {c === ' ' ? '␣' : c}
+                  {shown(c)}
                 </span>
               ))}
             </div>
@@ -353,18 +405,22 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
 
         {phase === 'result' && result && (
           <div className="typing-game__center">
-            <p className="typing-game__lead">おつかれさまでした</p>
+            {trial
+              ? <p className={`trial-verdict ${result.acc >= trial.pass ? 'trial-verdict--pass' : 'trial-verdict--fail'}`}>{result.acc >= trial.pass ? '合格' : '不合格'}</p>
+              : <p className="typing-game__lead">おつかれさまでした</p>}
             <div className="typing-game__result">
               <span>打った文字</span><b>{result.chars} 文字</b>
               <span>1文字あたり</span><b>{result.chars ? (result.ms / result.chars / 1000).toFixed(2) : '-'} 秒</b>
               <span>打ち間違い</span><b>{result.miss} 回</b>
-              <span>正確さ</span><b>{result.chars + result.miss ? Math.round(result.chars / (result.chars + result.miss) * 100) : 100}%</b>
+              <span>正確さ</span><b>{result.acc}%{trial ? `（合格 ${trial.pass}%）` : ''}</b>
             </div>
             {result.newlyLearned.length > 0 && <div className="sym-chips">新しく覚えた: {result.newlyLearned.map(chip)}</div>}
             {result.weak.length > 0 && <div className="sym-chips">今回間違えた: {result.weak.map(chip)}</div>}
             <div className="typing-game__again">
               <button className="btn btn--primary typing-game__start" onClick={start}>もう一度</button>
-              <button className="btn typing-game__start" onClick={() => setPhase('ready')}>コースを変える</button>
+              {trial
+                ? <button className="btn typing-game__start" onClick={trial.onExit}>試練の一覧へ</button>
+                : <button className="btn typing-game__start" onClick={() => setPhase('ready')}>コースを変える</button>}
             </div>
           </div>
         )}
@@ -392,7 +448,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor }: Props) {
         </div>
       </div>
 
-      {phase === 'ready' && (
+      {phase === 'ready' && !trial && (
         <div className="sym-chips sym-practice__all">
           {all.map(chip)}
           {missing.length > 0 && <span className="sym-practice__missing">このキー配列では打てない記号: {missing.join(' ')}</span>}

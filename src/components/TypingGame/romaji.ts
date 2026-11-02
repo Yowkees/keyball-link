@@ -106,6 +106,11 @@ export function typeKey(s: RomajiState, key: string): RomajiState | null {
   return null;
 }
 
+// その打ち方で、かな1文字（または「きゃ」などの2文字の音）が出来上がるか（日本語入力で
+// 間違えた時、Backspace 1回で消えるのが「かな」か「打ちかけのローマ字1文字」かを見分けるため）
+export const completesKana = (s: string) =>
+  Object.values(BASE).some(v => v.includes(s)) || Object.values(COMBO).some(v => v.includes(s));
+
 // 画面に出すお手本: [打ち終わった部分, まだの部分]
 export function guide(s: RomajiState): [string, string] {
   const typed = s.done + s.buf;
@@ -117,4 +122,13 @@ export function guide(s: RomajiState): [string, string] {
     return u[0] === 'nn' && nx && !'aiueoyn'.includes(nx[0]) ? 'n' : u[0];
   }).join('');
   return [typed, cur.slice(s.buf.length) + rest];
+}
+
+// お手本: [打ち終わった部分, この先]。「ん」を n 1つ打った後に子音が続く時は、
+// もう次の音を打ってよいので、お手本から余分な n を外して次の文字を案内する
+export function aheadOf(s: RomajiState): [string, string] {
+  const [typed, rest] = guide(s);
+  const nx = s.units[s.idx + 1]?.[0];
+  if (s.buf === 'n' && s.units[s.idx]?.includes('nn') && nx && !'aiueoyn'.includes(nx[0])) return [typed, rest.slice(1)];
+  return [typed, rest];
 }

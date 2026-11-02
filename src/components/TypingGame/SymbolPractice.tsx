@@ -4,7 +4,7 @@ import { KeyboardLayout } from '../KeyboardLayout/KeyboardLayout';
 import type { KeyMark, KeyHeat } from '../KeyboardLayout/Key';
 import { makeFinder, type Board, type KeyWay } from './keyFinder';
 import { charToKeycode } from '../../lib/textToMacro';
-import { newRomaji, typeKey, isFinished, guide, type RomajiState } from './romaji';
+import { newRomaji, typeKey, isFinished, aheadOf, type RomajiState } from './romaji';
 
 // 記号・数字の練習（2026-10-29〜、本人希望）。Keyballをやめてしまう一番の原因
 // 「レイヤーにある記号・数字の場所が分からない」をなくすための練習。
@@ -13,13 +13,12 @@ import { newRomaji, typeKey, isFinished, guide, type RomajiState } from './romaj
 // 覚えてきた文字はヒントを遅らせ（すぐ → 2秒迷ったら → 5秒迷ったら）、最後は見ずに打てるようにする。
 // 間違えた時は「レイヤーキーを押せていない」「Shiftが要る」など、何が違ったかを教える。
 
-// letters・thumb・jsym は神の試練（TrialTab）だけで使うコース（自由練習のコース一覧には出さない）
+// letters・jsym は神の試練（TrialTab）だけで使うコース（自由練習のコース一覧には出さない）
 // 2026-10-30〜 本人希望で日本語（ローマ字で打つ）のお題が中心。記号・苦手な文字のコースだけは記号の並びのまま
-export type Course = 'num' | 'sym' | 'real' | 'weak' | 'letters' | 'thumb' | 'jsym';
+export type Course = 'num' | 'sym' | 'real' | 'weak' | 'letters' | 'jsym';
 const FREE_COURSES: Course[] = ['num', 'sym', 'real', 'weak'];
 const COURSES: Record<Course, { name: string; desc: string }> = {
   letters: { name: '縦の道', desc: '縦に並んだキー' },
-  thumb:   { name: '親指', desc: 'スペースとEnter' },
   jsym:    { name: '記号の入った文', desc: '「」？！（）などの入った日本語' },
   num:  { name: '数字',       desc: '日付・時刻・金額などの入った日本語' },
   sym:  { name: '記号',       desc: 'よく使う記号から少しずつ増やす' },
@@ -78,19 +77,6 @@ const LETTER_WORDS: Item[] = ([
   ['ノート', 'のーと'], ['ネクタイ', 'ねくたい'], ['トンネル', 'とんねる'], ['ハンバーグ', 'はんばーぐ'], ['ベンチ', 'べんち'],
   ['半分', 'はんぶん'], ['日本', 'にほん'], ['燕', 'つばめ'], ['鳩', 'はと'], ['蕎麦', 'そば'],
 ] as [string, string][]).map(ja);
-// 親指キーの練習（言葉の間はスペース、最後はEnter。\n がEnter）
-const THUMB: Item[] = ([
-  ['今日は いい 天気', 'きょうは いい てんき'], ['また 明日', 'また あした'], ['おはよう ございます', 'おはよう ございます'],
-  ['ありがとう ございました', 'ありがとう ございました'], ['では また', 'では また'], ['よろしく お願いします', 'よろしく おねがいします'],
-  ['お先に 失礼します', 'おさきに しつれいします'], ['少し 待って', 'すこし まって'], ['右 左 上 下', 'みぎ ひだり うえ した'],
-  ['親指で 押す', 'おやゆびで おす'], ['春 夏 秋 冬', 'はる なつ あき ふゆ'], ['赤 青 黄色', 'あか あお きいろ'],
-  ['いち に さん', 'いち に さん'], ['駅で 会おう', 'えきで あおう'], ['お茶を どうぞ', 'おちゃを どうぞ'],
-  ['すぐ 行きます', 'すぐ いきます'], ['了解 です', 'りょうかい です'], ['今 どこ', 'いま どこ'],
-  ['お昼 何食べる', 'おひる なにたべる'], ['雨が 降って きた', 'あめが ふって きた'], ['ちょっと 休憩', 'ちょっと きゅうけい'],
-  ['会議は 三時から', 'かいぎは さんじから'], ['よく 頑張った', 'よく がんばった'], ['気を つけて', 'きを つけて'],
-  ['犬と 猫', 'いぬと ねこ'], ['また 遊ぼう', 'また あそぼう'], ['いい 感じ', 'いい かんじ'],
-  ['お疲れさま でした', 'おつかれさま でした'], ['楽しい 一日', 'たのしい いちにち'], ['Keyball 最高', 'Keyball さいこう'],
-] as [string, string][]).map(([t, k]) => ({ text: t, kana: k + '\n' }));
 // 記号の入った日本語（「」、。はそのまま [ ] , . で打つ。？！（）〜：＝は半角で打つ）
 const JSYM: Item[] = ([
   ['「はい」と答えた。', '「はい」とこたえた。'], ['本当に？', 'ほんとうに?'], ['やった！', 'やった!'],
@@ -132,14 +118,6 @@ const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 const tracked = (ch: string) => /[^a-zA-Z ]/.test(ch);
 // 画面に出す時の文字（スペースは␣、Enterは⏎）
 const shown = (c: string) => (c === ' ' ? '␣' : c === '\n' ? '⏎' : c);
-// [打ち終わった部分, この先のお手本]。「ん」を n 1つ打った後に子音が続く時は、
-// もう次の音を打ってよいので、お手本から余分な n を外して次の文字を案内する
-function ahead(s: RomajiState): [string, string] {
-  const [typed, rest] = guide(s);
-  const nx = s.units[s.idx + 1]?.[0];
-  if (s.buf === 'n' && s.units[s.idx]?.includes('nn') && nx && !'aiueoyn'.includes(nx[0])) return [typed, rest.slice(1)];
-  return [typed, rest];
-}
 
 const NUM_GEN: (() => [string, string])[] = [
   () => { const [y, m, d] = [rand(2020, 2030), rand(1, 12), rand(1, 28)]; return [`${y}年${m}月${d}日`, `${y}ねん${m}がつ${d}にち`]; },
@@ -252,7 +230,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
   );
 
   const item: Item = run.items[run.idx] ?? { text: '', kana: '' };
-  const [typed, rest] = run.rs ? ahead(run.rs) : ['', ''];
+  const [typed, rest] = run.rs ? aheadOf(run.rs) : ['', ''];
   const want = rest[0] ?? '';
   const way: KeyWay | null = phase === 'play' && finder && want ? finder.find(want) : null;
 
@@ -281,7 +259,6 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
       course === 'num' ? Array.from({ length: ITEMS }, () => ja(NUM_GEN[rand(0, NUM_GEN.length - 1)]()))
       : course === 'sym' ? drill(trial ? symbols.slice(0, 12) : symPool, masteryRef.current)
       : course === 'letters' ? shuffle(LETTER_WORDS).slice(0, ITEMS)
-      : course === 'thumb' ? shuffle(THUMB).slice(0, ITEMS)
       : course === 'jsym' ? shuffle(JSYM).slice(0, ITEMS)
       : course === 'weak' ? drill(weakPool, masteryRef.current)
       : shuffle(REAL).slice(0, ITEMS);
@@ -290,7 +267,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     if (!ok.length) return;
     stats.current = { start: 0, last: 0, chars: 0, miss: 0, perMiss: {}, learnedBefore: new Set(learned) };
     const rs = newRomaji(ok[0].kana, true);
-    put({ items: ok, idx: 0, rs, missed: false, wrong: null, msg: null, ...hintFor(ahead(rs)[1][0]) });
+    put({ items: ok, idx: 0, rs, missed: false, wrong: null, msg: null, ...hintFor(aheadOf(rs)[1][0]) });
     setResult(null);
     setPhase('play');
     // スタートのボタンにフォーカスが残ると、スペース・Enterでボタンが押されてやり直しになるので外す
@@ -347,7 +324,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
     const now = clock(), s = stats.current;
     if (!s.start) { s.start = now; s.last = now; }
     if (!r.rs) return;
-    const target = ahead(r.rs)[1][0];
+    const target = aheadOf(r.rs)[1][0];
     // ローマ字はどの打ち方でも正解（し＝shi/si など）。お手本と違う打ち方でも、打てた文字を記録する
     const next = typeKey(r.rs, key);
     if (next) {
@@ -362,7 +339,7 @@ export function SymbolPractice({ board, boardProps, ballLabelFor, trial }: Props
         if (idx >= r.items.length) { put({ rs, okN: r.okN + 1 }); finish(); return; }
         rs = newRomaji(r.items[idx].kana, true);
       }
-      put({ idx, rs, missed: false, msg: null, okN: r.okN + 1, ...hintFor(ahead(rs)[1][0]) });
+      put({ idx, rs, missed: false, msg: null, okN: r.okN + 1, ...hintFor(aheadOf(rs)[1][0]) });
     } else {
       s.miss++;
       s.perMiss[target] = (s.perMiss[target] ?? 0) + 1;

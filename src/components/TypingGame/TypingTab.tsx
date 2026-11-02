@@ -1,5 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { TypingGame, type Level } from './TypingGame';
+import { ThumbTrial } from './ThumbTrial';
 import { SymbolPractice, type Course } from './SymbolPractice';
 
 // タイピングゲームのタブ（2026-10-30、本人希望で作り直し）。
@@ -13,7 +14,7 @@ type Trial = {
   desc: string;
   intro: string;   // 挑戦前の神のセリフ
   clear: string;   // 合格した時の神のセリフ
-} & ({ kind: 'sym'; course: Course; pass: number } | { kind: 'cards'; level: Level });
+} & ({ kind: 'sym'; course: Course; pass: number } | { kind: 'thumb'; pass: number } | { kind: 'cards'; level: Level });
 
 const TRIALS: Trial[] = [
   {
@@ -22,8 +23,8 @@ const TRIALS: Trial[] = [
     clear: 'わっはっは！見事じゃ見事じゃ！指が縦の道を覚えてきおったわい！次は親指の番じゃ！',
   },
   {
-    key: 'thumb', kind: 'sym', course: 'thumb', pass: 95, name: '親指の目覚め', desc: '日本語の文をスペースとEnterで区切る',
-    intro: '親指を鳴らせぃ！スペースとEnterは親指の役目じゃ！言葉の間はスペース、最後はEnter（⏎）でビシッと締めるのじゃ！親指こそKeyballの要なんじゃぞ！',
+    key: 'thumb', kind: 'thumb', pass: 90, name: '親指の目覚め', desc: 'かな・英数の切り替え、変換・確定、Backspace',
+    intro: '親指を鳴らせぃ！かなと英数で切り替え、Spaceで変換、Enterで確定！間違えたらBackspaceで消すのじゃ！大文字はShiftじゃぞ！親指こそKeyballの要なんじゃ！',
     clear: 'おおっ、親指が目覚めおった！よいぞよいぞ！ここからが本番じゃ、レイヤーの向こうへ突き進むのじゃ！',
   },
   {
@@ -134,6 +135,8 @@ export function TypingTab(props: ComponentProps<typeof SymbolPractice>) {
         const common = { title: `第${NUMS[i]}の試練「${t.name}」`, intro: t.desc, onExit: () => go({ type: 'map' }) };
         return t.kind === 'cards'
           ? <TypingGame key={t.key} trial={{ ...common, level: t.level, onDone: r => done(i, r.passed) }} />
+          : t.kind === 'thumb'
+          ? <ThumbTrial key={t.key} {...props} trial={{ ...common, pass: t.pass, onDone: r => done(i, r.passed, r.acc) }} />
           : <SymbolPractice key={t.key} {...props} trial={{ ...common, course: t.course, pass: t.pass, onDone: r => done(i, r.passed, r.acc) }} />;
       })()}
 

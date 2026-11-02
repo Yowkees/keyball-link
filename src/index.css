@@ -3830,6 +3830,18 @@ p[data-tip] { width: fit-content; }
 .key--mark-hold[data-note]::after { background: #4a8fe8; }
 .key--mark-shift[data-note]::after { background: #a26be0; }
 .key--mark-wrong[data-note]::after { background: var(--red); }
+/* 第二の試練（親指）: 押す順の手順と入力欄 */
+.thumb-steps { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 6px; }
+.thumb-step { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); min-width: 44px; }
+.thumb-step b { font-size: 24px; font-weight: 700; color: var(--text); }
+.thumb-step small { font-size: 12px; }
+.thumb-step--key { font-size: 14px; font-weight: 700; border-style: dashed; }
+.thumb-step--now { border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
+.thumb-step--done { opacity: .45; }
+.thumb-romaji { font-family: var(--font-mono); font-size: 16px !important; letter-spacing: 1px; }
+.thumb-typed { color: var(--accent); }
+.thumb-input { width: min(100%, 520px); font-size: 22px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--key-bg); color: var(--text); text-align: center; }
+.thumb-input:focus { outline: 2px solid var(--accent); }
 /* 間違えやすいキーのヒートマップ（黄→赤の4段階） */
 .key--heat-1 { --heat: #e8c547; }
 .key--heat-2 { --heat: #e8964a; }

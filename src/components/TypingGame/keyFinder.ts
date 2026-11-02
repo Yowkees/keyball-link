@@ -98,6 +98,27 @@ export function makeFinder(b: Board) {
     return best;
   };
 
+  // 文字にならないキー（かな・英数・Enter・Backspaceなど）を、キーコードで探す（2026-10-30〜、親指の試練用）。
+  // 長押しで別の働きをするキー（LT/MT）は、短く押した時の働きで比べる
+  const findCode = (match: (c: number) => boolean): KeyWay | null => {
+    let best: KeyWay | null = null, bestCost = Infinity;
+    for (let L = 0; L < b.keymap.length; L++) {
+      const r = L === 0 ? null : reach(L);
+      if (L > 0 && !r) continue;
+      for (const i of keys) {
+        if (r && i === r.hold) continue;
+        const c = code(L, i);
+        if (!c || !match(tapOf(c))) continue;
+        const cost = (r ? 1 : 0) + (r?.mode === 'toggle' ? 0.5 : 0) + (isLT(c) || isMT(c) ? 0.2 : 0);
+        if (cost < bestCost) {
+          bestCost = cost;
+          best = { layer: L, key: i, hold: r?.hold ?? null, mode: r?.mode ?? null, shift: null };
+        }
+      }
+    }
+    return best;
+  };
+
   // キーに書いてある名前（長押しの働きがあるキーは「英数/L1」のように）
   const label = (l: number, i: number) => getKeyDisplayLabel(code(l, i), b.keyLayout).replace('\n', '/');
 
@@ -113,5 +134,5 @@ export function makeFinder(b: Board) {
     return parts.join(' ＋ ');
   };
 
-  return { find, label, describe };
+  return { find, findCode, label, describe };
 }

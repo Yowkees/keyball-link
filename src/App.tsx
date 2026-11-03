@@ -13,7 +13,7 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { MACRO_SLOT_COUNT, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
+import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
 import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
@@ -540,6 +540,13 @@ export default function App() {
       scrollInertia: state.scrollInertia,
       layerLedEnable: state.layerLedEnable,
       layerLeds: state.layerLeds,
+      // 2026-11-03に追加: コンボ・タップダンス・DPIカーブ・OLED/起動アニメーションが
+      // 書き出されていなかった（お客様の問い合わせで判明）。非対応ファームではnull/空のまま
+      combos: state.comboSlots,
+      tapDances: state.tdSlots.length ? state.tdSlots : null,
+      dpiCurve: state.dpiCurve,
+      oledAnimEnabled: state.oledAnimEnabled,
+      bootAnimEnabled: state.bootAnimEnabled,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -665,6 +672,32 @@ export default function App() {
             if (!data.layerLeds[l]) continue;
             try { await setLayerLed(l, data.layerLeds[l]); } catch { /* 非対応FW・レイヤー数超過 */ }
           }
+        }
+        // 2026-11-03に追加した項目（それより前に書き出したファイルには無い）
+        const isKc = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 0xFFFF;
+        if (Array.isArray(data.combos)) {
+          for (let i = 0; i < data.combos.length; i++) {
+            const c = data.combos[i];
+            if (!c || !Array.isArray(c.keys) || !isKc(c.keycode)) continue;
+            const keys = Array.from({ length: COMBO_MAX_KEYS }, (_, k) => (isKc(c.keys[k]) ? c.keys[k] : 0));
+            try { await setComboSlot(i, { keys, keycode: c.keycode }); } catch { /* 非対応FW・スロット数超過 */ }
+          }
+        }
+        if (Array.isArray(data.tapDances)) {
+          for (let i = 0; i < data.tapDances.length; i++) {
+            const t = data.tapDances[i];
+            if (!t || !isKc(t.tap) || !isKc(t.hold) || !isKc(t.dtap) || typeof t.flags !== 'number') continue;
+            try { await setTdSlot(i, { tap: t.tap, hold: t.hold, dtap: t.dtap, flags: t.flags & 0xFF }); } catch { /* 非対応FW・スロット数超過 */ }
+          }
+        }
+        if (data.dpiCurve && typeof data.dpiCurve.enable === 'boolean' && Array.isArray(data.dpiCurve.points)) {
+          try { await setDpiCurve(data.dpiCurve); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.oledAnimEnabled === 'boolean') {
+          try { await setOledAnimEnabled(data.oledAnimEnabled); } catch { /* 非対応FW */ }
+        }
+        if (typeof data.bootAnimEnabled === 'boolean') {
+          try { await setBootAnimEnabled(data.bootAnimEnabled); } catch { /* 非対応FW */ }
         }
         setHasUnsaved(false);
         await save();
@@ -865,7 +898,7 @@ export default function App() {
               >
                 ↪ やり直し
               </button>
-              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップ・マクロ・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存">エクスポート</button>
+              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップ・マクロ・コンボ・タップダンス・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存">エクスポート</button>
               <label className="btn btn--ghost" title="JSONファイルからキーマップ・マクロ・各種設定を読み込む" style={{ cursor: 'pointer' }}>
                 インポート
                 <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />

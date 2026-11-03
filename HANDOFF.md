@@ -8,7 +8,7 @@
 
 | 呼び方 | 中身 |
 |---|---|
-| **本番** | https://keyball-link.shiroganelab.com （keyball-configuratorの`main`ブランチから`npm run deploy`。一般公開） |
+| **本番** | https://keyball-link.shiroganelab.com （keyball-linkの`main`ブランチから`npm run deploy`。一般公開） |
 | **開発** | https://rp2040.keyball-link.pages.dev （`rp2040`ブランチから`npm run deploy`。本人の実機確認用・非公開） |
 | **AVR版** | .hexのファームウェア（Keyball39/44/61/+、通常版とLED版）。本番で配布中 |
 | **RP2040版** | .uf2のファームウェア（Keyball39/44/61/+、keyball-rp2040-firmware）。2026-10-09から本番でも公開（`RP2040_PUBLIC_RELEASE=true`） |
@@ -21,7 +21,7 @@
 - **本番**（https://keyball-link.shiroganelab.com）で、2026-10-23に**左右判定の根本修正**を公開。mainとrp2040は同じ内容で、都度`git merge --no-ff`で同期する。公開スイッチ`RP2040_PUBLIC_RELEASE`は両ブランチとも`true`。
 - **最新バージョン**: RP2040版 **v0.5.8**（39/44/61/+）、AVR版 **v1.5.3**（39/44/61）・**v1.2.3**（Keyball+）。
 - **配布ファームの置き場所は`public/firmware/v2/`**（2026-10-23〜）。`public/firmware/`直下は修正前の本番の版（RP2040 v0.4.28・AVR v1.4.2・Keyball+ v1.1.1）を、開いたままの古い画面向けに**凍結して残している。上書き・削除しないこと**（古い画面＋修正後のファームだと表示と実際のキーが左右逆になる。開発で本人が実際に遭遇）。
-- **反映の手順**（keyball-configurator）: ①ファームを編集したら`npm run update-firmware`（全AVR 8本＋RP2040 4本をビルドし`public/firmware/v2/`へ配置・整合性チェック）②コミット ③rp2040ブランチで`npm run deploy`して**開発**へ ④本人の実機確認後、mainで`npm run deploy`して**本番**へ ⑤`git push`（pushは本人の指示があった時だけ）。
+- **反映の手順**（keyball-link）: ①ファームを編集したら`npm run update-firmware`（全AVR 8本＋RP2040 4本をビルドし`public/firmware/v2/`へ配置・整合性チェック）②コミット ③rp2040ブランチで`npm run deploy`して**開発**へ ④本人の実機確認後、mainで`npm run deploy`して**本番**へ ⑤`git push`（pushは本人の指示があった時だけ）。
 - **ファームの編集場所**: RP2040版`~/keyball-rp2040-firmware`、AVR版`~/keyball-link-firmware`（39/44/61）・`~/keyball-plus-firmware`（+）。バージョンは各`kb_version.h`と`src/lib/firmwareFeatures.ts`（`LATEST_FW_VERSION`/`LATEST_FW_VERSION_RP2040`）を必ず両方上げる。
 - **RP2040のビルド環境`~/qmk_firmware-keyball-rp2040`にはQMK本体へのパッチ`keyball-rp2040-firmware/patches/0001〜0004`が必要**（0004=起動演出の溶け込み用`rgb_matrix_color_filter_kb`、2026-10-22追加）。別のパソコンでは`git apply`で当てること。
 
@@ -50,8 +50,8 @@
 - **何のアプリか**: Keyball（分割トラックボールキーボード）シリーズ用の、ブラウザから直接キーマップ編集・ファームウェア書き込みができるWebアプリ（WebHID / WebSerial API使用）。
 - **アプリ名**: Keyball Link
 - **技術**: React + TypeScript + Vite（インストール不要の静的サイト）
-- **場所**: `~/keyball-configurator`
-- **GitHub**: https://github.com/Yowkees/keyball-link （組織アカウント・Public。旧名 keyball-configurator は自動転送）
+- **場所**: `~/keyball-link`
+- **GitHub**: https://github.com/Yowkees/keyball-link （組織アカウント・Public。旧名 keyball-configurator は自動転送。2026-11-03にパソコンのフォルダ名も ~/keyball-configurator → ~/keyball-link に変更）
 - **公開URL**: https://keyball-link.shiroganelab.com （Cloudflare Pages、プロジェクト名 `keyball-link`。DNSはShopify管理の shiroganelab.com にCNAME追加）
 - **現在のアプリバージョン**: v1.2.1（`package.json`、footerに `Keyball Link v{__APP_VERSION__}` として表示）
 - **対応機種**: Keyball39 / Keyball44 / Keyball61 / Keyball+
@@ -94,7 +94,7 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
   - `kb_settings.c`にマジックナンバー方式のEEPROM検証を追加。フォーマット不一致・未初期化時は独自設定領域を安全な既定値へ自動リセット（スクロールレイヤー等の既定値は正規ファームウェアと同じ挙動を維持するよう調整済み）
   - Keyball Linkの「初期化」ボタン（`KB_HID_CMD_RESET_KEYMAP`）の範囲を拡張。従来はキー割り当てのみだったが、Keyball Link独自設定（スクロールレイヤー等）と本体組み込み設定（CPI・スクロール分周・加速度・自動マウスレイヤーON/OFF）も含め、`EE_CLR`キーと同じ範囲をリセットするように
   - キーボード側への`EE_CLR`キー追加は**ユーザーの意向で見送り**（「キー割り当てはユーザーが決めること」のため。EEPROM初期化はKeyball Link側の「初期化」ボタンだけで完結する設計に統一）
-- **keyball-configurator**（コミット`8480910`・デプロイ済み）
+- **keyball-link**（コミット`8480910`・デプロイ済み）
   - `src/lib/avr109.ts`の`exitBootloader()`が本来送るべき`0x45`('E')ではなく`0x51`('Q')を送信していたバグを修正。書き込み後すぐにアプリが起動しない（ブートローダーが8秒間抜けない）原因だった
   - `FirmwareFlasher.tsx`に「正規ファームウェアなど他のファームウェアに戻す方へ」の案内を追加。先に「初期化」を押してから書き込むよう誘導し、今回のような事故を予防する
   - ファームウェアの書き込み回数（全ユーザー合計）を表示する機能を追加（コミット`935f3f2`・デプロイ済み）。`functions/api/flash-count.ts`（Cloudflare Pages Functions）＋KVネームスペース`FLASH_COUNTS`（ID: `7c34554d9bca42a3b02465ce97bdd0b6`）で集計
@@ -364,7 +364,7 @@ hexファイルの置き場所は `public/firmware/*.hex`。**hexを差し替え
 
 ## 6. 開発・確認のやり方
 ```bash
-cd ~/keyball-configurator
+cd ~/keyball-link
 npm install          # 初回のみ
 npm run dev           # 開発サーバー（http://localhost:5173）
 npx tsc --noEmit       # 型チェック（ビルド前の確認に）

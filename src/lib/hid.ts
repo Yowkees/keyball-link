@@ -1,6 +1,7 @@
 // WebHID API を使ってキーボードと通信するラッパー
 
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_COMBO, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, KB_FLAG_OS_AUTO_SWAP, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, GESTURE_WAVE_SPEED_DEFAULT, GESTURE_WAVE_SPEED_MIN, GESTURE_WAVE_SPEED_MAX, GESTURE_WAVE_STYLE_SHARP, GESTURE_WAVE_STYLE_BREATH, type GestureWaveColor, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT, SHAKE_THRESHOLD_DEFAULT, SHAKE_THRESHOLD_MIN, SHAKE_THRESHOLD_MAX, SHAKE_REVERSALS_DEFAULT, SHAKE_REVERSALS_MIN, SHAKE_REVERSALS_MAX, SHAKE_RUN_MAX_MS_DEFAULT, SHAKE_RUN_MAX_MS_MIN, SHAKE_RUN_MAX_MS_MAX, DFLICK_WINDOW_MS_DEFAULT, DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_FLICK_THRESHOLD_DEFAULT, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_MAX_DURATION_MS_DEFAULT, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, COMBO_SLOT_COUNT, COMBO_MAX_KEYS, DPI_CURVE_X } from './protocol';
+import { decodeName, nameBytes, NAME_MAX_BYTES } from './names';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from './protocol';
 
 export class KeyballHID {
@@ -575,6 +576,36 @@ export class KeyballHID {
 
   async setBootAnimEnabled(enabled: boolean): Promise<void> {
     await this.sendCommand(makePacket(CMD.SET_BOOT_ANIM, enabled ? 1 : 0));
+  }
+
+  // レイヤー・ジェスチャーの名前（RP2040版v0.6.0〜。非対応ファームでは例外）
+  async getName(kind: number, idx: number): Promise<string> {
+    const r = await this.sendCommand(makePacket(CMD.GET_NAME, kind, idx));
+    if (r[0] !== CMD.GET_NAME) throw new Error('名前に非対応のファームです');
+    if (r[1] !== 0) throw new Error('名前の番号が範囲外です');
+    return decodeName(r.slice(2, 2 + NAME_MAX_BYTES));
+  }
+
+  async getNames(kind: number, count: number): Promise<string[]> {
+    const names: string[] = [];
+    for (let i = 0; i < count; i++) names.push(await this.getName(kind, i));
+    return names;
+  }
+
+  async setName(kind: number, idx: number, name: string): Promise<void> {
+    const b = nameBytes(name);
+    await this.sendCommand(makePacket(CMD.SET_NAME, kind, idx, b.length, ...b));
+  }
+
+  // 画面切り替えのジェスチャーをOSに合わせるか（RP2040版v0.6.0〜）
+  async getGestureOsAdapt(): Promise<boolean> {
+    const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_OS_ADAPT));
+    if (r[0] !== CMD.GET_GESTURE_OS_ADAPT) throw new Error('この設定に非対応のファームです');
+    return r[1] === 1;
+  }
+
+  async setGestureOsAdapt(on: boolean): Promise<void> {
+    await this.sendCommand(makePacket(CMD.SET_GESTURE_OS_ADAPT, on ? 1 : 0));
   }
 
   async getMatrixState(): Promise<boolean[][]> {

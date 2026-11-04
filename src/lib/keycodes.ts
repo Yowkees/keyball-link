@@ -411,7 +411,14 @@ export function getShiftLabel(code: number, layout: KeyLayout): string | null {
 }
 
 // キーコードを配列設定に応じた表示文字に変換する
+// ジェスチャーキー（GST_HOLD〜6）に付ける名前（2026-11-04〜）。App.tsxが接続中のキーボードの名前を入れる
+const GESTURE_HOLD_CODES = [0x7E10, 0x7E13, 0x7E14, 0x7E15, 0x7E16, 0x7E17];
+let gestureDisplayNames: string[] = [];
+export function setGestureDisplayNames(names: string[] | null) { gestureDisplayNames = names ?? []; }
+
 export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
+  const gi = GESTURE_HOLD_CODES.indexOf(code);
+  if (gi >= 0 && gestureDisplayNames[gi]) return gestureDisplayNames[gi];
   // JIS配列オーバーライド（直接マップに存在するキー）
   if (layout === 'JIS' && JIS_CHAR_MAP[code] !== undefined) {
     return JIS_CHAR_MAP[code];

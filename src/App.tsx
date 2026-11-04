@@ -13,10 +13,13 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
+import { gestureLabel, layerLabel } from './lib/names';
+import { NameInput } from './components/NameInput/NameInput';
 import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
 import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
+import { setGestureDisplayNames } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
@@ -84,13 +87,14 @@ function getBallFunctionLabel(layer: number, state: {
   kbSettings: { scrollLayer: number };
   gesture: { layer: number } | null;
   gestureModes: { layer: number }[] | null;
+  gestureNames: string[] | null;
   precision: { layer: number } | null;
 }): string {
   const tags: string[] = [];
   if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
   if (state.precision?.layer === layer) tags.push('精密');
   const modeIdx = state.gestureModes?.findIndex(m => m.layer === layer) ?? -1;
-  if (modeIdx >= 0) tags.push(`ジェスチャー${modeIdx + 1}`);
+  if (modeIdx >= 0) tags.push(gestureLabel(modeIdx, state.gestureNames));
   else if (state.gesture?.layer === layer) tags.push('ジェスチャー');
   return tags.length ? tags.join('・') : 'カーソル';
 }
@@ -101,7 +105,9 @@ interface Toast {
 }
 
 export default function App() {
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerName, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
+  // キー配列のジェスチャーキーを、付けた名前で表示する（描画の前に毎回入れ直す）
+  setGestureDisplayNames(state.gestureNames);
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
   // キーマップのトラックボールを選んでいる時は、右側のパネルにトラックボール設定を出す
@@ -296,6 +302,14 @@ export default function App() {
     try {
       const reordered = reorderKeymap(state.keymap, pendingOrder);
       await writeFullKeymap(reordered);
+      // レイヤーの名前も中身と一緒に動かす
+      if (state.layerNames) {
+        const names = state.layerNames;
+        for (let i = 0; i < pendingOrder.length; i++) {
+          const n = names[pendingOrder[i]] ?? '';
+          if (n !== (names[i] ?? '')) await setLayerName(i, n);
+        }
+      }
       setPendingOrder(null);
       setUndoStack([]);   // 並べ替え後はキー単位の取り消し履歴が合わなくなるためクリア
       setRedoStack([]);
@@ -547,6 +561,10 @@ export default function App() {
       dpiCurve: state.dpiCurve,
       oledAnimEnabled: state.oledAnimEnabled,
       bootAnimEnabled: state.bootAnimEnabled,
+      // 2026-11-04に追加: レイヤー・ジェスチャーの名前、画面切り替えをOSに合わせる（RP2040版v0.6.0〜）
+      layerNames: state.layerNames,
+      gestureNames: state.gestureNames,
+      gestureOsAdapt: state.gestureOsAdapt,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -698,6 +716,22 @@ export default function App() {
         }
         if (typeof data.bootAnimEnabled === 'boolean') {
           try { await setBootAnimEnabled(data.bootAnimEnabled); } catch { /* 非対応FW */ }
+        }
+        // 2026-11-04に追加: 名前と、画面切り替えをOSに合わせる。非対応ファームでは送らない
+        if (state.layerNames && Array.isArray(data.layerNames)) {
+          for (let i = 0; i < Math.min(data.layerNames.length, state.layerNames.length); i++) {
+            if (typeof data.layerNames[i] !== 'string') continue;
+            try { await setLayerName(i, data.layerNames[i]); } catch { /* 非対応FW */ }
+          }
+        }
+        if (state.gestureNames && Array.isArray(data.gestureNames)) {
+          for (let i = 0; i < Math.min(data.gestureNames.length, state.gestureNames.length); i++) {
+            if (typeof data.gestureNames[i] !== 'string') continue;
+            try { await setGestureName(i, data.gestureNames[i]); } catch { /* 非対応FW */ }
+          }
+        }
+        if (state.gestureOsAdapt !== null && typeof data.gestureOsAdapt === 'boolean') {
+          try { await setGestureOsAdapt(data.gestureOsAdapt); } catch { /* 非対応FW */ }
         }
         setHasUnsaved(false);
         await save();
@@ -1044,7 +1078,7 @@ export default function App() {
                               title={dragTitle}
                             >
                               <span className="layer-tab__dot" style={{ background: getLayerDotColor(i, state) }} />
-                              L{i}{pendingOrder && src !== i ? ` ←${src}` : ''}
+                              {layerLabel(src, state.layerNames)}{pendingOrder && src !== i ? ` ←${src}` : ''}
                             </button>
                           );
                         })}
@@ -1056,6 +1090,18 @@ export default function App() {
                           全レイヤー
                         </button>
                       </div>
+                      {/* 選んでいるレイヤーの名前（RP2040版v0.6.0〜、2026-11-04） */}
+                      {state.layerNames && !showAllLayers && !pendingOrder && (
+                        <label className="layer-toolbar__name">
+                          名前
+                          <NameInput key={`${state.currentLayer}:${state.layerNames[state.currentLayer] ?? ''}`}
+                            value={state.layerNames[state.currentLayer] ?? ''} placeholder={`レイヤー${state.currentLayer}`}
+                            onSave={async name => {
+                              try { await setLayerName(state.currentLayer, name); setHasUnsaved(true); }
+                              catch (e) { showToast(`名前の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                            }} />
+                        </label>
+                      )}
                       {/* 選んでいるレイヤーがオートマウスのレイヤーなら、タブの横に示す（設定はトラックボール設定タブ）（2026-10-27、本人希望） */}
                       {!showAllLayers && state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === state.currentLayer && (
                         <span className="layer-toolbar__aml">オートマウス</span>
@@ -1180,6 +1226,16 @@ export default function App() {
                           gestureWaveSpeed={state.gestureWaveSpeed}
                           onGestureWaveSpeedChange={handleGestureWaveSpeedChange}
                           onOpenTab={() => setActiveTab('trackball')}
+                          gestureNames={state.gestureNames}
+                          onGestureNameChange={async (i, name) => {
+                            try { await setGestureName(i, name); setHasUnsaved(true); }
+                            catch (e) { showToast(`名前の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                          }}
+                          gestureOsAdapt={state.gestureOsAdapt}
+                          onGestureOsAdaptChange={async v => {
+                            try { await setGestureOsAdapt(v); setHasUnsaved(true); }
+                            catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                          }}
                           keyLayout={keyLayout}
                           avail={fwAvail}
                         />

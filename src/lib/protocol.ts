@@ -37,6 +37,10 @@ export const CMD = {
   SET_OLED_ANIM: 0x37,
   GET_BOOT_ANIM: 0x38,  // 起動アニメーションのON/OFF（RP2040版v0.5.7〜）
   SET_BOOT_ANIM: 0x39,
+  GET_NAME: 0x3A,  // レイヤー・ジェスチャーの名前（RP2040版v0.6.0〜）
+  SET_NAME: 0x3B,
+  GET_GESTURE_OS_ADAPT: 0x3C,  // 画面切り替えのジェスチャーをOSに合わせるか（RP2040版v0.6.0〜）
+  SET_GESTURE_OS_ADAPT: 0x3D,
   GET_PRECISION: 0x18,
   SET_PRECISION: 0x19,
   GET_LAYER_LED_ENABLE: 0x1A,

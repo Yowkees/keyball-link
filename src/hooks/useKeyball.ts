@@ -2,9 +2,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { KeyballHID, isWebHIDSupported } from '../lib/hid';
 import type { KeyboardInfo, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from '../lib/protocol';
 import { KB_SETTINGS_DEFAULT, MACRO_SLOT_COUNT, gestureModeCountFor, COMBO_SLOT_COUNT, emptyMacroSlot, emptyComboSlot, encodeMacroBuffer, macroBufferSizeForModel } from '../lib/protocol';
+import { clampName, NAME_KIND_LAYER, NAME_KIND_GESTURE, LAYER_NAME_COUNT, GESTURE_NAME_COUNT } from '../lib/names';
 import type { ModelKey } from '../layouts';
 import { chipForProductId } from '../lib/deviceIds';
-import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide, firmwareSupportsOledAnimToggle, firmwareSupportsBootAnimToggle } from '../lib/firmwareFeatures';
+import { firmwareUsesPhysicalRowOrder, firmwareReportsBallSide, firmwareSupportsOledAnimToggle, firmwareSupportsBootAnimToggle, firmwareSupportsNames } from '../lib/firmwareFeatures';
 import type { Preset } from '../lib/presets';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -40,6 +41,9 @@ export interface KeyballState {
   detectedBallSide: 'left' | 'right' | null;  // ファームが答えたボールの左右（null = 不明・手動で選ぶ）
   oledAnimEnabled: boolean | null;  // OLEDのアニメーションのON/OFF（null = 非対応ファーム）
   bootAnimEnabled: boolean | null;  // 起動アニメーションのON/OFF（null = 非対応ファーム）
+  layerNames: string[] | null;     // レイヤーの名前（''=名前なし。null = 非対応ファーム）
+  gestureNames: string[] | null;   // ジェスチャーの名前（同上）
+  gestureOsAdapt: boolean | null;  // 画面切り替えのジェスチャーをOSに合わせるか（null = 非対応ファーム）
   precision: PrecisionConfig | null;  // 精密モード設定。null = 非対応ファーム
   scrollInertia: ScrollInertiaConfig | null;  // 慣性スクロール設定。null = 非対応ファーム
   layerLedEnable: boolean | null;  // レイヤー連動LED機能の有効/無効。null = 非対応ファーム
@@ -87,6 +91,9 @@ const initialKeyballState = (): KeyballState => ({
   detectedBallSide: null,
   oledAnimEnabled: null,
   bootAnimEnabled: null,
+  layerNames: null,
+  gestureNames: null,
+  gestureOsAdapt: null,
   precision: null,
   scrollInertia: null,
   layerLedEnable: null,
@@ -155,6 +162,14 @@ export function useKeyball() {
       let bootAnimEnabled: boolean | null = null;
       if (firmwareSupportsBootAnimToggle(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
         try { bootAnimEnabled = await hid.current.getBootAnimEnabled(); } catch { /* 非対応なら項目を出さない */ }
+      }
+      let layerNames: string[] | null = null;
+      let gestureNames: string[] | null = null;
+      let gestureOsAdapt: boolean | null = null;
+      if (firmwareSupportsNames(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
+        try { layerNames = await hid.current.getNames(NAME_KIND_LAYER, LAYER_NAME_COUNT); } catch { /* 非対応なら番号で表示 */ }
+        try { gestureNames = await hid.current.getNames(NAME_KIND_GESTURE, GESTURE_NAME_COUNT); } catch { /* 同上 */ }
+        try { gestureOsAdapt = await hid.current.getGestureOsAdapt(); } catch { /* 非対応なら項目を出さない */ }
       }
       let gestureModes: GestureModeConfig[] | null = null;
       let gestureThreshold: GestureThreshold | null = null;
@@ -234,6 +249,9 @@ export function useKeyball() {
         detectedBallSide,
         oledAnimEnabled,
         bootAnimEnabled,
+        layerNames,
+        gestureNames,
+        gestureOsAdapt,
         precision,
         scrollInertia,
         layerLedEnable,
@@ -401,6 +419,29 @@ export function useKeyball() {
     setPartial({ bootAnimEnabled: v });
   }, []);
 
+  const setLayerName = useCallback(async (idx: number, name: string) => {
+    await hid.current.setName(NAME_KIND_LAYER, idx, name);
+    setState(prev => {
+      const layerNames = [...(prev.layerNames ?? Array(LAYER_NAME_COUNT).fill(''))];
+      layerNames[idx] = clampName(name);
+      return { ...prev, layerNames };
+    });
+  }, []);
+
+  const setGestureName = useCallback(async (idx: number, name: string) => {
+    await hid.current.setName(NAME_KIND_GESTURE, idx, name);
+    setState(prev => {
+      const gestureNames = [...(prev.gestureNames ?? Array(GESTURE_NAME_COUNT).fill(''))];
+      gestureNames[idx] = clampName(name);
+      return { ...prev, gestureNames };
+    });
+  }, []);
+
+  const setGestureOsAdapt = useCallback(async (v: boolean) => {
+    await hid.current.setGestureOsAdapt(v);
+    setPartial({ gestureOsAdapt: v });
+  }, []);
+
   const setLayerLedEnable = useCallback(async (v: boolean) => {
     await hid.current.setLayerLedEnable(v);
     setPartial({ layerLedEnable: v });
@@ -497,5 +538,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerName, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

@@ -9,6 +9,7 @@ import {
 } from '../../lib/protocol';
 import { DpiCurveEditor } from '../DpiCurveEditor/DpiCurveEditor';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
+import { NameInput } from '../NameInput/NameInput';
 import { buildHueGradient } from '../../lib/hueGradient';
 
 // キーマップのトラックボールを押した時に、右側に出すトラックボールの設定（2026-10-27、本人希望）。
@@ -51,6 +52,10 @@ interface BallPanelProps {
   gestureWaveSpeed: number[] | null;
   onGestureWaveSpeedChange: (mode: number, speed: number) => Promise<void>;
   onOpenTab: () => void;
+  gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム）
+  onGestureNameChange: (mode: number, name: string) => Promise<void>;
+  gestureOsAdapt: boolean | null;  // 画面切り替えをOSに合わせる（null = 非対応ファーム）
+  onGestureOsAdaptChange: (v: boolean) => Promise<void>;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
 }
@@ -88,7 +93,7 @@ export function BallPanel(p: BallPanelProps) {
     { key: 'cursor', label: 'カーソル', disabled: false },
     opt('scroll', 'スクロール', settings.scrollLayer, L === 0 || amlHere),
     ...(gestureModes
-      ? gestureModes.map((m, i) => opt(`g${i}`, `ジェスチャー${i + 1}`, m.layer, amlHere))
+      ? gestureModes.map((m, i) => opt(`g${i}`, p.gestureNames?.[i] ? `ジェスチャー${i + 1}：${p.gestureNames[i]}` : `ジェスチャー${i + 1}`, m.layer, amlHere))
       : gesture ? [opt('g', 'ジェスチャー', gesture.layer, amlHere)] : []),
   ];
   const precElsewhere = precision ? usedElsewhere(precision.layer) : false;
@@ -208,6 +213,13 @@ export function BallPanel(p: BallPanelProps) {
             const mi = gm ? Number(motion.slice(1)) : -1;
             return (
               <div className="ball-panel__gesture">
+                {gm && p.gestureNames && (
+                  <div className="gesture-row">
+                    <span className="gesture-dir">名前</span>
+                    <NameInput key={`${mi}:${p.gestureNames[mi] ?? ''}`} value={p.gestureNames[mi] ?? ''} placeholder={`ジェスチャー${mi + 1}`}
+                      disabled={disabled} onSave={name => run(() => p.onGestureNameChange(mi, name))} />
+                  </div>
+                )}
                 {dirs.map(([dir, label, contKey]) => (
                   <div key={dir} className="gesture-row">
                     <span className="gesture-dir">{label}</span>
@@ -226,6 +238,11 @@ export function BallPanel(p: BallPanelProps) {
               </div>
             );
           })()}
+          {isGesture && p.gestureOsAdapt !== null && (
+            <ToggleRow label="画面切り替えをOSに合わせる"
+              desc="Windowsにつないだ時、Ctrl+矢印（Macの画面切り替え）をWin+Ctrl+←/→・Win+Tab・Win+Dに置き換えます"
+              checked={p.gestureOsAdapt} disabled={disabled} onChange={v => run(() => p.onGestureOsAdaptChange(v))} />
+          )}
           {p.gestureThreshold && isGesture && (
             <>
               <span className="ball-panel__label">感度（横）</span>

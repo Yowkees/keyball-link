@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:i18n": "node scripts/check-i18n.cjs",
     "preview": "npm run build && vite preview",
     "update-firmware": "bash scripts/build-firmware.sh",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=keyball-link"

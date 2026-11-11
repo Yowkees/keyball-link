@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { ShakeConfig } from '../../lib/protocol';
 import { SHAKE_THRESHOLD_MIN, SHAKE_THRESHOLD_MAX, SHAKE_REVERSALS_MIN, SHAKE_REVERSALS_MAX, SHAKE_RUN_MAX_MS_MIN, SHAKE_RUN_MAX_MS_MAX, SHAKE_RUN_MAX_MS_STEP } from '../../lib/protocol';
@@ -18,20 +20,20 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
   const [editKey, setEditKey] = useState(false);
 
   if (!shake) {
-    return <p className="settings-desc">このファームは非対応です。</p>;
+    return <p className="settings-desc">{translate(TextKey.DoubleFlickCardNotSupportedByThisFirmware)}</p>;
   }
 
   return (
     <>
       <div className="gesture-row">
-        <span className="gesture-dir" data-tip={TIPS.shakeKey}>発動キー</span>
+        <span className="gesture-dir" data-tip={TIPS.shakeKey}>{translate(TextKey.ShakeCardTriggerKey)}</span>
         <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditKey(true)}>
-          {shake.key ? getKeyDisplayLabel(shake.key, keyLayout) : '未設定'}
+          {shake.key ? getKeyDisplayLabel(shake.key, keyLayout) : translate(TextKey.BallPanelNotSet)}
         </button>
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeSens}>感度</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeSens}>{translate(TextKey.AutoMouseLayerCardSensitivity)}</p>
         <SliderControl
           value={shake.threshold} min={SHAKE_THRESHOLD_MIN} max={SHAKE_THRESHOLD_MAX} step={5}
           disabled={disabled || !shake.key} unit="" invert
@@ -40,16 +42,16 @@ export function ShakeCard({ shake, onShakeChange, disabled, keyLayout }: ShakeCa
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeCount}>シェイク回数</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeCount}>{translate(TextKey.ShakeCardShakeCount)}</p>
         <SliderControl
           value={shake.reversals} min={SHAKE_REVERSALS_MIN} max={SHAKE_REVERSALS_MAX} step={1}
-          disabled={disabled || !shake.key} unit="回"
+          disabled={disabled || !shake.key} unit={translate(TextKey.ShakeCardTimes)}
           onCommit={v => onShakeChange({ ...shake, reversals: v })}
         />
       </div>
 
       <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeTime}>振り切る時間の上限</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.shakeTime}>{translate(TextKey.ShakeCardMaximumShakeDuration)}</p>
         <SliderControl
           value={shake.runMaxMs} min={SHAKE_RUN_MAX_MS_MIN} max={SHAKE_RUN_MAX_MS_MAX} step={SHAKE_RUN_MAX_MS_STEP}
           disabled={disabled || !shake.key} unit="ms"

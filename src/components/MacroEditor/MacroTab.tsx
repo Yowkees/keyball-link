@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { MacroSlot, TdSlot, ComboSlot } from '../../lib/protocol';
 import { MacroEditor } from './MacroEditor';
@@ -33,24 +35,21 @@ export function MacroTab({
 }: MacroTabProps) {
   const cards: BoardCard[] = [
     {
-      key: 'macro', title: 'マクロ', tip: TIPS.macro,
+      key: 'macro', get title() { return translate(TextKey.KeyConfigModalMacros); }, tip: TIPS.macro,
       render: () => (
         macroAvailable ? (
           <MacroEditor slots={macroSlots} keyLayout={keyLayout} isConnected={isConnected} onSave={onMacroSave} bufferSize={macroBufferSize} />
         ) : (
-          <p className="settings-desc" style={{ color: 'var(--red)' }}>
-            ⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。<br />
-            通常版のファームを書き込むとマクロが使えます。「ファームウェア」タブから書き込めます。
-          </p>
+          <p className="settings-desc" style={{ color: 'var(--red)' }}>{translate(TextKey.MacroTabLEDFirmwareDoesNotSupportMacros)}<br />{translate(TextKey.MacroTabFlashTheStandardFirmwareFromThe)}</p>
         )
       ),
     },
     ...(tapDanceAvailable ? [{
-      key: 'td', title: 'タップダンス', tip: TIPS.tapdance,
+      key: 'td', get title() { return translate(TextKey.KeyConfigModalTapDance); }, tip: TIPS.tapdance,
       render: () => <TapDanceSection tdSlots={tdSlots} onTdSlotChange={onTdSlotChange} keyLayout={keyLayout} disabled={!isConnected} />,
     }] : []),
     ...(comboAvailable ? [{
-      key: 'combo', title: 'コンボ', tip: TIPS.combo,
+      key: 'combo', get title() { return translate(TextKey.MacroTabCombos); }, tip: TIPS.combo,
       headerRight: <HeaderToggle checked={comboEnabled} disabled={!isConnected} onChange={onComboEnabledChange} />,
       render: () => (
         <ComboSection

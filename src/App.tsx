@@ -1,3 +1,6 @@
+import { translate, useLanguage } from './i18n';
+import { TextKey } from './i18n/text.enum';
+import { LanguageSelect } from './i18n/LanguageSelect';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useKeyball } from './hooks/useKeyball';
 import { LAYOUTS, layoutForBallSide } from './layouts';
@@ -36,7 +39,6 @@ const isDevHost = typeof location !== 'undefined'
   && (location.hostname.startsWith('rp2040.') || location.hostname === 'localhost');
 
 // 開発ではブラウザのタブ名を変えて、本番と見分けられるようにする（2026-10-09、本人希望）
-if (isDevHost && typeof document !== 'undefined') document.title = 'Keyball Link 開発用';
 
 // キー配列に描くトラックボール（右手ボールの時）の位置の微調整（2026-10-28、本人が見た目で指定）
 const BALL_OFFSET_RIGHT: Record<string, { x: number; y: number }> = {
@@ -46,10 +48,10 @@ const BALL_OFFSET_RIGHT: Record<string, { x: number; y: number }> = {
 };
 
 const LAYER_DOT_COLORS = ['#48d6a8', '#e8b44a', '#5fa8e8', '#c98be0'];
-const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
-  { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },
-  { key: 'amber',  dark: '#e8b44a', light: '#b4770a' },
-  { key: 'violet', dark: '#a78bfa', light: '#6d48d6' },
+const ACCENT_SWATCHES: { key: AccentTheme; label: TextKey; dark: string; light: string }[] = [
+  { key: 'mint', label: TextKey.AccentMint, dark: '#48d6a8', light: '#0e8f6c' },
+  { key: 'amber', label: TextKey.AccentAmber, dark: '#e8b44a', light: '#b4770a' },
+  { key: 'violet', label: TextKey.AccentViolet, dark: '#a78bfa', light: '#6d48d6' },
 ];
 
 // LED設定(色相・彩度・明度)から実際に光る色を計算する。数式はLEDSettingsの色相バーと揃えている。
@@ -87,12 +89,12 @@ function getBallFunctionLabel(layer: number, state: {
   precision: { layer: number } | null;
 }): string {
   const tags: string[] = [];
-  if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
-  if (state.precision?.layer === layer) tags.push('精密');
+  if (state.kbSettings.scrollLayer === layer) tags.push(translate(TextKey.Scroll));
+  if (state.precision?.layer === layer) tags.push(translate(TextKey.Precision));
   const modeIdx = state.gestureModes?.findIndex(m => m.layer === layer) ?? -1;
-  if (modeIdx >= 0) tags.push(`ジェスチャー${modeIdx + 1}`);
-  else if (state.gesture?.layer === layer) tags.push('ジェスチャー');
-  return tags.length ? tags.join('・') : 'カーソル';
+  if (modeIdx >= 0) tags.push(translate(TextKey.GestureNumber, { p0: modeIdx + 1 }));
+  else if (state.gesture?.layer === layer) tags.push(translate(TextKey.Gesture));
+  return tags.length ? tags.join('・') : translate(TextKey.Cursor);
 }
 
 interface Toast {
@@ -101,6 +103,11 @@ interface Toast {
 }
 
 export default function App() {
+  const language = useLanguage();
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title = isDevHost ? translate(TextKey.DevelopmentTitle) : 'Keyball Link';
+  }, [language]);
   const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
@@ -144,7 +151,7 @@ export default function App() {
       ballOffset: ballSide === 'right' ? BALL_OFFSET_RIGHT[state.model ?? ''] : undefined,
       ballMirror,
       ballLabel: label,
-      ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
+      get ballTitle() { return translate(TextKey.TrackballLayerHint, { p0: layer, p1: label }); },
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },
     };
   };
@@ -301,9 +308,9 @@ export default function App() {
       setRedoStack([]);
       setCurrentLayer(0);
       setHasUnsaved(true);
-      showToast('レイヤーの並べ替えを保存しました', 'success');
+      showToast(translate(TextKey.AppLayerOrderSaved), 'success');
     } catch (e) {
-      showToast(`保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.SaveError, { p0: e instanceof Error ? e.message : String(e) }));
     } finally {
       setSavingReorder(false);
     }
@@ -325,7 +332,7 @@ export default function App() {
     : [];
 
   const handleKeyClick = (index: number) => {
-    if (pendingOrder) { showToast('並べ替え中はキー編集できません。保存または取り消してください。'); return; }
+    if (pendingOrder) { showToast(translate(TextKey.AppKeysCannotBeEditedWhileReordering)); return; }
     setSelectedKeyIndex(index);
     setBallSelected(false);
     setGuideStep(prev => prev === 'click' ? 'assign' : prev);
@@ -346,7 +353,7 @@ export default function App() {
         setGuideStep(prev => prev === 'assign' ? 'mods' : prev);
       }
     } catch (e) {
-      showToast(`キーコード書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppCouldNotWriteKeycode, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -360,7 +367,7 @@ export default function App() {
       setHasUnsaved(true);
       if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
     } catch (e) {
-      showToast(`元に戻す操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppCouldNotUndo, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -374,7 +381,7 @@ export default function App() {
       setHasUnsaved(true);
       if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
     } catch (e) {
-      showToast(`やり直し操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppCouldNotRedo, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -406,107 +413,107 @@ export default function App() {
   const handleTrackballChange = async (cfg: typeof state.trackball) => {
     if (!cfg) return;
     try { await setTrackball(cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`トラックボール設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotConfigureTrackball, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleLedChange = async (cfg: typeof state.led) => {
     if (!cfg) return;
     try { await setLed(cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`LED設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotConfigureLEDs, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleKbSettingsChange = async (s: KbSettings) => {
     try { await setKbSettings(s); setHasUnsaved(true); }
-    catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveAdvancedSettings, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureChange = async (g: GestureConfig) => {
     try { await setGesture(g); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャー設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureSettings, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureModeChange = async (mode: number, g: GestureModeConfig) => {
     try { await setGestureMode(mode, g); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーモード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureMode, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureThresholdChange = async (t: GestureThreshold) => {
     try { await setGestureThreshold(t); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureSensitivity, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureWaveSpeedChange = async (mode: number, speed: number) => {
     try { await setGestureWaveSpeed(mode, speed); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブ速度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureWaveSpeed, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureWaveEnableChange = async (v: boolean) => {
     try { await setGestureWaveEnable(v); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureWaveSwitch, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureWaveStyleChange = async (mode: number, style: number) => {
     try { await setGestureWaveStyle(mode, style); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブの見た目の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureWaveStyle, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleGestureWaveColorChange = async (mode: number, c: GestureWaveColor) => {
     try { await setGestureWaveColor(mode, c); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブの色の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveGestureWaveColor, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleShakeChange = async (s: ShakeConfig) => {
     try { await setShake(s); setHasUnsaved(true); }
-    catch (e) { showToast(`シェイク設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveShakeSettings, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleDFlickChange = async (d: DFlickConfig) => {
     try { await setDFlick(d); setHasUnsaved(true); }
-    catch (e) { showToast(`ダブルフリック設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveDoubleFlickSettings, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleComboSlotChange = async (idx: number, slot: ComboSlot) => {
     try { await setComboSlot(idx, slot); setHasUnsaved(true); }
-    catch (e) { showToast(`コンボ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveComboSettings, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleDpiCurveChange = async (c: DpiCurveConfig) => {
     try { await setDpiCurve(c); setHasUnsaved(true); }
-    catch (e) { showToast(`DPIカーブ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveDPICurve, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleTdSlotChange = async (idx: number, slot: TdSlot) => {
     try { await setTdSlot(idx, slot); setHasUnsaved(true); }
-    catch (e) { showToast(`タップダンス設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveTapDance, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handlePrecisionChange = async (p: PrecisionConfig) => {
     try { await setPrecisionConfig(p); setHasUnsaved(true); }
-    catch (e) { showToast(`精密モード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSavePrecisionMode, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleScrollInertiaChange = async (c: ScrollInertiaConfig) => {
     try { await setScrollInertiaConfig(c); setHasUnsaved(true); }
-    catch (e) { showToast(`慣性スクロール設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveScrollInertia, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleLayerLedEnableChange = async (v: boolean) => {
     try { await setLayerLedEnable(v); setHasUnsaved(true); }
-    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveLayerLEDs, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleLayerLedChange = async (layer: number, cfg: LayerLedConfig) => {
     try { await setLayerLed(layer, cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(translate(TextKey.AppCouldNotSaveLayerLEDs, { p0: e instanceof Error ? e.message : String(e) })); }
   };
 
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
       setHasUnsaved(true);
-      showToast(`Macro ${idx} を保存しました`, 'success');
+      showToast(translate(TextKey.AppMacroSaved, { p0: idx }), 'success');
     } catch (e) {
-      showToast(`マクロ保存失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppCouldNotSaveMacro, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -549,7 +556,7 @@ export default function App() {
     a.download = `keyball_${state.model ?? 'keymap'}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('JSONをエクスポートしました', 'success');
+    showToast(translate(TextKey.AppJSONExported), 'success');
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -559,11 +566,11 @@ export default function App() {
     reader.onload = async ev => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        if (!data.keymap || !Array.isArray(data.keymap)) throw new Error('keymap が見つかりません');
+        if (!data.keymap || !Array.isArray(data.keymap)) throw new Error(translate(TextKey.AppMissingKeymap));
         if (data.model && state.model && data.model !== state.model) {
-          if (!confirm(`このファイルは ${data.model} 用です。接続中の ${state.model} に読み込むとキー配置が崩れる可能性があります。続行しますか？`)) return;
+          if (!confirm(translate(TextKey.AppThisFileIsForImportingIt, { p0: data.model, p1: state.model }))) return;
         }
-        if (!confirm('キーマップ（と各種設定）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
+        if (!confirm(translate(TextKey.AppImportKeymapAndSettingsCurrentSettings))) return;
         const { info } = state;
         if (!info || !layout) return;
         let count = 0;
@@ -695,9 +702,9 @@ export default function App() {
         }
         setHasUnsaved(false);
         await save();
-        showToast(`インポート完了（${count}キー書き込み）`, 'success');
+        showToast(translate(TextKey.AppImportCompleteKeysWritten, { p0: count }), 'success');
       } catch (err) {
-        showToast(`インポート失敗: ${err instanceof Error ? err.message : String(err)}`);
+        showToast(translate(TextKey.AppImportFailed, { p0: err instanceof Error ? err.message : String(err) }));
       }
     };
     reader.readAsText(file);
@@ -705,12 +712,12 @@ export default function App() {
   };
 
   const handleResetKeymap = async () => {
-    if (!confirm('キーマップをファームウェアのデフォルトに戻します。よろしいですか？')) return;
+    if (!confirm(translate(TextKey.AppResetTheKeymapToFirmwareDefaults))) return;
     try {
       await resetKeymap();
-      showToast('キーマップをリセットしました', 'success');
+      showToast(translate(TextKey.AppKeymapReset), 'success');
     } catch (e) {
-      showToast(`リセット失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppResetFailed, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -719,15 +726,15 @@ export default function App() {
 
   const handleLoadAvrPreset = async () => {
     if (!avrPreset) return;
-    if (!confirm(`キーマップを「${avrPreset.name}」に置き換えます。現在のキー配置は上書きされます。よろしいですか？`)) return;
+    if (!confirm(translate(TextKey.AppReplaceTheKeymapWithCurrentKey, { p0: avrPreset.name }))) return;
     setLoadingPreset(true);
     try {
       await loadPreset(avrPreset);
       setHasUnsaved(false);
       await save();
-      showToast(`「${avrPreset.name}」を読み込みました`, 'success');
+      showToast(translate(TextKey.AppLoaded, { p0: avrPreset.name }), 'success');
     } catch (err) {
-      showToast(`読み込み失敗: ${err instanceof Error ? err.message : String(err)}`);
+      showToast(translate(TextKey.AppCouldNotLoad, { p0: err instanceof Error ? err.message : String(err) }));
     } finally {
       setLoadingPreset(false);
     }
@@ -738,9 +745,9 @@ export default function App() {
       await save();
       setHasUnsaved(false);
       setGuideStep(prev => prev === 'save' ? 'trackball' : prev);
-      showToast('EEPROMに保存しました', 'success');
+      showToast(translate(TextKey.AppSavedToEEPROM), 'success');
     } catch (e) {
-      showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(translate(TextKey.AppSaveFailed, { p0: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -829,18 +836,19 @@ export default function App() {
               src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
               alt="Keyball Link"
             />
-          <span className="app-brand__sub">WEB CONFIGURATOR<span className="app-brand__cursor" /></span>
+          <span className="app-brand__sub">{translate(TextKey.AppWEBCONFIGURATOR)}<span className="app-brand__cursor" /></span>
         </div>
-        <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title="テーマ切替">
-          {theme === 'dark' ? '☀ ライト' : '☾ ダーク'}
+        <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title={translate(TextKey.SwitchTheme)}>
+          {theme === 'dark' ? translate(TextKey.LightTheme) : translate(TextKey.DarkTheme)}
         </button>
+        <LanguageSelect />
         <div className="accent-picker">
           {ACCENT_SWATCHES.map(a => (
             <button
               key={a.key}
               className={`accent-picker__dot ${accentTheme === a.key ? 'accent-picker__dot--active' : ''}`}
               style={{ background: theme === 'dark' ? a.dark : a.light }}
-              title={`アクセントカラー: ${a.key}`}
+              title={translate(TextKey.AppAccentColor, { p0: translate(a.label) })}
               onClick={() => setAccentTheme(a.key)}
             />
           ))}
@@ -849,28 +857,23 @@ export default function App() {
           {isConnected ? (
             <>
               <span className="status status--connected"><span className="status__dot" />{state.deviceName}</span>
-              <button className="btn btn--ghost" onClick={disconnect}>切断</button>
+              <button className="btn btn--ghost" onClick={disconnect}>{translate(TextKey.Disconnect)}</button>
               <div className="import-menu-wrap">
-                <button className="btn btn--ghost" onClick={() => setShowResetMenu(v => !v)} disabled={loadingPreset}>
-                  初期化 {loadingPreset ? '…' : '▾'}
+                <button className="btn btn--ghost" onClick={() => setShowResetMenu(v => !v)} disabled={loadingPreset}>{translate(TextKey.AppReset)}{loadingPreset ? '…' : '▾'}
                 </button>
                 {showResetMenu && (
                   <div className="import-menu" onMouseLeave={() => setShowResetMenu(false)}>
                     <button
                       className="import-menu__item"
                       onClick={() => { setShowResetMenu(false); handleResetKeymap(); }}
-                    >
-                      すべての設定を初期化する
-                      <span className="import-menu__desc">キーマップ・トラックボール（CPI/スクロール等）など全ての設定をKeyball Linkの初期状態に戻します</span>
+                    >{translate(TextKey.AppResetAllSettings)}<span className="import-menu__desc">{translate(TextKey.AppRestoreKeymapTrackballCPIScrollEtc)}</span>
                     </button>
                     <button
                       className="import-menu__item"
                       onClick={() => { setShowResetMenu(false); handleLoadAvrPreset(); }}
                       disabled={!avrPreset}
-                    >
-                      キーマップをRemap版の初期設定にする
-                      <span className="import-menu__desc">
-                        {avrPreset ? 'キーマップだけを置き換えます（トラックボールなど他の設定はそのまま）' : 'このモデルには未対応です'}
+                    >{translate(TextKey.AppRestoreTheRemapDefaultKeymap)}<span className="import-menu__desc">
+                        {avrPreset ? translate(TextKey.AppReplacesOnlyTheKeymapTrackballAnd) : translate(TextKey.AppNotSupportedOnThisModel)}
                       </span>
                     </button>
                   </div>
@@ -880,41 +883,35 @@ export default function App() {
                 className="btn btn--ghost"
                 onClick={handleUndo}
                 disabled={undoStack.length === 0 || pendingOrder !== null}
-                title={undoStack.length === 0 ? '元に戻す操作がありません' : '直前のキー変更を元に戻す (Cmd/Ctrl+Z)'}
-              >
-                ↩ 元に戻す
-              </button>
+                title={undoStack.length === 0 ? translate(TextKey.AppNothingToUndo) : translate(TextKey.AppUndoTheLastKeyChangeCmd)}
+              >{translate(TextKey.AppUndo)}</button>
               <button
                 className="btn btn--ghost"
                 onClick={handleRedo}
                 disabled={redoStack.length === 0 || pendingOrder !== null}
-                title={redoStack.length === 0 ? 'やり直す操作がありません' : '元に戻した変更をやり直す (Cmd/Ctrl+Shift+Z)'}
-              >
-                ↪ やり直し
-              </button>
-              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップ・マクロ・コンボ・タップダンス・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存">エクスポート</button>
-              <label className="btn btn--ghost" title="JSONファイルからキーマップ・マクロ・各種設定を読み込む" style={{ cursor: 'pointer' }}>
-                インポート
-                <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />
+                title={redoStack.length === 0 ? translate(TextKey.AppNothingToRedo) : translate(TextKey.AppRedoTheUndoneChangeCmdCtrl)}
+              >{translate(TextKey.AppRedo)}</button>
+              <button className="btn btn--ghost" onClick={handleExportJSON} title={translate(TextKey.AppExportKeymapMacrosCombosTapDance)}>{translate(TextKey.AppExport)}</button>
+              <label className="btn btn--ghost" title={translate(TextKey.AppImportKeymapMacrosAndSettingsFrom)} style={{ cursor: 'pointer' }}>{translate(TextKey.AppImport)}<input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />
               </label>
               <button
                 className={`btn btn--primary ${hasUnsaved ? 'btn--unsaved' : ''}`}
                 data-guide="save-btn"
                 onClick={handleSave}
-                title={hasUnsaved ? '未保存の変更があります' : '設定をキーボードに保存'}
+                title={hasUnsaved ? translate(TextKey.AppYouHaveUnsavedChanges) : translate(TextKey.AppSaveSettingsToTheKeyboard)}
               >
                 {/* 未保存の有無で文字が変わってもボタンの幅を変えない（左に並ぶボタンが動かないように。
                     2026-10-23、本人希望）。長い方の文字を見えない形で重ねて、幅を確保している */}
                 <span className="btn-fixed-label">
-                  <span className="btn-fixed-label__sizer" aria-hidden="true">● 保存する</span>
-                  <span>{hasUnsaved ? '● 保存する' : '保存'}</span>
+                  <span className="btn-fixed-label__sizer" aria-hidden="true">{translate(TextKey.AppSaveChanges)}</span>
+                  <span>{hasUnsaved ? translate(TextKey.AppSaveChanges) : translate(TextKey.Save)}</span>
                 </span>
               </button>
             </>
           ) : (
             <>
               {!state.isWebHIDSupported && (
-                <span className="status status--error">WebHID非対応ブラウザです (Chrome推奨)</span>
+                <span className="status status--error">{translate(TextKey.AppThisBrowserDoesNotSupportWebHID)}</span>
               )}
               {state.connectionState === 'error' && (
                 <span className="status status--error">{state.errorMessage}</span>
@@ -928,7 +925,7 @@ export default function App() {
                   onClick={connect}
                   disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                 >
-                  {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
+                  {state.connectionState === 'connecting' ? translate(TextKey.AppConnecting) : translate(TextKey.ConnectKeyboard)}
                 </button>
               )}
             </>
@@ -953,27 +950,27 @@ export default function App() {
       <main className="app-main">
         {state.isLoading ? (
           <div className="placeholder">
-            <p className="placeholder-text">キーマップを読み込んでいます…</p>
-            <p className="placeholder-note">しばらくお待ちください（数秒かかる場合があります）</p>
+            <p className="placeholder-text">{translate(TextKey.AppLoadingKeymap)}</p>
+            <p className="placeholder-note">{translate(TextKey.AppPleaseWaitThisMayTakeA)}</p>
           </div>
         ) : (
           <>
             <div className="tabs">
-              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>キーマップ</button>
-              <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>トラックボール設定</button>
-              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>マクロ拡張</button>
-              <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
-              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
+              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>{translate(TextKey.Keymap)}</button>
+              <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>{translate(TextKey.TrackballSettings)}</button>
+              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>{translate(TextKey.MacroSettings)}</button>
+              <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>{translate(TextKey.AdvancedSettings)}</button>
+              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>{translate(TextKey.Firmware)}</button>
               {/* タイピングゲームはまだ開発だけで公開する（本番では隠す。2026-10-28、本人希望） */}
-              {isDevHost && <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>タイピングゲーム</button>}
-              <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
+              {isDevHost && <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>{translate(TextKey.TypingGame)}</button>}
+              <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>{translate(TextKey.Feedback)}</button>
             </div>
 
             {activeTab === 'keymap' && !isConnected && (
               <>
                 <div className="placeholder">
-                  <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
-                  <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
+                  <p className="placeholder-text">{translate(TextKey.AppConnectTheKeyboardViaUSBThen)}</p>
+                  <p className="placeholder-note">{translate(TextKey.AppABrowserWithWebHIDSupportSuch)}</p>
                   <div className="placeholder-actions">
                     <button
                       className="btn btn--primary placeholder-connect"
@@ -981,15 +978,13 @@ export default function App() {
                       onClick={connect}
                       disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                     >
-                      {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
+                      {state.connectionState === 'connecting' ? translate(TextKey.AppConnecting) : translate(TextKey.ConnectKeyboard)}
                     </button>
                     {!showGuide && (
                       <button
                         className="placeholder-guide-link"
                         onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
-                      >
-                        初めての方はこちら →
-                      </button>
+                      >{translate(TextKey.AppNewHereStartHere)}</button>
                     )}
                   </div>
                 </div>
@@ -998,8 +993,8 @@ export default function App() {
 
             {activeTab === 'keymap' && isConnected && !layout && (
               <div className="placeholder">
-                <p className="placeholder-text">モデルID {state.info?.model} は未対応です</p>
-                <p className="placeholder-note">keyball39 / 44 / 61 のみサポートしています</p>
+                <p className="placeholder-text">{translate(TextKey.AppModelID)}{state.info?.model}{translate(TextKey.AppIsNotSupported)}</p>
+                <p className="placeholder-note">{translate(TextKey.AppOnlyKeyballAreSupported)}</p>
               </div>
             )}
 
@@ -1007,13 +1002,11 @@ export default function App() {
               <div className="keymap-view" ref={keymapViewRef}>
                 {pendingOrder && (
                   <div className="reorder-bar">
-                    <span>🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。</span>
+                    <span>{translate(TextKey.AppPreviewingTheNewLayerOrderSave)}</span>
                     <button className="btn btn--primary btn--small" disabled={savingReorder} onClick={handleSaveReorder} style={{ marginLeft: 'auto' }}>
-                      {savingReorder ? '保存中…' : '保存'}
+                      {savingReorder ? translate(TextKey.AppSaving) : translate(TextKey.Save)}
                     </button>
-                    <button className="btn btn--ghost btn--small" disabled={savingReorder} onClick={() => { setPendingOrder(null); setSelectedKeyIndex(null); }}>
-                      取り消し
-                    </button>
+                    <button className="btn btn--ghost btn--small" disabled={savingReorder} onClick={() => { setPendingOrder(null); setSelectedKeyIndex(null); }}>{translate(TextKey.AppCancel)}</button>
                   </div>
                 )}
 
@@ -1024,7 +1017,7 @@ export default function App() {
                       <div className="layer-tabs">
                         {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
                           const src = pendingOrder ? pendingOrder[i] : i;
-                          const dragTitle = pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます';
+                          const dragTitle = pendingOrder && src !== i ? translate(TextKey.AppOriginalLayerDragToReorder, { p0: src }) : translate(TextKey.AppDragToReorder);
                           return (
                             <button
                               key={i}
@@ -1045,20 +1038,18 @@ export default function App() {
                         <button
                           className={`layer-tab ${showAllLayers ? 'layer-tab--active' : ''}`}
                           onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
-                          title="すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）"
-                        >
-                          全レイヤー
-                        </button>
+                          title={translate(TextKey.AppShowAllLayersSideBySide)}
+                        >{translate(TextKey.AppAllLayers)}</button>
                       </div>
                       {/* 選んでいるレイヤーがオートマウスのレイヤーなら、タブの横に示す（設定はトラックボール設定タブ）（2026-10-27、本人希望） */}
                       {!showAllLayers && state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === state.currentLayer && (
-                        <span className="layer-toolbar__aml">オートマウス</span>
+                        <span className="layer-toolbar__aml">{translate(TextKey.AppAutoMouse)}</span>
                       )}
                       <div className="ball-toggle">
-                        <span className="ball-toggle__label">{ballSideAuto ? 'ボール（自動）' : 'ボール'}</span>
-                        <div className="ball-toggle__group" title={ballSideAuto ? 'キーボードから読み取ったボールの位置を表示しています' : undefined}>
-                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('left')}>左</button>
-                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('right')}>右</button>
+                        <span className="ball-toggle__label">{ballSideAuto ? translate(TextKey.AppBallAutomatic) : translate(TextKey.AppBall)}</span>
+                        <div className="ball-toggle__group" title={ballSideAuto ? translate(TextKey.AppShowingTheBallPositionReportedBy) : undefined}>
+                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('left')}>{translate(TextKey.AppLeft)}</button>
+                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('right')}>{translate(TextKey.AppRight)}</button>
                         </div>
                       </div>
                     </div>
@@ -1069,7 +1060,7 @@ export default function App() {
                           const codes = layout.map(k => displayKeymap[li]?.[k.row]?.[k.col] ?? 0);
                           return (
                             <div key={li} className="all-layers-item">
-                              <div className="all-layers-label">Layer {li}</div>
+                              <div className="all-layers-label">{translate(TextKey.AppLayer)}{li}</div>
                               <div className="layout-scroll">
                                 <KeyboardLayout
                                   layout={layout}
@@ -1089,9 +1080,7 @@ export default function App() {
                             </div>
                           );
                         })}
-                        <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
-                          キーをクリックすると、そのレイヤーに移動して編集できます
-                        </p>
+                        <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>{translate(TextKey.AppClickAKeyToSwitchTo)}</p>
                       </div>
                     ) : (
                       <div
@@ -1143,7 +1132,7 @@ export default function App() {
 
                   <div className="keymap-right-panel" style={keymapLeftHeight ? { height: keymapLeftHeight, maxHeight: keymapLeftHeight } : undefined}>
                     {pendingOrder ? (
-                      <div className="key-config-panel__empty">並べ替え中はキー編集できません</div>
+                      <div className="key-config-panel__empty">{translate(TextKey.AppCannotEditKeysWhileReordering)}</div>
                     ) : ballSelected ? (
                       <div className="key-config-panel ball-panel-wrap">
                         <BallPanel
@@ -1197,18 +1186,16 @@ export default function App() {
                   <span>Keyball Link v{__APP_VERSION__}</span>
                   {isConnected && (
                     <span>
-                      {' '}・ ファームウェア:{' '}
+                      {' '}{translate(TextKey.AppFirmware)}{' '}
                       {state.firmwareVersion ? (
                         <>
                           {formatVersion(state.firmwareVersion)}
                           {state.model && isOlderVersion(state.firmwareVersion, latestFwVersion(state.model, chip)) && (
-                            <span className="app-footer__warn">
-                              （最新版 {formatVersion(latestFwVersion(state.model, chip))} があります。「ファームウェア」タブから更新できます）
-                            </span>
+                            <span className="app-footer__warn">{translate(TextKey.AppLatest)}{formatVersion(latestFwVersion(state.model, chip))}{translate(TextKey.AppAvailableUpdateFromTheFirmwareTab)}</span>
                           )}
                         </>
                       ) : (
-                        <span className="app-footer__warn">バージョン情報なし（古い版の可能性があります。更新をおすすめします）</span>
+                        <span className="app-footer__warn">{translate(TextKey.AppNoVersionInformationPossiblyOutdatedUpdate)}</span>
                       )}
                     </span>
                   )}
@@ -1255,11 +1242,11 @@ export default function App() {
                 bootAnimEnabled={state.bootAnimEnabled}
                 onBootAnimChange={async v => {
                   try { await setBootAnimEnabled(v); }
-                  catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                  catch (e) { showToast(translate(TextKey.AppSaveFailed, { p0: e instanceof Error ? e.message : String(e) })); }
                 }}
                 onOledAnimChange={async v => {
                   try { await setOledAnimEnabled(v); }
-                  catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                  catch (e) { showToast(translate(TextKey.AppSaveFailed, { p0: e instanceof Error ? e.message : String(e) })); }
                 }}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {

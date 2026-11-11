@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+import { TextKey } from '../i18n/text.enum';
 // Intel HEX フォーマットをバイナリに変換する
 export function parseIntelHex(hexText: string): Uint8Array {
   const FLASH_SIZE = 32768; // ATmega32U4: 32KB
@@ -34,7 +36,7 @@ export function parseIntelHex(hexText: string): Uint8Array {
 
   // データが1バイトもない＝HEX形式でないファイルの可能性が高い
   if (maxAddr === 0) {
-    throw new Error('有効なデータが見つかりません。Intel HEX形式のファームウェアファイルか確認してください。');
+    throw new Error(translate(TextKey.IhexNoValidDataFoundCheckThat));
   }
 
   // ページサイズ（128B）単位に切り上げ

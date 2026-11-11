@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useMemo, useRef, useState } from 'react';
 import { DPI_CURVE_X, DPI_CURVE_Y_MAX, defaultDpiCurvePoints, computeDpiCurveLut } from '../../lib/protocol';
 
@@ -116,16 +118,16 @@ export function DpiCurveEditor({ points, disabled, onCommit, interactive = true,
           ))}
         </svg>
         {interactive && <div className="dpi-curve__axis-y">
-          <span>速い</span>
-          <span>出力の速さ</span>
-          <span>遅い</span>
+          <span>{translate(TextKey.DpiCurveEditorFast)}</span>
+          <span>{translate(TextKey.DpiCurveEditorOutputSpeed)}</span>
+          <span>{translate(TextKey.DpiCurveEditorSlow)}</span>
         </div>}
       </div>
       {/* 見るだけのプレビュー（加速度のグラフ）では軸の説明・数値を出さない（2026-10-06、本人希望） */}
       {interactive && <div className="dpi-curve__axis-x">
-        <span>遅い</span>
-        <span>動きの速さ（入力）</span>
-        <span>速い</span>
+        <span>{translate(TextKey.DpiCurveEditorSlow)}</span>
+        <span>{translate(TextKey.DpiCurveEditorMovementSpeedInput)}</span>
+        <span>{translate(TextKey.DpiCurveEditorFast)}</span>
       </div>}
       {interactive && <div className="dpi-curve__values">
         {DPI_CURVE_X.map((x, i) => (
@@ -133,9 +135,7 @@ export function DpiCurveEditor({ points, disabled, onCommit, interactive = true,
         ))}
       </div>}
       {interactive && (
-        <button className="btn btn--ghost btn--small" onClick={handleReset} disabled={disabled} style={{ marginTop: 8 }}>
-          直線にリセット
-        </button>
+        <button className="btn btn--ghost btn--small" onClick={handleReset} disabled={disabled} style={{ marginTop: 8 }}>{translate(TextKey.DpiCurveEditorResetToLinear)}</button>
       )}
     </div>
   );

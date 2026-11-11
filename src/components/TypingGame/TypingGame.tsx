@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useEffect, useRef, useState } from 'react';
 import { newRomaji, typeKey, isFinished, guide, type RomajiState } from './romaji';
 import { pickWords, type Word } from './words';
@@ -17,9 +19,9 @@ type Level = 'easy' | 'normal' | 'hard';
 // words: 1回のゲームで出る言葉の数 / onField: 画面に同時に出すカードの数
 // speed: カードの動く速さ（画面の幅・高さに対する％／秒） / life: カードの制限時間（秒） / small: カードを小さくする
 const LEVELS: Record<Level, { name: string; words: number; onField: number; speed: number; life: number; small: boolean; desc: string }> = {
-  easy:   { name: 'かんたん',   words: 10, onField: 3, speed: 3,  life: 16, small: false, desc: '短い言葉・ゆっくり' },
-  normal: { name: 'ふつう',     words: 15, onField: 5, speed: 9,  life: 12, small: false, desc: 'いろいろな長さ' },
-  hard:   { name: 'むずかしい', words: 20, onField: 6, speed: 15, life: 10, small: true,  desc: '長い言葉・小さく速いカード' },
+  easy:   { get name() { return translate(TextKey.TypingGameEasy); },   words: 10, onField: 3, speed: 3,  life: 16, small: false, get desc() { return translate(TextKey.TypingGameShortWordsSlowMovement); } },
+  normal: { get name() { return translate(TextKey.TypingGameNormal); },     words: 15, onField: 5, speed: 9,  life: 12, small: false, get desc() { return translate(TextKey.TypingGameWordsOfDifferentLengths); } },
+  hard:   { get name() { return translate(TextKey.TypingGameHard); }, words: 20, onField: 6, speed: 15, life: 10, small: true,  get desc() { return translate(TextKey.TypingGameLongWordsSmallFastCards); } },
 };
 const LIVES = 3;
 const BONUS_RATE = 0.15;    // ボーナスカードが出る確率
@@ -245,7 +247,7 @@ export function TypingGame() {
     s.maxCombo = Math.max(s.maxCombo, nextCombo);
     const pts = wordPoints(card.word, nextCombo, card.bonus);
     put({ score: live.current.score + pts, combo: nextCombo });
-    addPop(card.id, `+${pts}${nextCombo >= 2 ? `  ${nextCombo}コンボ` : ''}`, card.bonus ? 'bonus' : 'ok');
+    addPop(card.id, translate(TextKey.TypingGame2, { p0: pts, p1: nextCombo >= 2 ? `  ${nextCombo}コンボ` : '' }), card.bonus ? 'bonus' : 'ok');
     setActiveId(null);
     activeRef.current = null;
     setRomaji(null);
@@ -260,7 +262,7 @@ export function TypingGame() {
   // 時間切れ: ライフを1つ減らし、コンボを切る
   const expire = (id: number) => {
     if (!pos.current.has(id)) return;
-    addPop(id, '時間切れ', 'lost');
+    addPop(id, translate(TextKey.TypingGameTimeUp), 'lost');
     const left = live.current.lives - 1;
     put({ lives: left, combo: 0 });
     if (left <= 0) { endGame(live.current.score, true); return; }
@@ -286,10 +288,10 @@ export function TypingGame() {
       if (e.isComposing || e.key === 'Process' || e.keyCode === 229) return;
       if (e.key.length !== 1) return;
       e.preventDefault();
-      if (!active || !romaji) { setMsg('先に打ちたいカードをクリックしてください'); return; }
+      if (!active || !romaji) { setMsg(translate(TextKey.TypingGameClickTheCardYouWantTo)); return; }
       setMsg(null);
       const next = typeKey(romaji, e.key.toLowerCase());
-      if (!next) { miss(); setMsg(`「${e.key}」は違います`); return; }
+      if (!next) { miss(); setMsg(translate(TextKey.TypingGameIsIncorrect, { p0: e.key })); return; }
       hit();
       if (isFinished(next)) finishWord(active);
       else setRomaji(next);
@@ -301,7 +303,7 @@ export function TypingGame() {
   // 日本語入力オンの判定: 変換前の文字（ひらがな＋打ちかけのローマ字）が読みの先頭と合っているか
   const onComposition = (data: string) => {
     if (!active) return;
-    if (active.word.lang === 'en') { setMsg('英単語は日本語入力をオフ（英数）にして打ちます'); return; }
+    if (active.word.lang === 'en') { setMsg(translate(TextKey.TypingGameTurnOffJapaneseInputToType)); return; }
     const t = normalizeIme(data);
     const m = /[a-z']*$/.exec(t);
     const pending = m ? m[0] : '';
@@ -310,7 +312,7 @@ export function TypingGame() {
     const ok = reading.startsWith(kana);
     if (!ok && !ime?.wrong) miss();
     else if (ok) hit();
-    setMsg(ok ? null : '違う文字が入っています（BackSpaceで消して打ち直し）');
+    setMsg(ok ? null : translate(TextKey.TypingGameIncorrectCharactersUseBackspaceAndTry));
     if (ok && kana === reading && pending === '') { finishWord(active); return; }
     setIme({ ok: ok ? kana.length : 0, pending, wrong: !ok });
   };
@@ -319,26 +321,26 @@ export function TypingGame() {
   const onCommit = (text: string) => {
     if (!active || text === '') return;
     if (text === active.word.text || normalizeIme(text) === active.word.kana) finishWord(active);
-    else if (active.word.lang === 'ja') { miss(); setIme(null); setMsg('違う言葉で確定されました。もう一度打ってください'); }
+    else if (active.word.lang === 'ja') { miss(); setIme(null); setMsg(translate(TextKey.TypingGameIncorrectWordCommittedPleaseTryAgain)); }
     if (inputRef.current) inputRef.current.value = '';
   };
 
   return (
     <div className="typing-game">
       <div className="typing-game__head">
-        <span className="typing-game__title">タイピングゲーム</span>
+        <span className="typing-game__title">{translate(TextKey.TypingGame)}</span>
         {phase !== 'ready' && <span className="typing-game__stage">{lv.name}</span>}
         {phase === 'play' && (
           <>
-            <span className="typing-game__lives" aria-label={`ライフ${lives}`}>
+            <span className="typing-game__lives" aria-label={translate(TextKey.TypingGameLives, { p0: lives })}>
               {Array.from({ length: LIVES }, (_, i) => <span key={i} className={i < lives ? 'typing-game__life' : 'typing-game__life typing-game__life--lost'}>♥</span>)}
             </span>
-            <span className="typing-game__score">{score} 点</span>
-            {combo >= 2 && <span key={combo} className="typing-game__combo">{combo} コンボ</span>}
-            <span className="typing-game__left">残り {cards.length + queue.length} 語</span>
+            <span className="typing-game__score">{score}{translate(TextKey.TypingGamePoints)}</span>
+            {combo >= 2 && <span key={combo} className="typing-game__combo">{combo}{translate(TextKey.MacroTabCombos)}</span>}
+            <span className="typing-game__left">{translate(TextKey.TypingGameRemaining)}{cards.length + queue.length}{translate(TextKey.TypingGameWords)}</span>
           </>
         )}
-        {best !== null && <span className="typing-game__best">ベスト {best} 点</span>}
+        {best !== null && <span className="typing-game__best">{translate(TextKey.TypingGameBest)}{best}{translate(TextKey.TypingGamePoints)}</span>}
       </div>
 
       <div className={`typing-game__field ${lv.small ? 'typing-game__field--small' : ''}`}>
@@ -346,7 +348,7 @@ export function TypingGame() {
         <input
           ref={inputRef}
           className="typing-game__input"
-          aria-label="入力"
+          aria-label={translate(TextKey.TypingGameInput)}
           autoComplete="off"
           onCompositionUpdate={e => onComposition(e.data)}
           onCompositionEnd={e => { if (activeRef.current !== null) onCommit(e.data); }}
@@ -355,22 +357,22 @@ export function TypingGame() {
 
         {phase === 'ready' && (
           <div className="typing-game__center">
-            <p className="typing-game__lead">動いているカードから好きなものをトラックボールで狙ってクリックし、その言葉を打ちます。</p>
+            <p className="typing-game__lead">{translate(TextKey.TypingGameUseTheTrackballToAimAt)}</p>
             <ul className="typing-game__rules">
-              <li>カードの下のバーは残り時間です。時間切れで消えるとライフ（♥）が減り、0でゲームオーバー</li>
-              <li>間違えずに続けて打つとコンボで点数アップ。金色のカードは点数3倍（小さくて速い）</li>
-              <li>日本語は、日本語入力オン・オフどちらでも打てます（オフの時はローマ字で。し＝shi / si など、どの打ち方でもOK）</li>
-              <li>英単語は日本語入力をオフ（英数）にして打ちます。途中でやめる時は Esc</li>
+              <li>{translate(TextKey.TypingGameTheBarBelowEachCardShows)}</li>
+              <li>{translate(TextKey.TypingGameConsecutiveCorrectWordsEarnComboPoints)}</li>
+              <li>{translate(TextKey.TypingGameJapaneseWorksWithTheIMEOn)}</li>
+              <li>{translate(TextKey.TypingGameTurnOffJapaneseInputForEnglish)}</li>
             </ul>
             <div className="typing-game__levels">
               {(Object.keys(LEVELS) as Level[]).map(l => (
                 <button key={l} type="button" className={`typing-level ${level === l ? 'typing-level--on' : ''}`} onClick={() => chooseLevel(l)}>
                   <b>{LEVELS[l].name}</b>
-                  <span>{LEVELS[l].desc}・{LEVELS[l].words}語</span>
+                  <span>{LEVELS[l].desc}・{LEVELS[l].words}{translate(TextKey.TypingGameWords)}</span>
                 </button>
               ))}
             </div>
-            <button className="btn btn--primary typing-game__start" onClick={start}>スタート</button>
+            <button className="btn btn--primary typing-game__start" onClick={start}>{translate(TextKey.TypingGameStart)}</button>
           </div>
         )}
 
@@ -432,20 +434,20 @@ export function TypingGame() {
 
         {phase === 'result' && result && (
           <div className="typing-game__center">
-            <p className="typing-game__lead">{result.over ? 'ゲームオーバー' : 'クリア！ おつかれさまでした'}</p>
-            <p className="typing-game__final">{result.score} 点</p>
+            <p className="typing-game__lead">{result.over ? translate(TextKey.TypingGameGameOver) : translate(TextKey.TypingGameCompleteWellDone)}</p>
+            <p className="typing-game__final">{result.score}{translate(TextKey.TypingGamePoints)}</p>
             <div className="typing-game__result">
-              <span>打てた言葉</span><b>{result.cleared} / {result.total} 語</b>
-              <span>最大コンボ</span><b>{result.maxCombo}</b>
-              <span>狙う時間（1語あたり）</span><b>{sec(result.aim)} 秒</b>
-              <span>打つ時間（1語あたり）</span><b>{sec(result.type)} 秒</b>
-              <span>打ち間違い</span><b>{result.miss} 回</b>
-              <span>正確さ</span><b>{result.keys + result.miss ? Math.round(result.keys / (result.keys + result.miss) * 100) : 100}%</b>
+              <span>{translate(TextKey.TypingGameWordsCompleted)}</span><b>{result.cleared} / {result.total}{translate(TextKey.TypingGameWords)}</b>
+              <span>{translate(TextKey.TypingGameBestCombo)}</span><b>{result.maxCombo}</b>
+              <span>{translate(TextKey.TypingGameAimingTimePerWord)}</span><b>{sec(result.aim)}{translate(TextKey.TypingGameSeconds)}</b>
+              <span>{translate(TextKey.TypingGameTypingTimePerWord)}</span><b>{sec(result.type)}{translate(TextKey.TypingGameSeconds)}</b>
+              <span>{translate(TextKey.TypingGameTypingMistakes)}</span><b>{result.miss}{translate(TextKey.ShakeCardTimes)}</b>
+              <span>{translate(TextKey.TypingGameAccuracy)}</span><b>{result.keys + result.miss ? Math.round(result.keys / (result.keys + result.miss) * 100) : 100}%</b>
             </div>
-            {best !== null && result.score >= best && result.score > 0 && <p className="typing-game__new">ベスト更新！</p>}
+            {best !== null && result.score >= best && result.score > 0 && <p className="typing-game__new">{translate(TextKey.TypingGameNewBest)}</p>}
             <div className="typing-game__again">
-              <button className="btn btn--primary typing-game__start" onClick={start}>もう一度</button>
-              <button className="btn typing-game__start" onClick={() => setPhase('ready')}>難易度を変える</button>
+              <button className="btn btn--primary typing-game__start" onClick={start}>{translate(TextKey.TypingGamePlayAgain)}</button>
+              <button className="btn typing-game__start" onClick={() => setPhase('ready')}>{translate(TextKey.TypingGameChangeDifficulty)}</button>
             </div>
           </div>
         )}
@@ -453,7 +455,7 @@ export function TypingGame() {
 
       <p className={`typing-game__msg ${msg ? 'typing-game__msg--warn' : ''}`}>
         {msg ? `⚠ ${msg}`
-          : phase === 'play' ? (activeId === null ? '打ちたいカードをクリック（残り時間の少ないカードから片付けよう）' : '打ってください（別のカードをクリックすると替えられます／Escでやめる）') : ' '}
+          : phase === 'play' ? (activeId === null ? translate(TextKey.TypingGameClickACardToTypeIt) : translate(TextKey.TypingGameTypeNowClickAnotherCardTo)) : ' '}
       </p>
     </div>
   );

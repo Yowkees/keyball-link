@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { KeyLayout } from '../../layouts/types';
 
@@ -140,9 +142,9 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
   const exportData = () => {
     const lines = Array.from({ length: LED_COUNT }, (_, i) => {
       const m = mapping[i];
-      if (!m) return `LED ${String(i).padStart(2)}: 未記録`;
-      if (m.type === 'skip')       return `LED ${String(i).padStart(2)}: スキップ`;
-      if (m.type === 'underglow')  return `LED ${String(i).padStart(2)}: アンダーグロウ (x=${m.x}, y=${m.y})`;
+      if (!m) return translate(TextKey.LedTestPanelLEDNotRecorded, { p0: String(i).padStart(2) });
+      if (m.type === 'skip')       return translate(TextKey.LedTestPanelLEDSkipped, { p0: String(i).padStart(2) });
+      if (m.type === 'underglow')  return translate(TextKey.LedTestPanelLEDUnderglowXY, { p0: String(i).padStart(2), p1: m.x, p2: m.y });
       const k = layout[m.keyIndex];
       return `LED ${String(i).padStart(2)}: ${k.id}  row=${k.row} col=${k.col}`;
     });
@@ -162,12 +164,10 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
   if (done) {
     return (
       <div className="led-test-panel">
-        <h2 className="settings-card-title">LED診断 — 完了</h2>
-        <p className="led-test-desc">
-          記録が完了しました。「クリップボードにコピー」を押して、チャットにそのまま貼り付けてください。
-        </p>
+        <h2 className="settings-card-title">{translate(TextKey.LedTestPanelLEDDiagnosticsComplete)}</h2>
+        <p className="led-test-desc">{translate(TextKey.LedTestPanelRecordingCompleteClickCopyToClipboard)}</p>
         <button className="btn btn--primary" onClick={exportData}>
-          {copied ? 'コピーしました！' : 'クリップボードにコピー'}
+          {copied ? translate(TextKey.LedTestPanelCopied) : translate(TextKey.LedTestPanelCopyToClipboard)}
         </button>
         <div className="led-mapping-table">
           {Array.from({ length: LED_COUNT }, (_, i) => {
@@ -178,11 +178,11 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
               : m.type === 'underglow' ? 'led-map-row--underglow'
               :                          'led-map-row--skip';
             const label = !m
-              ? '未記録'
+              ? translate(TextKey.LedTestPanelNotRecorded)
               : m.type === 'skip'
-              ? 'スキップ'
+              ? translate(TextKey.LedTestPanelSkip)
               : m.type === 'underglow'
-              ? `アンダーグロウ (x=${m.x}, y=${m.y})`
+              ? translate(TextKey.LedTestPanelUnderglowXY, { p0: m.x, p1: m.y })
               : (() => { const k = layout[m.keyIndex]; return `${k.id} (row=${k.row}, col=${k.col})`; })();
             return (
               <div key={i} className={`led-map-row ${cls}`}>
@@ -210,38 +210,31 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
     <div className="led-test-panel led-test-panel--embedded">
       {active === null ? (
         <>
-          <p className="led-test-desc">
-            「テスト開始」を押すと LED 0 がオレンジ色で点灯します。
-            キーLEDはレイアウト図のキーをクリック、アンダーグロウは「アンダーグロウ位置を指定」を押してからキーとキーの間など実際の位置をクリックしてください。
-          </p>
-          <button className="btn btn--primary" onClick={() => sendLed(0)} disabled={busy}>
-            テスト開始
-          </button>
+          <p className="led-test-desc">{translate(TextKey.LedTestPanelStartTestLightsLEDOrangeFor)}</p>
+          <button className="btn btn--primary" onClick={() => sendLed(0)} disabled={busy}>{translate(TextKey.LedTestPanelStartTest)}</button>
         </>
       ) : (
         <>
           <div className="led-test-controls">
             <span className="led-test-index">LED {active} / {LED_COUNT - 1}</span>
-            <span className="led-test-progress">{recordedCount} / {LED_COUNT} 記録済み</span>
-            <button className="btn btn--ghost" onClick={goBack} disabled={busy || active === 0}>← 戻る</button>
+            <span className="led-test-progress">{recordedCount} / {LED_COUNT}{translate(TextKey.LedTestPanelRecorded)}</span>
+            <button className="btn btn--ghost" onClick={goBack} disabled={busy || active === 0}>{translate(TextKey.LedTestPanelBack)}</button>
             <button
               className={`btn ${pickingUnderglow ? 'btn--primary' : 'btn--ghost'}`}
               onClick={() => setPickingUnderglow(p => !p)}
               disabled={busy}
             >
-              {pickingUnderglow ? '▶ 位置をクリック中…' : 'アンダーグロウ位置を指定'}
+              {pickingUnderglow ? translate(TextKey.LedTestPanelClickAPosition) : translate(TextKey.LedTestPanelSetUnderglowPosition)}
             </button>
-            <button className="btn btn--ghost" onClick={skipLed} disabled={busy}>スキップ</button>
-            <button className="btn btn--ghost" onClick={() => sendLed(null)} disabled={busy}>終了</button>
+            <button className="btn btn--ghost" onClick={skipLed} disabled={busy}>{translate(TextKey.LedTestPanelSkip)}</button>
+            <button className="btn btn--ghost" onClick={() => sendLed(null)} disabled={busy}>{translate(TextKey.LedTestPanelFinish)}</button>
           </div>
 
           {pickingUnderglow && (
-            <p className="led-test-hint">
-              光っているアンダーグロウLEDの位置をキーとキーの間などクリックして指定してください
-            </p>
+            <p className="led-test-hint">{translate(TextKey.LedTestPanelClickThePhysicalPositionOfThe)}</p>
           )}
           {!pickingUnderglow && (
-            <p className="led-test-hint">点灯したキーをクリック、アンダーグロウの場合は上のボタンを押してください</p>
+            <p className="led-test-hint">{translate(TextKey.LedTestPanelClickTheLitKeyOrUse)}</p>
           )}
 
           <div className="led-test-layout-wrap">
@@ -288,7 +281,7 @@ export function LedTestPanel({ layout, ballSide, onTestLed }: LedTestPanelProps)
                   key={led}
                   className="underglow-dot--recorded"
                   style={{ left: pixX - 7, top: pixY - 7 }}
-                  title={`LED ${led}: アンダーグロウ (x=${x}, y=${y})`}
+                  title={translate(TextKey.LedTestPanelLEDUnderglowXY, { p0: led, p1: x, p2: y })}
                 />
               ))}
 

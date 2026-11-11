@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import type { LedConfig, LayerLedConfig } from '../../lib/protocol';
 import { LAYER_LED_DEFAULT } from '../LayerFeatures/LayerLedCard';
 import { LEDSettings } from './LEDSettings';
@@ -29,10 +31,8 @@ export function LedPanel({
   if (!led) {
     return (
       <>
-        <div className="led-panel__title">LED設定</div>
-        <p className="settings-desc" style={{ color: 'var(--red)' }}>
-          ⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。
-        </p>
+        <div className="led-panel__title">{translate(TextKey.LedPanelLEDSettings)}</div>
+        <p className="settings-desc" style={{ color: 'var(--red)' }}>{translate(TextKey.LedPanelLEDsAreUnavailableInStandardFirmware)}</p>
       </>
     );
   }
@@ -44,7 +44,7 @@ export function LedPanel({
   if (target === 'normal') {
     return (
       <>
-        <div className="led-panel__title">LED設定</div>
+        <div className="led-panel__title">{translate(TextKey.LedPanelLEDSettings)}</div>
         <LEDSettings
           config={led}
           onChange={onLedChange}
@@ -61,7 +61,7 @@ export function LedPanel({
 
   return (
     <>
-      <div className="led-panel__title">LED設定</div>
+      <div className="led-panel__title">{translate(TextKey.LedPanelLEDSettings)}</div>
       <LEDSettings
         config={shown}
         offPreview={led}

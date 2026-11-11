@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { ComboSlot } from '../../lib/protocol';
 import { COMBO_SLOT_COUNT, COMBO_MAX_KEYS, emptyComboSlot } from '../../lib/protocol';
@@ -21,7 +23,7 @@ export function ComboSection({ comboSlots, onComboSlotChange, keyLayout, disable
       {/* ON/OFFはカード見出しの右（MacroTab）。説明はホバー（2026-10-06〜） */}
       {comboSlots ? (
         <div>
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.comboKeys}>同時押しするキー → 発動するキー</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.comboKeys}>{translate(TextKey.ComboSectionKeysPressedTogetherOutputKey)}</p>
           {Array.from({ length: COMBO_SLOT_COUNT }, (_, idx) => {
             const slot = comboSlots[idx] ?? emptyComboSlot();
             return (
@@ -34,14 +36,14 @@ export function ComboSection({ comboSlots, onComboSlotChange, keyLayout, disable
                 ))}
                 <span>→</span>
                 <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditCombo({ idx, field: 'output' })}>
-                  {slot.keycode ? getKeyDisplayLabel(slot.keycode, keyLayout) : '未設定'}
+                  {slot.keycode ? getKeyDisplayLabel(slot.keycode, keyLayout) : translate(TextKey.BallPanelNotSet)}
                 </button>
               </div>
             );
           })}
         </div>
       ) : (
-        <p className="settings-desc" style={{ marginTop: 8 }}>このファーム（機種・バージョン）はコンボの編集に非対応です。</p>
+        <p className="settings-desc" style={{ marginTop: 8 }}>{translate(TextKey.ComboSectionThisKeyboardOrFirmwareVersionDoes)}</p>
       )}
 
       {editCombo && comboSlots && (

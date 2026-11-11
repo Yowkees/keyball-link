@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useEffect, useState, type CSSProperties } from 'react';
 
 export type GuideStep =
@@ -26,67 +28,67 @@ interface StepDef {
 // タブの①②手順化など）に合わせて文言と指す場所を更新（本人依頼）。
 const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
   flash: {
-    title: 'ファームウェアを書き込む（初回のみ）',
-    desc: 'Keyball Linkを使うには、専用のファームウェアが必要です。購入時のファームウェア（Remap用）のままでは接続できません。「ファームウェア」タブを開き、①で機種・チップ（AVR/RP2040）・内蔵ファームウェアを選んで、②「書き込む」を押します（左右それぞれ）。もう書き込み済みなら「次へ」を押してください。',
+    get title() { return translate(TextKey.WelcomeGuideFlashFirmwareFirstTimeOnly); },
+    get desc() { return translate(TextKey.WelcomeGuideKeyballLinkRequiresItsOwnFirmware); },
     // ファームウェアタブを開いている時は書き込みの手順のカード、それ以外はタブ見出しを指す
     targets: ['[data-guide="firmware-panel"] [data-card="flash"]', '[data-guide="firmware-tab"]'],
     manual: true,
   },
   connect: {
-    title: 'キーボードに接続',
-    desc: 'キーボードをUSBでつないでから、このボタンを押し、一覧から Keyball を選んで「接続」を押してください。',
+    get title() { return translate(TextKey.ConnectKeyboard); },
+    get desc() { return translate(TextKey.WelcomeGuideConnectTheKeyboardViaUSBClick); },
     targets: ['[data-guide="connect-btn"]'],
   },
   click: {
-    title: 'キーをクリック',
-    desc: '変更したいキーをクリックしてください。右側のキー設定パネルに、割り当てられるキーの一覧が出ます。',
+    get title() { return translate(TextKey.WelcomeGuideClickAKey); },
+    get desc() { return translate(TextKey.WelcomeGuideClickAKeyYouWantTo); },
     targets: ['[data-guide="keyboard"]'],
     side: 'right',  // キー配列は大きいので、右（キー設定パネルの上）から指す
   },
   assign: {
-    title: '新しいキーを選ぶ',
-    desc: '右側の一覧から割り当てたいキーをクリックすると、選んだキーにすぐ設定されます。',
+    get title() { return translate(TextKey.WelcomeGuideChooseANewKey); },
+    get desc() { return translate(TextKey.WelcomeGuideClickAnAssignmentInTheList); },
     targets: ['[data-guide="key-picker"]', '[data-guide="keyboard"]'],
     side: 'left',   // キー設定パネルは縦長なので、左（キー配列側）から指す
   },
   mods: {
-    title: '修飾キーとホールド',
-    desc: '右側のキー設定パネルの「ホールド」タブでは、タップ＝通常キー／長押し＝Shift・Ctrl やレイヤー切替、という1キー2役の設定ができます。',
+    get title() { return translate(TextKey.WelcomeGuideModifiersAndHoldActions); },
+    get desc() { return translate(TextKey.WelcomeGuideTheHoldTabInTheRight); },
     targets: ['[data-guide="hold-tab"]', '[data-guide="keyboard"]'],
     manual: true,
   },
   layers: {
-    title: 'レイヤー',
-    desc: 'レイヤーはキー配列の切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。ここで編集するレイヤーを選べます。「全レイヤー」で全部を並べて見比べたり、ドラッグで並べ替えたりもできます。',
+    get title() { return translate(TextKey.KeyConfigModalLayers); },
+    get desc() { return translate(TextKey.WelcomeGuideLayersAreAlternativeKeymapsKeysSuch); },
     targets: ['[data-guide="layer-tabs"]'],
     manual: true,
   },
   led: {
     title: 'LED',
-    desc: 'キー配列の下のLEDパネルで、LEDの光り方（エフェクト）・色・明るさ・速さを変えられます。レイヤーごとに光り方を変える「レイヤー連動LED」も設定できます。（LEDなしのファームウェアでは灰色で表示されます）',
+    get desc() { return translate(TextKey.WelcomeGuideTheLEDPanelBelowTheKeymap); },
     targets: ['[data-guide="led-panel"]'],
     manual: true,
   },
   save: {
-    title: '保存する',
-    desc: 'このボタンを押して、設定をキーボード本体に保存しましょう。保存しないと、電源を抜いた時に元に戻ります。',
+    get title() { return translate(TextKey.WelcomeGuideSaveChanges); },
+    get desc() { return translate(TextKey.WelcomeGuideClickThisButtonToSaveSettings); },
     targets: ['[data-guide="save-btn"]'],
   },
   trackball: {
-    title: 'トラックボール設定',
-    desc: '「トラックボール設定」タブでは、左の一覧から項目を選んで調整します。ボール動作（カーソルの速さ・精密モード）、スクロール、ジェスチャー、オートマウスレイヤー、シェイク・ダブルフリックが設定できます。',
+    get title() { return translate(TextKey.TrackballSettings); },
+    get desc() { return translate(TextKey.WelcomeGuideInTrackballSettingsSelectAnItem); },
     targets: ['[data-guide="trackball-tab"]'],
     manual: true,
   },
   others: {
-    title: 'その他の設定',
-    desc: '「マクロ拡張」ではマクロ・タップダンス・コンボ、「詳細設定」ではキー動作（長押しの判定時間など）・OS自動判別・キー表示の配列（JIS/US）などを設定できます。項目にマウスを乗せると説明が出ます。以上で基本の使い方は終わりです！',
+    get title() { return translate(TextKey.WelcomeGuideOtherSettings); },
+    get desc() { return translate(TextKey.WelcomeGuideMacrosMoreContainsMacrosTapDance); },
     targets: ['[data-guide="macro-tab"]'],
     manual: true,
   },
   backToKeymap: {
-    title: 'キーマップに戻る',
-    desc: '「キーマップ」タブをクリックして、続きの設定に進みましょう。',
+    get title() { return translate(TextKey.WelcomeGuideReturnToKeymap); },
+    get desc() { return translate(TextKey.WelcomeGuideClickTheKeymapTabToContinue); },
     targets: ['[data-guide="keymap-tab"]'],
   },
 };
@@ -140,7 +142,7 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
   }, [step, onDismiss]);
 
   if (step === 'done') {
-    return <div className="guide-done">設定完了！お疲れ様でした</div>;
+    return <div className="guide-done">{translate(TextKey.WelcomeGuideSetupComplete)}</div>;
   }
   if (!def) return null;
 
@@ -190,16 +192,16 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
       <div className={`guide-tooltip ${arrow ? '' : 'guide-tooltip--floating'}`} style={bubbleStyle}>
         <div className="guide-tooltip__head">
           <span className="guide-tooltip__step">
-            {idx >= 0 ? `ステップ ${idx + 1} / ${STEP_ORDER.length - 1}` : 'チュートリアル'}
+            {idx >= 0 ? translate(TextKey.WelcomeGuideStep, { p0: idx + 1, p1: STEP_ORDER.length - 1 }) : translate(TextKey.WelcomeGuideTutorial)}
           </span>
-          <button className="guide-tooltip__close" onClick={onDismiss}>✕ 閉じる</button>
+          <button className="guide-tooltip__close" onClick={onDismiss}>{translate(TextKey.WelcomeGuideClose)}</button>
         </div>
         <div className="guide-tooltip__title">{def.title}</div>
         <div className="guide-tooltip__desc">{def.desc}</div>
         {onNext && (
           <div className="guide-tooltip__actions">
             <button className="btn btn--primary btn--small" onClick={onNext}>
-              {step === 'others' ? '完了' : '次へ'}
+              {step === 'others' ? translate(TextKey.WelcomeGuideDone) : translate(TextKey.WelcomeGuideNext)}
             </button>
           </div>
         )}

@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { KeyLayout } from '../../lib/keycodes';
 import type { ModelKey } from '../../layouts';
@@ -33,14 +35,12 @@ export function KeyDisplaySection({ keyLayout, onKeyLayoutChange }: KeyDisplaySe
         <button
           className={`layout-toggle-btn ${keyLayout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
           onClick={() => onKeyLayoutChange('JIS')}
-        >
-          JIS配列<span className="layout-toggle-example">Shift+2 = "</span>
+        >{translate(TextKey.KeyLayoutCardsJISLayout)}<span className="layout-toggle-example">Shift+2 = "</span>
         </button>
         <button
           className={`layout-toggle-btn ${keyLayout === 'US' ? 'layout-toggle-btn--active' : ''}`}
           onClick={() => onKeyLayoutChange('US')}
-        >
-          US配列<span className="layout-toggle-example">Shift+2 = @</span>
+        >{translate(TextKey.KeyLayoutCardsUSLayout)}<span className="layout-toggle-example">Shift+2 = @</span>
         </button>
       </div>
     </div>
@@ -74,41 +74,34 @@ export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetu
     <div>
 
       <div className="macos-layout-toggle">
-        <span className="macos-layout-label">使用する配列：</span>
+        <span className="macos-layout-label">{translate(TextKey.KeyLayoutCardsKeyboardLayout)}</span>
         <button
           className={`layout-toggle-btn macos-toggle-btn ${layout === 'JIS' ? 'layout-toggle-btn--active' : ''}`}
           onClick={() => setLayout('JIS')}
-        >
-          JIS配列
-          <span className="layout-toggle-example">@ は独立キー</span>
+        >{translate(TextKey.KeyLayoutCardsJISLayout)}<span className="layout-toggle-example">{translate(TextKey.KeyLayoutCardsHasItsOwnKey)}</span>
         </button>
         <button
           className={`layout-toggle-btn macos-toggle-btn ${layout === 'US' ? 'layout-toggle-btn--active' : ''}`}
           onClick={() => setLayout('US')}
-        >
-          US配列
-          <span className="layout-toggle-example">@ は Shift+2</span>
+        >{translate(TextKey.KeyLayoutCardsUSLayout)}<span className="layout-toggle-example">{translate(TextKey.KeyLayoutCardsIsShift)}</span>
         </button>
       </div>
 
       {!model ? (
-        <p className="settings-desc" style={{ marginTop: 8 }}>
-          キーボードを接続すると、そのモデル専用のコマンドが表示されます。
-        </p>
+        <p className="settings-desc" style={{ marginTop: 8 }}>{translate(TextKey.KeyLayoutCardsConnectTheKeyboardToDisplayThe)}</p>
       ) : (
         <>
-          <p className="settings-desc" style={{ marginTop: 4, marginBottom: 4 }}>
-            対象モデル: <strong>{model}</strong>
+          <p className="settings-desc" style={{ marginTop: 4, marginBottom: 4 }}>{translate(TextKey.KeyLayoutCardsTargetModel)}<strong>{model}</strong>
           </p>
 
           <div className="macos-steps">
             <div className="macos-step">
               <span className="macos-step__num">①</span>
-              <span>ターミナルを開く（Finder → アプリケーション → ユーティリティ → ターミナル）</span>
+              <span>{translate(TextKey.KeyLayoutCardsOpenTerminalFinderApplicationsUtilitiesTerminal)}</span>
             </div>
             <div className="macos-step">
               <span className="macos-step__num">②</span>
-              <span>以下のコマンドをコピーして貼り付け、Enterを押す</span>
+              <span>{translate(TextKey.KeyLayoutCardsCopyAndPasteTheCommandBelow)}</span>
             </div>
           </div>
 
@@ -118,19 +111,16 @@ export function MacOSSetupSection({ defaultLayout, model, productId }: MacOSSetu
               className={`macos-copy-btn ${copied ? 'macos-copy-btn--done' : ''}`}
               onClick={handleCopy}
             >
-              {copied ? '✅ コピー済み' : '📋 コピー'}
+              {copied ? translate(TextKey.KeyLayoutCardsCopied) : translate(TextKey.KeyLayoutCardsCopy)}
             </button>
           </div>
 
           <div className="macos-step" style={{ marginTop: 8 }}>
             <span className="macos-step__num">③</span>
-            <span>コマンド実行後、キーボードを一度抜き差しする</span>
+            <span>{translate(TextKey.KeyLayoutCardsAfterRunningTheCommandDisconnectAnd)}</span>
           </div>
 
-          <p className="macos-setup-note">
-            ※ 一度設定すれば次回以降は不要です。JIS/USを切り替えたい場合は配列を選び直してコマンドを再実行してください。<br />
-            ※ このMacで初めて接続する機種・ファームウェアの場合、抜き差しだけでは反映されないことがあります。その場合はMacを再起動してから確認してください。
-          </p>
+          <p className="macos-setup-note">{translate(TextKey.KeyLayoutCardsThisOnlyNeedsToBeDone)}<br />{translate(TextKey.KeyLayoutCardsForAModelOrFirmwareConnected)}</p>
         </>
       )}
     </div>

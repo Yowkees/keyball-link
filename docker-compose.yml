@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build: .
+    ports:
+      - "127.0.0.1:5173:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

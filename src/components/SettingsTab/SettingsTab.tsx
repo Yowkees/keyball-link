@@ -1,3 +1,5 @@
+import { translate, translateLabel } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { KbSettings } from '../../lib/protocol';
 import { OS_VARIANT_NAMES } from '../../lib/protocol';
@@ -50,10 +52,10 @@ export function SettingsTab({
 
   const cards: BoardCard[] = [
     {
-      key: 'keyopt', title: 'キー動作オプション', className: 'board-card--narrow', tip: TIPS.keyopt,
+      key: 'keyopt', get title() { return translate(TextKey.SettingsTabKeyBehaviorOptions); }, className: 'board-card--narrow', tip: TIPS.keyopt,
       render: () => (
         <div>
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.tappingTerm}>長押し判定時間</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.tappingTerm}>{translate(TextKey.SettingsTabHoldDetectionTime)}</p>
           <SliderControl
             value={settings.tappingTerm} min={50} max={500} step={10}
             disabled={disabled} unit="ms"
@@ -63,56 +65,56 @@ export function SettingsTab({
           <div className="setting-rows" style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
             {fwFeatures.autoShift && (
               <ToggleRow
-                label="Auto Shift"
+                label={translate(TextKey.SettingsTabAutoShift)}
                 desc="" tip={TIPS.autoShift}
                 checked={settings.autoShift} disabled={disabled}
                 onChange={v => apply({ autoShift: v })}
               />
             )}
             <ToggleRow
-              label="Permissive Hold"
+              label={translate(TextKey.SettingsTabPermissiveHold)}
               desc="" tip={TIPS.permissiveHold}
               checked={settings.permissiveHold} disabled={disabled}
               onChange={v => apply({ permissiveHold: v })}
             />
           </div>
-          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>{translate(TextKey.AppSaving)}</p>}
         </div>
       ),
     },
     ...(fwFeatures.osDetection ? [{
-      key: 'os', title: 'OS自動判別', className: 'board-card--narrow', tip: TIPS.osdetect,
+      key: 'os', get title() { return translate(TextKey.SettingsTabAutomaticOSDetection); }, className: 'board-card--narrow', tip: TIPS.osdetect,
       render: () => (
         <>
           <div className="setting-row">
             <div className="setting-row__text">
-              <span className="setting-row__label" data-tip={TIPS.osResult}>現在の判定結果</span>
+              <span className="setting-row__label" data-tip={TIPS.osResult}>{translate(TextKey.SettingsTabDetectedSystem)}</span>
             </div>
             <span style={{ fontWeight: 600, fontSize: '1.05em' }}>
               {detectedOs == null
-                ? (isConnected ? '—' : '未接続')
-                : (OS_VARIANT_NAMES[detectedOs] ?? '不明')}
+                ? (isConnected ? '—' : translate(TextKey.SettingsTabDisconnected))
+                : translateLabel(OS_VARIANT_NAMES[detectedOs] ?? translate(TextKey.Unknown))}
             </span>
           </div>
           <div className="setting-rows">
             <ToggleRow
-              label="OSに合わせて ⌘(Cmd) と Ctrl を自動で入れ替える"
+              label={translate(TextKey.SettingsTabAutomaticallySwapCmdAndCtrlFor)}
               desc="" tip={TIPS.osSwap}
               checked={settings.osAutoSwap} disabled={disabled}
               onChange={v => apply({ osAutoSwap: v })}
             />
           </div>
-          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>{translate(TextKey.AppSaving)}</p>}
         </>
       ),
     }] : []),
     ...(oledAnimEnabled !== null || bootAnimEnabled !== null ? [{
-      key: 'oled', title: 'アニメーション', className: 'board-card--narrow', tip: TIPS.oled,
+      key: 'oled', get title() { return translate(TextKey.SettingsTabAnimations); }, className: 'board-card--narrow', tip: TIPS.oled,
       render: () => (
         <div className="setting-rows">
           {bootAnimEnabled !== null && (
             <ToggleRow
-              label="起動アニメーション"
+              label={translate(TextKey.SettingsTabStartupAnimation)}
               desc="" tip={TIPS.bootAnim}
               checked={bootAnimEnabled} disabled={disabled}
               onChange={async v => {
@@ -123,7 +125,7 @@ export function SettingsTab({
           )}
           {oledAnimEnabled !== null && (
             <ToggleRow
-              label="OLEDアニメーション"
+              label={translate(TextKey.SettingsTabOLEDAnimation)}
               desc="" tip={TIPS.oledAnim}
               checked={oledAnimEnabled} disabled={disabled}
               onChange={async v => {
@@ -136,15 +138,15 @@ export function SettingsTab({
       ),
     }] : []),
     {
-      key: 'layout', title: 'キー表示の配列設定', className: 'board-card--narrow', tip: TIPS.keydisplay,
+      key: 'layout', get title() { return translate(TextKey.SettingsTabDisplayedKeyLayout); }, className: 'board-card--narrow', tip: TIPS.keydisplay,
       render: () => <KeyDisplaySection keyLayout={keyLayout} onKeyLayoutChange={onKeyLayoutChange} />,
     },
     ...(isMacOSPlatform() ? [{
-      key: 'macos', title: 'macOS キーボードタイプ設定', tip: TIPS.macos,
+      key: 'macos', get title() { return translate(TextKey.SettingsTabMacOSKeyboardType); }, tip: TIPS.macos,
       render: () => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} />,
     }] : []),
     ...(onTestLed ? [{
-      key: 'led', title: 'LED位置実測（開発用）', className: 'board-card--narrow', tip: TIPS.ledtest,
+      key: 'led', get title() { return translate(TextKey.SettingsTabMeasureLEDPositionsDevelopment); }, className: 'board-card--narrow', tip: TIPS.ledtest,
       render: () => (
         <>
           <div className="tapping-term-row" style={{ gap: 8, alignItems: 'center' }}>
@@ -156,11 +158,9 @@ export function SettingsTab({
                 setTestLedIndex(next);
                 await onTestLed(next);
               }}
-            >
-              ← 戻る
-            </button>
+            >{translate(TextKey.LedTestPanelBack)}</button>
             <span className="tapping-term-value" style={{ minWidth: 80, textAlign: 'center' }}>
-              {testLedIndex === null ? '未実施' : `index ${testLedIndex} / ${ledCount - 1}`}
+              {testLedIndex === null ? translate(TextKey.SettingsTabNotStarted) : `index ${testLedIndex} / ${ledCount - 1}`}
             </span>
             <button
               className="btn btn--small"
@@ -170,9 +170,7 @@ export function SettingsTab({
                 setTestLedIndex(next);
                 await onTestLed(next);
               }}
-            >
-              次へ →
-            </button>
+            >{translate(TextKey.SettingsTabNext)}</button>
             {testLedIndex !== null && (
               <button
                 className="btn btn--small"
@@ -181,16 +179,14 @@ export function SettingsTab({
                   setTestLedIndex(null);
                   await onTestLed(0xFF);
                 }}
-              >
-                終了
-              </button>
+              >{translate(TextKey.LedTestPanelFinish)}</button>
             )}
           </div>
         </>
       ),
     }] : []),
     ...(children ? [{
-      key: 'matrix', title: 'テストマトリクス', tip: TIPS.matrix,
+      key: 'matrix', get title() { return translate(TextKey.SettingsTabKeyMatrixTest); }, tip: TIPS.matrix,
       render: () => children,
     }] : []),
   ];
@@ -199,9 +195,7 @@ export function SettingsTab({
   return (
     <div className="settings-tab">
       {!isConnected && (
-        <div className="settings-notice">
-          キーボードに接続すると設定を変更できます。
-        </div>
+        <div className="settings-notice">{translate(TextKey.SettingsTabConnectTheKeyboardToChangeSettings)}</div>
       )}
       <SettingsSidebarBoard cards={cards} />
     </div>

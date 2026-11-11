@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { KeyLayout } from '../../layouts/types';
 
@@ -80,7 +82,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
   return (
     <div className="led-test-panel led-test-panel--embedded">
       <div className="led-test-controls">
-        <span className="led-test-index" style={{ color: 'var(--accent)' }}>● テスト中（キーを押すと反応します）</span>
+        <span className="led-test-index" style={{ color: 'var(--accent)' }}>{translate(TextKey.MatrixTestPanelTestingPressKeysToSeeTheir)}</span>
       </div>
 
       {/* wrapRef でコンテナ幅を計測し、内側を transform: scale で拡大 */}

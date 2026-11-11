@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 
 // ドラッグ中はローカルで滑らかに動かし、離したときだけ保存するスライダー
@@ -58,7 +60,7 @@ export function ToggleRow({ label, desc, checked, disabled, onChange, tip }: Tog
         disabled={disabled}
         aria-pressed={checked}
       >
-        {checked ? 'ON' : 'OFF'}
+        {checked ? translate(TextKey.ScrollLayerCardON) : translate(TextKey.ScrollLayerCardOFF)}
       </button>
     </div>
   );
@@ -74,7 +76,7 @@ export function HeaderToggle({ checked, disabled, onChange }: { checked: boolean
       disabled={disabled}
       aria-pressed={checked}
     >
-      {checked ? 'ON' : 'OFF'}
+      {checked ? translate(TextKey.ScrollLayerCardON) : translate(TextKey.ScrollLayerCardOFF)}
     </button>
   );
 }

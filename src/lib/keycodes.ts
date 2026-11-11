@@ -1,3 +1,5 @@
+import { translate, translateLabel } from '../i18n';
+import { TextKey } from '../i18n/text.enum';
 // QMK キーコード定義（よく使うキーのみ）
 
 export interface KeycodeEntry {
@@ -21,9 +23,9 @@ export const GST_HOLD5 = 0x7E16;  // 押している間ジェスチャーモー�
 export const GST_HOLD6 = 0x7E17;  // 押している間ジェスチャーモード6（RP2040版v0.4.18〜）
 
 const K = (code: number, label: string, short: string, group: string): KeycodeEntry =>
-  ({ code, label, short, group });
+  ({ code, get label() { return translateLabel(label); }, get short() { return translateLabel(short); }, group });
 const KL = (code: number, label: string, short: string, group: string, layout: 'JIS' | 'US'): KeycodeEntry =>
-  ({ code, label, short, group, layout });
+  ({ code, get label() { return translateLabel(label); }, get short() { return translateLabel(short); }, group, layout });
 
 export const KEYCODES: KeycodeEntry[] = [
   // 特殊
@@ -326,7 +328,7 @@ const JIS_CHAR_MAP: Record<number, string> = {
   0x0030: '[',    // KC_RBRC → US:] / JIS:[
   0x0031: ']',    // KC_BSLS → US:\\ / JIS:]
   0x0034: ':',    // KC_QUOT → US:' / JIS::
-  0x0035: '半角', // KC_GRV  → US:` / JIS:半角/全角
+  get 0x0035() { return translate(TextKey.KeycodesHalfWidth); }, // KC_GRV  → US:` / JIS:半角/全角
   // Shiftキー組み合わせ
   0x021F: '"',    // S+2 → US:@ / JIS:"
   0x0223: '&',    // S+6 → US:^ / JIS:&
@@ -454,7 +456,7 @@ export const JIS_TAP_KEYS: KeycodeEntry[] = [
 // 修飾キーの日本語名（MODS/Mod-Tap説明用）
 function modBitsToJa(mod: number): string {
   const right = (mod & 0x10) !== 0;
-  const pre = right ? '右' : '';
+  const pre = right ? translate(TextKey.AppRight) : '';
   const parts: string[] = [];
   if (mod & 0x01) parts.push(pre + 'Ctrl');
   if (mod & 0x02) parts.push(pre + 'Shift');
@@ -468,192 +470,192 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   const disp = getKeyDisplayLabel(code, layout).replace('\n', ' / ');
   const J = layout === 'JIS';
 
-  if (code === KC_NO)   return '何も割り当てられていません';
-  if (code === KC_TRNS) return '透過：下のレイヤーのキーがそのまま使われます';
+  if (code === KC_NO)   return translate(TextKey.KeycodesNoKeyAssigned);
+  if (code === KC_TRNS) return translate(TextKey.KeycodesTransparentUsesTheKeyFromThe);
 
   // ── 個別キーの具体的な説明 ──────────────────────────────
   // 基本操作
-  if (code === 0x002C) return 'スペースを入力します';
-  if (code === 0x0028) return '改行・確定します（Enter）';
-  if (code === 0x002A) return 'カーソルの左の文字を1つ削除します（Backspace）';
-  if (code === 0x0029) return '操作をキャンセルします（Esc）';
-  if (code === 0x002B) return 'タブを入力・次の入力欄に移動します（Tab）';
-  if (code === 0x0039) return '大文字/小文字のロックを切り替えます（CapsLock）';
-  if (code === 0x004C) return 'カーソルの右の文字を1つ削除します（Delete）';
-  if (code === 0x0049) return '上書き入力モードを切り替えます（Insert）';
-  if (code === 0x004A) return '行の先頭に移動します（Home）';
-  if (code === 0x004D) return '行の末尾に移動します（End）';
-  if (code === 0x004B) return '1画面分上にスクロールします（PageUp）';
-  if (code === 0x004E) return '1画面分下にスクロールします（PageDown）';
+  if (code === 0x002C) return translate(TextKey.KeycodesTypesASpace);
+  if (code === 0x0028) return translate(TextKey.KeycodesInsertsALineBreakOrConfirms);
+  if (code === 0x002A) return translate(TextKey.KeycodesDeletesTheCharacterToTheLeft);
+  if (code === 0x0029) return translate(TextKey.KeycodesCancelsTheCurrentActionEsc);
+  if (code === 0x002B) return translate(TextKey.KeycodesInsertsATabOrMovesTo);
+  if (code === 0x0039) return translate(TextKey.KeycodesTogglesUppercaseLockCapsLock);
+  if (code === 0x004C) return translate(TextKey.KeycodesDeletesTheCharacterToTheRight);
+  if (code === 0x0049) return translate(TextKey.KeycodesTogglesOverwriteModeInsert);
+  if (code === 0x004A) return translate(TextKey.KeycodesMovesToTheBeginningOfThe);
+  if (code === 0x004D) return translate(TextKey.KeycodesMovesToTheEndOfThe);
+  if (code === 0x004B) return translate(TextKey.KeycodesScrollsUpOneScreenPageUp);
+  if (code === 0x004E) return translate(TextKey.KeycodesScrollsDownOneScreenPageDown);
 
   // 矢印
-  if (code === 0x004F) return 'カーソルを右に1文字移動します';
-  if (code === 0x0050) return 'カーソルを左に1文字移動します';
-  if (code === 0x0051) return 'カーソルを下に1行移動します';
-  if (code === 0x0052) return 'カーソルを上に1行移動します';
+  if (code === 0x004F) return translate(TextKey.KeycodesMovesTheCursorOneCharacterRight);
+  if (code === 0x0050) return translate(TextKey.KeycodesMovesTheCursorOneCharacterLeft);
+  if (code === 0x0051) return translate(TextKey.KeycodesMovesTheCursorOneLineDown);
+  if (code === 0x0052) return translate(TextKey.KeycodesMovesTheCursorOneLineUp);
 
   // ファンクション
-  if (code === 0x003A) return 'F1：ヘルプ表示など（アプリによって異なります）';
-  if (code === 0x003B) return 'F2：ファイル名変更など（アプリによって異なります）';
-  if (code === 0x003C) return 'F3：検索など（アプリによって異なります）';
-  if (code === 0x003D) return 'F4：アドレスバーなど（アプリによって異なります）';
-  if (code === 0x003E) return 'F5：ページ更新（ブラウザ）など（アプリによって異なります）';
-  if (code >= 0x003F && code <= 0x0045) return `F${code - 0x003A + 1}：ファンクションキーです（アプリによって動作が異なります）`;
+  if (code === 0x003A) return translate(TextKey.KeycodesFHelpAndOtherAppSpecific);
+  if (code === 0x003B) return translate(TextKey.KeycodesFRenameAndOtherAppSpecific);
+  if (code === 0x003C) return translate(TextKey.KeycodesFSearchAndOtherAppSpecific);
+  if (code === 0x003D) return translate(TextKey.KeycodesFAddressBarAndOtherApp);
+  if (code === 0x003E) return translate(TextKey.KeycodesFRefreshPageAndOtherApp);
+  if (code >= 0x003F && code <= 0x0045) return translate(TextKey.KeycodesFFunctionKeyBehaviorDependsOn, { p0: code - 0x003A + 1 });
 
   // 修飾キー
-  if (code === 0x00E0) return '押している間 Ctrl（コントロール）として動作します（例: Ctrl+C でコピー）';
-  if (code === 0x00E1) return '押している間 Shift として動作します（大文字入力・記号入力）';
-  if (code === 0x00E2) return '押している間 Alt（macOS: Option）として動作します';
-  if (code === 0x00E3) return '押している間 ⌘ Command（Windows: Windowsキー）として動作します';
-  if (code === 0x00E4) return '押している間 右Ctrl として動作します（左Ctrlと同じ効果）';
-  if (code === 0x00E5) return '押している間 右Shift として動作します';
-  if (code === 0x00E6) return '押している間 右Alt（macOS: 右Option）として動作します';
-  if (code === 0x00E7) return '押している間 右⌘ Command として動作します';
+  if (code === 0x00E0) return translate(TextKey.KeycodesActsAsCtrlWhileHeldE);
+  if (code === 0x00E1) return translate(TextKey.KeycodesActsAsShiftWhileHeldUppercase);
+  if (code === 0x00E2) return translate(TextKey.KeycodesActsAsAltWhileHeldOption);
+  if (code === 0x00E3) return translate(TextKey.KeycodesActsAsCommandWhileHeldWindows);
+  if (code === 0x00E4) return translate(TextKey.KeycodesActsAsRightCtrlWhileHeld);
+  if (code === 0x00E5) return translate(TextKey.KeycodesActsAsRightShiftWhileHeld);
+  if (code === 0x00E6) return translate(TextKey.KeycodesActsAsRightAltWhileHeld);
+  if (code === 0x00E7) return translate(TextKey.KeycodesActsAsRightCommandWhileHeld);
 
   // 記号（JIS/USで出力が異なるキー）
-  if (code === 0x002D) return J ? 'ハイフン(-)・長音符(ー)を入力します' : 'マイナス・ハイフン(-)を入力します';
-  if (code === 0x002E) return J ? 'キャレット(^)を入力します' : 'イコール(=)を入力します';
-  if (code === 0x002F) return J ? 'アットマーク(@)を入力します' : '左角括弧([)を入力します';
-  if (code === 0x0030) return J ? '左角括弧([)を入力します' : '右角括弧(])を入力します';
-  if (code === 0x0031) return J ? '右角括弧(])を入力します' : 'バックスラッシュ(\\)・円記号(¥)を入力します';
-  if (code === 0x0033) return 'セミコロン(;)を入力します';
-  if (code === 0x0034) return J ? 'コロン(:)を入力します' : "シングルクォート(')を入力します";
-  if (code === 0x0035) return J ? '半角/全角を切り替えます（日本語入力のオン/オフ）' : 'バッククォート(`)を入力します';
-  if (code === 0x0036) return 'カンマ(,)を入力します';
-  if (code === 0x0037) return 'ピリオド(.)を入力します';
-  if (code === 0x0038) return 'スラッシュ(/)を入力します';
+  if (code === 0x002D) return J ? translate(TextKey.KeycodesTypesAHyphenOrLongVowel) : translate(TextKey.KeycodesTypesAMinusSignOrHyphen);
+  if (code === 0x002E) return J ? translate(TextKey.KeycodesTypesACaret) : translate(TextKey.KeycodesTypesAnEqualsSign);
+  if (code === 0x002F) return J ? translate(TextKey.KeycodesTypesAnAtSign) : translate(TextKey.KeycodesTypesAnOpeningBracket);
+  if (code === 0x0030) return J ? translate(TextKey.KeycodesTypesAnOpeningBracket) : translate(TextKey.KeycodesTypesAClosingBracket);
+  if (code === 0x0031) return J ? translate(TextKey.KeycodesTypesAClosingBracket) : translate(TextKey.KeycodesTypesABackslashOrYenSign);
+  if (code === 0x0033) return translate(TextKey.KeycodesTypesASemicolon);
+  if (code === 0x0034) return J ? translate(TextKey.KeycodesTypesAColon) : translate(TextKey.KeycodesTypesASingleQuote);
+  if (code === 0x0035) return J ? translate(TextKey.KeycodesTogglesHalfFullWidthModeJapanese) : translate(TextKey.KeycodesTypesABacktick);
+  if (code === 0x0036) return translate(TextKey.KeycodesTypesAComma);
+  if (code === 0x0037) return translate(TextKey.KeycodesTypesAPeriod);
+  if (code === 0x0038) return translate(TextKey.KeycodesTypesASlash);
 
   // Shift記号（0x0200番台はMODS範囲だが個別に明示）
-  if (code === 0x021E) return '感嘆符(!)を入力します';
-  if (code === 0x021F) return J ? 'ダブルクォート(")を入力します' : 'アットマーク(@)を入力します';
-  if (code === 0x0220) return 'ハッシュ・シャープ(#)を入力します';
-  if (code === 0x0221) return 'ドル記号($)を入力します';
-  if (code === 0x0222) return 'パーセント(%)を入力します';
-  if (code === 0x0223) return J ? 'アンパサンド(&)を入力します' : 'キャレット(^)を入力します';
-  if (code === 0x0224) return J ? "シングルクォート(')を入力します" : 'アンパサンド(&)を入力します';
-  if (code === 0x0225) return J ? '左丸括弧(()を入力します' : 'アスタリスク(*)を入力します';
-  if (code === 0x0226) return J ? '右丸括弧())を入力します' : '左丸括弧(()を入力します';
-  if (code === 0x0227) return J ? 'イコール(=)を入力します' : '右丸括弧())を入力します';
-  if (code === 0x0287) return 'アンダースコア(_)を入力します（JIS: Shift+ろ）';
-  if (code === 0x022D) return J ? 'イコール(=)を入力します（JIS: Shift+-）' : 'アンダースコア(_)を入力します';
-  if (code === 0x022E) return J ? 'チルダ(~)を入力します' : 'プラス(+)を入力します';
-  if (code === 0x022F) return J ? 'バッククォート(`)を入力します' : '左波括弧({)を入力します';
-  if (code === 0x0230) return J ? '左波括弧({)を入力します' : '右波括弧(})を入力します';
-  if (code === 0x0231) return J ? '右波括弧(})を入力します' : 'パイプ(|)を入力します';
-  if (code === 0x0233) return J ? 'プラス(+)を入力します' : 'コロン(:)を入力します';
-  if (code === 0x0234) return J ? 'アスタリスク(*)を入力します' : 'ダブルクォート(")を入力します';
-  if (code === 0x0235) return J ? 'チルダ(~)はキャレット(^)のShiftです（JIS）' : 'チルダ(~)を入力します';
-  if (code === 0x0236) return '左山括弧・小なり(<)を入力します';
-  if (code === 0x0237) return '右山括弧・大なり(>)を入力します';
-  if (code === 0x0238) return '疑問符(?)を入力します';
+  if (code === 0x021E) return translate(TextKey.KeycodesTypesAnExclamationMark);
+  if (code === 0x021F) return J ? translate(TextKey.KeycodesTypesADoubleQuote) : translate(TextKey.KeycodesTypesAnAtSign);
+  if (code === 0x0220) return translate(TextKey.KeycodesTypesAHashSign);
+  if (code === 0x0221) return translate(TextKey.KeycodesTypesADollarSign);
+  if (code === 0x0222) return translate(TextKey.KeycodesTypesAPercentSign);
+  if (code === 0x0223) return J ? translate(TextKey.KeycodesTypesAnAmpersand) : translate(TextKey.KeycodesTypesACaret);
+  if (code === 0x0224) return J ? translate(TextKey.KeycodesTypesASingleQuote) : translate(TextKey.KeycodesTypesAnAmpersand);
+  if (code === 0x0225) return J ? translate(TextKey.KeycodesTypesAnOpeningParenthesis) : translate(TextKey.KeycodesTypesAnAsterisk);
+  if (code === 0x0226) return J ? translate(TextKey.KeycodesTypesAClosingParenthesis) : translate(TextKey.KeycodesTypesAnOpeningParenthesis);
+  if (code === 0x0227) return J ? translate(TextKey.KeycodesTypesAnEqualsSign) : translate(TextKey.KeycodesTypesAClosingParenthesis);
+  if (code === 0x0287) return translate(TextKey.KeycodesTypesAnUnderscoreJISShift);
+  if (code === 0x022D) return J ? translate(TextKey.KeycodesTypesAnEqualsSignJISShift) : translate(TextKey.KeycodesTypesAnUnderscore);
+  if (code === 0x022E) return J ? translate(TextKey.KeycodesTypesATilde) : translate(TextKey.KeycodesTypesAPlusSign);
+  if (code === 0x022F) return J ? translate(TextKey.KeycodesTypesABacktick) : translate(TextKey.KeycodesTypesAnOpeningBrace);
+  if (code === 0x0230) return J ? translate(TextKey.KeycodesTypesAnOpeningBrace) : translate(TextKey.KeycodesTypesAClosingBrace);
+  if (code === 0x0231) return J ? translate(TextKey.KeycodesTypesAClosingBrace) : translate(TextKey.KeycodesTypesAPipe);
+  if (code === 0x0233) return J ? translate(TextKey.KeycodesTypesAPlusSign) : translate(TextKey.KeycodesTypesAColon);
+  if (code === 0x0234) return J ? translate(TextKey.KeycodesTypesAnAsterisk) : translate(TextKey.KeycodesTypesADoubleQuote);
+  if (code === 0x0235) return J ? translate(TextKey.KeycodesTildeIsShiftCaretOnJIS) : translate(TextKey.KeycodesTypesATilde);
+  if (code === 0x0236) return translate(TextKey.KeycodesTypesALessThanSign);
+  if (code === 0x0237) return translate(TextKey.KeycodesTypesAGreaterThanSign);
+  if (code === 0x0238) return translate(TextKey.KeycodesTypesAQuestionMark);
 
   // マウスボタン
-  if (code === 0x00D1) return '左クリックします（MB1）';
-  if (code === 0x00D2) return '右クリックします（MB2）';
-  if (code === 0x00D3) return '中クリック（ホイールボタン）します（MB3）';
-  if (code === 0x00D4) return 'ブラウザの「戻る」ボタンを押します（MB4）';
-  if (code === 0x00D5) return 'ブラウザの「進む」ボタンを押します（MB5）';
-  if (code === 0x00CD) return 'マウスカーソルを上に移動します';
-  if (code === 0x00CE) return 'マウスカーソルを下に移動します';
-  if (code === 0x00CF) return 'マウスカーソルを左に移動します';
-  if (code === 0x00D0) return 'マウスカーソルを右に移動します';
-  if (code === 0x00D9) return 'ホイールを上にスクロールします';
-  if (code === 0x00DA) return 'ホイールを下にスクロールします';
-  if (code === 0x00DB) return 'ホイールを左にスクロールします（横スクロール）';
-  if (code === 0x00DC) return 'ホイールを右にスクロールします（横スクロール）';
-  if (code === 0x00DD) return 'マウス移動速度を低速（精密操作）にします（ACL0）';
-  if (code === 0x00DE) return 'マウス移動速度を中速にします（ACL1）';
-  if (code === 0x00DF) return 'マウス移動速度を高速にします（ACL2）';
+  if (code === 0x00D1) return translate(TextKey.KeycodesLeftMouseClickMB);
+  if (code === 0x00D2) return translate(TextKey.KeycodesRightMouseClickMB);
+  if (code === 0x00D3) return translate(TextKey.KeycodesMiddleMouseClickWheelButtonMB);
+  if (code === 0x00D4) return translate(TextKey.KeycodesBrowserBackButtonMB);
+  if (code === 0x00D5) return translate(TextKey.KeycodesBrowserForwardButtonMB);
+  if (code === 0x00CD) return translate(TextKey.KeycodesMovesTheMouseCursorUp);
+  if (code === 0x00CE) return translate(TextKey.KeycodesMovesTheMouseCursorDown);
+  if (code === 0x00CF) return translate(TextKey.KeycodesMovesTheMouseCursorLeft);
+  if (code === 0x00D0) return translate(TextKey.KeycodesMovesTheMouseCursorRight);
+  if (code === 0x00D9) return translate(TextKey.KeycodesScrollsTheWheelUp);
+  if (code === 0x00DA) return translate(TextKey.KeycodesScrollsTheWheelDown);
+  if (code === 0x00DB) return translate(TextKey.KeycodesScrollsTheWheelLeftHorizontalScroll);
+  if (code === 0x00DC) return translate(TextKey.KeycodesScrollsTheWheelRightHorizontalScroll);
+  if (code === 0x00DD) return translate(TextKey.KeycodesSetsLowMouseSpeedForPrecision);
+  if (code === 0x00DE) return translate(TextKey.KeycodesSetsMediumMouseSpeedACL);
+  if (code === 0x00DF) return translate(TextKey.KeycodesSetsHighMouseSpeedACL);
 
   // 日本語
-  if (code === 0x0087) return 'ろキーを入力します（JIS配列専用）';
-  if (code === 0x0088) return 'かな入力モードに切り替えます（JIS配列専用）';
-  if (code === 0x0089) return '円記号(¥)を入力します（JIS配列専用）';
-  if (code === 0x008A) return '変換キー：日本語入力を変換します（JIS配列専用）';
-  if (code === 0x008B) return '無変換キー：日本語入力をキャンセルします（JIS配列専用）';
-  if (code === 0x0090) return 'かな入力モードに切り替えます（macOS推奨: LANG1）';
-  if (code === 0x0091) return '英数入力モードに切り替えます（macOS推奨: LANG2）';
+  if (code === 0x0087) return translate(TextKey.KeycodesSendsTheKeyJISOnly);
+  if (code === 0x0088) return translate(TextKey.KeycodesSwitchesToKanaInputJISOnly);
+  if (code === 0x0089) return translate(TextKey.KeycodesTypesAYenSignJISOnly);
+  if (code === 0x008A) return translate(TextKey.KeycodesConvertKeyConvertsJapaneseInputJIS);
+  if (code === 0x008B) return translate(TextKey.KeycodesNonConvertKeyCancelsJapaneseConversion);
+  if (code === 0x0090) return translate(TextKey.KeycodesSwitchesToKanaInputLANGRecommended);
+  if (code === 0x0091) return translate(TextKey.KeycodesSwitchesToAlphanumericInputLANGRecommended);
 
   // メディア
-  if (code === 0x00A8) return '音声をミュート/解除します（Mute）';
-  if (code === 0x00A9) return '音量を上げます（Volume Up）';
-  if (code === 0x00AA) return '音量を下げます（Volume Down）';
-  if (code === 0x00AB) return '次のトラックへ進みます（Next Track）';
-  if (code === 0x00AC) return '前のトラックへ戻ります（Previous Track）';
-  if (code === 0x00AD) return '再生を停止します（Stop）';
-  if (code === 0x00AE) return '再生・一時停止を切り替えます（Play/Pause）';
-  if (code === 0x00AF) return 'メディア選択ダイアログを開きます（Select）';
-  if (code === 0x00BD) return 'PC画面の明るさを上げます。OSやディスプレイがUSB HIDの明るさキーに対応している場合のみ有効です（ノートPC内蔵ディスプレイでは動作しやすいですが、外部モニタでは反応しないことがあります）';
-  if (code === 0x00BE) return 'PC画面の明るさを下げます（対応状況は明るさ+と同様）';
+  if (code === 0x00A8) return translate(TextKey.KeycodesTogglesAudioMute);
+  if (code === 0x00A9) return translate(TextKey.KeycodesIncreasesVolume);
+  if (code === 0x00AA) return translate(TextKey.KeycodesDecreasesVolume);
+  if (code === 0x00AB) return translate(TextKey.KeycodesNextTrack);
+  if (code === 0x00AC) return translate(TextKey.KeycodesPreviousTrack);
+  if (code === 0x00AD) return translate(TextKey.KeycodesStopsPlayback);
+  if (code === 0x00AE) return translate(TextKey.KeycodesTogglesPlayPause);
+  if (code === 0x00AF) return translate(TextKey.KeycodesOpensMediaSelection);
+  if (code === 0x00BD) return translate(TextKey.KeycodesIncreasesScreenBrightnessIfTheOS);
+  if (code === 0x00BE) return translate(TextKey.KeycodesDecreasesScreenBrightnessSameSupportRequirements);
 
   // システム
-  if (code === 0x0046) return 'スクリーンショット（画面キャプチャ）を撮ります（Print Screen）';
-  if (code === 0x0047) return 'スクロールロックを切り替えます（Scroll Lock）';
-  if (code === 0x0048) return '一時停止します（Pause）';
-  if (code === 0x0053) return 'テンキーのロックを切り替えます（Num Lock）';
-  if (code === 0x0065) return 'コンテキストメニューを開きます（右クリックと同じ）';
+  if (code === 0x0046) return translate(TextKey.KeycodesTakesAScreenshotPrintScreen);
+  if (code === 0x0047) return translate(TextKey.KeycodesTogglesScrollLock);
+  if (code === 0x0048) return translate(TextKey.KeycodesPauseKey);
+  if (code === 0x0053) return translate(TextKey.KeycodesTogglesNumLock);
+  if (code === 0x0065) return translate(TextKey.KeycodesOpensTheContextMenuSameAs);
 
   // テンキー
-  if (code === 0x0054) return 'テンキーの ÷（割り算）を入力します';
-  if (code === 0x0055) return 'テンキーの ×（掛け算）を入力します';
-  if (code === 0x0056) return 'テンキーの −（引き算）を入力します';
-  if (code === 0x0057) return 'テンキーの +（足し算）を入力します';
-  if (code === 0x0058) return 'テンキーの Enter を入力します';
-  if (code >= 0x0059 && code <= 0x0062) return `テンキーの ${code - 0x0059} を入力します`;
-  if (code === 0x0063) return 'テンキーの .(小数点) を入力します';
+  if (code === 0x0054) return translate(TextKey.KeycodesTypesNumpadDivide);
+  if (code === 0x0055) return translate(TextKey.KeycodesTypesNumpadMultiply);
+  if (code === 0x0056) return translate(TextKey.KeycodesTypesNumpadMinus);
+  if (code === 0x0057) return translate(TextKey.KeycodesTypesNumpadPlus);
+  if (code === 0x0058) return translate(TextKey.KeycodesSendsNumpadEnter);
+  if (code >= 0x0059 && code <= 0x0062) return translate(TextKey.KeycodesTypesNumpad, { p0: code - 0x0059 });
+  if (code === 0x0063) return translate(TextKey.KeycodesTypesNumpadDecimalPoint);
 
   // RGB / LED
-  if (code === 0x7820) return 'LEDのオン/オフを切り替えます';
-  if (code === 0x7821) return 'LEDの光り方パターンを次に進めます';
-  if (code === 0x7822) return 'LEDの光り方パターンを前に戻します';
-  if (code === 0x7823) return 'LEDの色相（色）を変えます（Hue+）';
-  if (code === 0x7824) return 'LEDの色相（色）を戻します（Hue-）';
-  if (code === 0x7825) return 'LEDの彩度（色の濃さ）を上げます';
-  if (code === 0x7826) return 'LEDの彩度（色の濃さ）を下げます';
-  if (code === 0x7827) return 'LEDの明るさを上げます';
-  if (code === 0x7828) return 'LEDの明るさを下げます';
-  if (code === 0x7829) return 'LEDアニメーションの速度を上げます';
-  if (code === 0x782A) return 'LEDアニメーションの速度を下げます';
+  if (code === 0x7820) return translate(TextKey.KeycodesTogglesLEDsOnOff);
+  if (code === 0x7821) return translate(TextKey.KeycodesSelectsTheNextLEDEffect);
+  if (code === 0x7822) return translate(TextKey.KeycodesSelectsThePreviousLEDEffect);
+  if (code === 0x7823) return translate(TextKey.KeycodesIncreasesLEDHueHue);
+  if (code === 0x7824) return translate(TextKey.KeycodesDecreasesLEDHueHue);
+  if (code === 0x7825) return translate(TextKey.KeycodesIncreasesLEDSaturation);
+  if (code === 0x7826) return translate(TextKey.KeycodesDecreasesLEDSaturation);
+  if (code === 0x7827) return translate(TextKey.KeycodesIncreasesLEDBrightness);
+  if (code === 0x7828) return translate(TextKey.KeycodesDecreasesLEDBrightness);
+  if (code === 0x7829) return translate(TextKey.KeycodesSpeedsUpLEDAnimation);
+  if (code === 0x782A) return translate(TextKey.KeycodesSlowsDownLEDAnimation);
 
   // Keyball 独自
-  if (code === 0x7E00) return 'Keyballの全設定をリセットします（要再起動）';
-  if (code === 0x7E01) return '現在の設定をEEPROMに保存します';
-  if (code === 0x7E02) return 'トラックボールの速度(CPI)を100上げます';
-  if (code === 0x7E03) return 'トラックボールの速度(CPI)を100下げます';
-  if (code === 0x7E04) return 'トラックボールの速度(CPI)を1000上げます';
-  if (code === 0x7E05) return 'トラックボールの速度(CPI)を1000下げます';
-  if (code === 0x7E06) return 'スクロールモードをON/OFFします（トラックボールがスクロール操作になります）';
-  if (code === 0x7E07) return '押している間だけスクロールモードになります';
-  if (code === 0x7E08) return 'スクロール速度を上げます（分周値を大きく）';
-  if (code === 0x7E09) return 'スクロール速度を下げます（分周値を小さく）';
-  if (code === 0x7E0A) return 'オートマウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます';
-  if (code === 0x7E0B) return 'オートマウスレイヤーが切れるまでの時間を50ms延ばします';
-  if (code === 0x7E0C) return 'オートマウスレイヤーが切れるまでの時間を50ms縮めます';
-  if (code === 0x7E0D) return 'スクロール方向を縦のみに固定します';
-  if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
-  if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
-  if (code === 0x7E10) return '押している間ジェスチャーモード1に切り替わり、トラックボールを上下左右に振るとそのモードの割当キーが発動します（設定タブで各モードの操作を変更できます）';
-  if (code === 0x7E12) return 'オートマウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
-  if (code === 0x7E13) return '押している間ジェスチャーモード2に切り替わります（RP2040版限定）';
-  if (code === 0x7E14) return '押している間ジェスチャーモード3に切り替わります（RP2040版限定）';
-  if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';
-  if (code === 0x7E16) return '押している間ジェスチャーモード5に切り替わります（RP2040版限定）';
-  if (code === 0x7E17) return '押している間ジェスチャーモード6に切り替わります（RP2040版限定）';
+  if (code === 0x7E00) return translate(TextKey.KeycodesResetsAllKeyballSettingsRestartRequired);
+  if (code === 0x7E01) return translate(TextKey.KeycodesSavesCurrentSettingsToEEPROM);
+  if (code === 0x7E02) return translate(TextKey.KeycodesIncreasesTrackballSpeedByCPI);
+  if (code === 0x7E03) return translate(TextKey.KeycodesDecreasesTrackballSpeedByCPI);
+  if (code === 0x7E04) return translate(TextKey.KeycodesIncreasesTrackballSpeedByCPI2);
+  if (code === 0x7E05) return translate(TextKey.KeycodesDecreasesTrackballSpeedByCPI2);
+  if (code === 0x7E06) return translate(TextKey.KeycodesTogglesScrollModeTheTrackballScrolls);
+  if (code === 0x7E07) return translate(TextKey.KeycodesEnablesScrollModeOnlyWhileHeld);
+  if (code === 0x7E08) return translate(TextKey.KeycodesIncreasesScrollSpeedLargerDividerValue);
+  if (code === 0x7E09) return translate(TextKey.KeycodesDecreasesScrollSpeedSmallerDividerValue);
+  if (code === 0x7E0A) return translate(TextKey.KeycodesTogglesTheAutoMouseLayerAutomatically);
+  if (code === 0x7E0B) return translate(TextKey.KeycodesExtendsTheAutoMouseTimeoutBy);
+  if (code === 0x7E0C) return translate(TextKey.KeycodesShortensTheAutoMouseTimeoutBy);
+  if (code === 0x7E0D) return translate(TextKey.KeycodesRestrictsScrollingToTheVerticalAxis);
+  if (code === 0x7E0E) return translate(TextKey.KeycodesRestrictsScrollingToTheHorizontalAxis);
+  if (code === 0x7E0F) return translate(TextKey.KeycodesAllowsScrollingOnBothAxes);
+  if (code === 0x7E10) return translate(TextKey.KeycodesHoldToActivateGestureModeFlick);
+  if (code === 0x7E12) return translate(TextKey.KeycodesImmediatelyExitsTheAutoMouseLayer);
+  if (code === 0x7E13) return translate(TextKey.KeycodesHoldToActivateGestureModeRP);
+  if (code === 0x7E14) return translate(TextKey.KeycodesHoldToActivateGestureModeRP2);
+  if (code === 0x7E15) return translate(TextKey.KeycodesHoldToActivateGestureModeRP3);
+  if (code === 0x7E16) return translate(TextKey.KeycodesHoldToActivateGestureModeRP4);
+  if (code === 0x7E17) return translate(TextKey.KeycodesHoldToActivateGestureModeRP5);
 
   // ワンショット修飾
-  if (code === 0x52A1) return '次の1キーだけ Ctrl として動作します（ワンショット）';
-  if (code === 0x52A2) return '次の1キーだけ Shift として動作します（ワンショット）';
-  if (code === 0x52A4) return '次の1キーだけ Alt として動作します（ワンショット）';
-  if (code === 0x52A8) return '次の1キーだけ ⌘ Command として動作します（ワンショット）';
+  if (code === 0x52A1) return translate(TextKey.KeycodesAppliesCtrlToTheNextKey);
+  if (code === 0x52A2) return translate(TextKey.KeycodesAppliesShiftToTheNextKey);
+  if (code === 0x52A4) return translate(TextKey.KeycodesAppliesAltToTheNextKey);
+  if (code === 0x52A8) return translate(TextKey.KeycodesAppliesCommandToTheNextKey);
 
   // ブートローダー
-  if (code === 0x7C00) return 'ファームウェア書き込みモード（ブートローダー）に移行します。長押し推奨。';
+  if (code === 0x7C00) return translate(TextKey.KeycodesEntersFirmwareFlashingBootloaderModeLong);
 
   // タップダンス
-  if (code >= 0x5700 && code <= 0x5707) return `タップダンス ${code - 0x5700}：連打回数や長押しで動作が変わります（タップダンスタブで設定）`;
+  if (code >= 0x5700 && code <= 0x5707) return translate(TextKey.KeycodesTapDanceActionVariesWithTap, { p0: code - 0x5700 });
 
   // マクロ
-  if (code >= 0x7700 && code <= 0x770F) return `マクロ ${code - 0x7700} を実行します（マクロタブで内容を設定・確認できます）`;
+  if (code >= 0x7700 && code <= 0x770F) return translate(TextKey.KeycodesRunsMacroViewOrEditIt, { p0: code - 0x7700 });
 
   // ── 組み合わせキーコードの範囲 ──────────────────────────
   // MODS（修飾＋キー同時送信）
@@ -661,30 +663,30 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
     const mod = (code >> 8) & 0x1F;
     const kc  = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `${modBitsToJa(mod)} を押しながら ${kcCh} を入力します`;
+    return translate(TextKey.KeycodesTypesWhileHolding, { p0: modBitsToJa(mod), p1: kcCh });
   }
   // Mod-Tap
   if (code >= 0x2000 && code <= 0x3FFF) {
     const mod = (code >> 8) & 0x1F;
     const kc  = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `タップ：${kcCh} を入力 ／ 長押し：${modBitsToJa(mod)} として動作します`;
+    return translate(TextKey.KeycodesTapHold, { p0: kcCh, p1: modBitsToJa(mod) });
   }
   // Layer-Tap
   if (code >= 0x4000 && code <= 0x4FFF) {
     const layer = (code >> 8) & 0xF;
     const kc    = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `タップ：${kcCh} を入力 ／ 長押し：レイヤー${layer} に切り替えます`;
+    return translate(TextKey.KeycodesTapHoldActivateLayer, { p0: kcCh, p1: layer });
   }
   // レイヤー操作（MO/TO/TG/DF/OSL/TT）
-  if (code >= 0x5220 && code <= 0x523F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
-  if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}のみ有効にします（他のレイヤーを解除・TO）`;
-  if (code >= 0x5260 && code <= 0x527F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
-  if (code >= 0x5240 && code <= 0x525F) return `標準（ベース）レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
-  if (code >= 0x5280 && code <= 0x529F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;
-  if (code >= 0x52A0 && code <= 0x52BF) return `次の1キーだけ効く修飾キーです（ワンショット）`;
-  if (code >= 0x52C0 && code <= 0x52DF) return `タップでレイヤー切替、${code & 0x1F}回連打で固定します（TT）`;
+  if (code >= 0x5220 && code <= 0x523F) return translate(TextKey.KeycodesActivatesLayerOnlyWhileHeldMO, { p0: code & 0x1F });
+  if (code >= 0x5200 && code <= 0x521F) return translate(TextKey.KeycodesActivatesOnlyLayerDisablingOtherLayers, { p0: code & 0x1F });
+  if (code >= 0x5260 && code <= 0x527F) return translate(TextKey.KeycodesTogglesLayerTG, { p0: code & 0x1F });
+  if (code >= 0x5240 && code <= 0x525F) return translate(TextKey.KeycodesChangesTheBaseLayerToDF, { p0: code & 0x1F });
+  if (code >= 0x5280 && code <= 0x529F) return translate(TextKey.KeycodesUsesLayerForTheNextKey, { p0: code & 0x1F });
+  if (code >= 0x52A0 && code <= 0x52BF) return translate(TextKey.KeycodesAppliesAModifierToTheNext);
+  if (code >= 0x52C0 && code <= 0x52DF) return translate(TextKey.KeycodesTapToSwitchLayersTapTimes, { p0: code & 0x1F });
 
   return disp;
 }

@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import type { KbSettings, ScrollInertiaConfig, TrackballConfig } from '../../lib/protocol';
 import { LAYER_NONE, SCROLL_MODE, SCROLL_INERTIA_STRENGTH_MIN, SCROLL_INERTIA_STRENGTH_MAX, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
@@ -26,7 +28,7 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
       <div className="scroll-card__basic">
       <div className="setting-row">
         <div className="setting-row__text">
-          <span className="setting-row__label" data-tip={TIPS.scrollLayer}>スクロールになるレイヤー</span>
+          <span className="setting-row__label" data-tip={TIPS.scrollLayer}>{translate(TextKey.ScrollLayerCardScrollLayer)}</span>
         </div>
         <select
           className="trackball-bar__select"
@@ -34,9 +36,9 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
           disabled={disabled}
           onChange={e => changeScrollLayer(Number(e.target.value))}
         >
-          <option value={LAYER_NONE}>なし</option>
+          <option value={LAYER_NONE}>{translate(TextKey.KeyConfigModalNone)}</option>
           {switchableLayers.map(l => (
-            <option key={l} value={l}>Layer {l}</option>
+            <option key={l} value={l}>{translate(TextKey.AppLayer)}{l}</option>
           ))}
         </select>
       </div>
@@ -46,40 +48,38 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
 
       {trackball && (
         <div style={{ marginTop: 14 }}>
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.scrollSpeed}>スクロール速度</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.scrollSpeed}>{translate(TextKey.BallPanelScrollSpeed)}</p>
           <SliderControl
             value={trackball.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1}
             disabled={disabled} unit="" invert
             onCommit={v => onTrackballChange({ ...trackball, scrollDiv: v })}
           />
           <div className="setting-row scroll-card__row">
-            <span className="settings-desc scroll-card__label" data-tip={TIPS.scrollMode}>スクロール方向</span>
+            <span className="settings-desc scroll-card__label" data-tip={TIPS.scrollMode}>{translate(TextKey.BallPanelScrollDirection)}</span>
             <select
               className="trackball-bar__select"
               value={trackball.scrollMode}
               disabled={disabled}
               onChange={e => onTrackballChange({ ...trackball, scrollMode: Number(e.target.value) })}
             >
-              <option value={SCROLL_MODE.VERTICAL}>縦のみ</option>
-              <option value={SCROLL_MODE.HORIZONTAL}>横のみ</option>
-              <option value={SCROLL_MODE.FREE}>自由（縦横）</option>
+              <option value={SCROLL_MODE.VERTICAL}>{translate(TextKey.BallPanelVerticalOnly)}</option>
+              <option value={SCROLL_MODE.HORIZONTAL}>{translate(TextKey.BallPanelHorizontalOnly)}</option>
+              <option value={SCROLL_MODE.FREE}>{translate(TextKey.BallPanelBothAxes)}</option>
             </select>
           </div>
           <div className="setting-row scroll-card__row">
-            <span className="settings-desc scroll-card__label" data-tip={TIPS.scrollInvert}>反転</span>
+            <span className="settings-desc scroll-card__label" data-tip={TIPS.scrollInvert}>{translate(TextKey.ScrollLayerCardInvert)}</span>
             <button
               className={`btn btn--small btn--layer ${settings.scrollInvertV ? 'btn--layer-active' : ''}`}
               disabled={disabled}
               onClick={() => onScrollInvertChange(!settings.scrollInvertV, settings.scrollInvertH)}
-            >
-              縦 {settings.scrollInvertV ? 'ON' : 'OFF'}
+            >{translate(TextKey.ScrollLayerCardVertical)}{settings.scrollInvertV ? translate(TextKey.ScrollLayerCardON) : translate(TextKey.ScrollLayerCardOFF)}
             </button>
             <button
               className={`btn btn--small btn--layer ${settings.scrollInvertH ? 'btn--layer-active' : ''}`}
               disabled={disabled}
               onClick={() => onScrollInvertChange(settings.scrollInvertV, !settings.scrollInvertH)}
-            >
-              横 {settings.scrollInvertH ? 'ON' : 'OFF'}
+            >{translate(TextKey.ScrollLayerCardHorizontal)}{settings.scrollInvertH ? translate(TextKey.ScrollLayerCardON) : translate(TextKey.ScrollLayerCardOFF)}
             </button>
           </div>
         </div>
@@ -88,24 +88,24 @@ export function ScrollLayerCard({ settings, disabled, switchableLayers, layerWar
 
       <div className="scroll-card__inertia">
         {scrollInertia === null ? (
-          <p className="settings-desc">このファームは非対応です。</p>
+          <p className="settings-desc">{translate(TextKey.DoubleFlickCardNotSupportedByThisFirmware)}</p>
         ) : (
           <>
             <ToggleRow
-              label="慣性スクロール"
+              label={translate(TextKey.BallPanelScrollInertia)}
               tip={TIPS.inertia}
               desc=""
               checked={scrollInertia.enable}
               disabled={disabled}
               onChange={v => onScrollInertiaChange({ ...scrollInertia, enable: v })}
             />
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.inertiaLevel}>慣性レベル</p>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.inertiaLevel}>{translate(TextKey.BallPanelInertiaLevel)}</p>
             <SliderControl
               value={scrollInertia.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
               disabled={disabled || !scrollInertia.enable} unit=""
               onCommit={v => onScrollInertiaChange({ ...scrollInertia, strength: v })}
             />
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.inertiaFlick}>発動しやすさ</p>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.inertiaFlick}>{translate(TextKey.BallPanelTriggerSensitivity)}</p>
             <SliderControl
               value={scrollInertia.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
               disabled={disabled || !scrollInertia.enable} unit="" invert

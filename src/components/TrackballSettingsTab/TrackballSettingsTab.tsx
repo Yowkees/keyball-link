@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type {
   KbSettings, TrackballConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor,
@@ -94,7 +96,7 @@ export function TrackballSettingsTab({
   const cards: BoardCard[] = [
     ...(trackball ? [{
       // 左にCPI・加速度・精密モード、右に速度カーブ
-      key: 'ball', title: 'ボール動作・精密モード', className: 'board-card--ball',
+      key: 'ball', get title() { return translate(TextKey.TrackballSettingsTabBallBehaviorPrecisionMode); }, className: 'board-card--ball',
       render: () => (
         <>
         <TrackballSettings
@@ -114,7 +116,7 @@ export function TrackballSettingsTab({
     }] : []),
     {
       // スクロール方向・反転もここに置く（2026-10-06、ボール動作から移動）
-      key: 'scroll', title: 'スクロール設定', className: 'board-card--scroll',
+      key: 'scroll', get title() { return translate(TextKey.TrackballSettingsTabScrollSettings); }, className: 'board-card--scroll',
       render: () => (
         <ScrollLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
@@ -127,7 +129,7 @@ export function TrackballSettingsTab({
     },
     {
       // 横2列分を使い、中を左右2列（割り当て・感度｜ウェーブ）に分ける
-      key: 'gesture', title: 'ジェスチャー', className: 'board-card--gesture',
+      key: 'gesture', get title() { return translate(TextKey.Gesture); }, className: 'board-card--gesture',
       render: () => (
         <GestureCard
           gesture={gesture} onGestureChange={onGestureChange}
@@ -144,7 +146,7 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'aml', title: 'オートマウスレイヤー', className: 'board-card--aml',
+      key: 'aml', get title() { return translate(TextKey.TrackballSettingsTabAutoMouseLayer); }, className: 'board-card--aml',
       render: () => (
         <AutoMouseLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
@@ -155,19 +157,19 @@ export function TrackballSettingsTab({
     },
     {
       // シェイクとダブルフリックは1枚にまとめ、中を左右2列にする（ON/OFFは各小見出しの右）
-      key: 'motion', title: 'シェイク・ダブルフリック', className: 'board-card--motion',
+      key: 'motion', get title() { return translate(TextKey.TrackballSettingsTabShakeDoubleFlick); }, className: 'board-card--motion',
       render: () => (
         <div className="motion-cols">
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title" data-tip={TIPS.shake}>シェイク</span>
+              <span className="motion-col__title" data-tip={TIPS.shake}>{translate(TextKey.TrackballSettingsTabShake)}</span>
               {shake && <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} />}
             </div>
             <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />
           </section>
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title" data-tip={TIPS.dflick}>ダブルフリック</span>
+              <span className="motion-col__title" data-tip={TIPS.dflick}>{translate(TextKey.TrackballSettingsTabDoubleFlick)}</span>
               {dflick && <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} />}
             </div>
             <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />

@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { LedConfig } from '../../lib/protocol';
@@ -116,7 +118,7 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
         {/* 説明は選択欄の横に置く（下に置くと説明が無い時に空白ができ、出すと高さが変わるため） */}
         {(previewing || isFixedHue) && (
           <span className="settings-desc led-settings__note">
-            {previewing ? 'オフの間はレイヤー0の光り方で光ります' : '色相固定のエフェクトです（彩度・明度は調整できます）'}
+            {previewing ? translate(TextKey.LEDSettingsWhenOffUsesLayerLighting) : translate(TextKey.LEDSettingsThisEffectUsesAFixedHue)}
           </span>
         )}
       </div>
@@ -133,13 +135,13 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
 
 
         <div className="led-panel__sliders">
-          <LedSlider label="色相" value={view.hue} max={255} hidden={!showHue} disabled={previewing}
+          <LedSlider label={translate(TextKey.BallPanelHue)} value={view.hue} max={255} hidden={!showHue} disabled={previewing}
             onChange={v => commitDebounced({ ...local, hue: v })} />
-          <LedSlider label="彩度" value={view.sat} max={255} hidden={!showColor} disabled={previewing}
+          <LedSlider label={translate(TextKey.BallPanelSaturation)} value={view.sat} max={255} hidden={!showColor} disabled={previewing}
             onChange={v => commitDebounced({ ...local, sat: v })} />
-          <LedSlider label="明度" value={view.val} max={200} hidden={!showColor} disabled={previewing}
+          <LedSlider label={translate(TextKey.LEDSettingsBrightness)} value={view.val} max={200} hidden={!showColor} disabled={previewing}
             onChange={v => commitDebounced({ ...local, val: v })} />
-          <LedSlider label="速度" value={view.speed} max={255} hidden={!showSpeed} disabled={previewing}
+          <LedSlider label={translate(TextKey.LEDSettingsSpeed)} value={view.speed} max={255} hidden={!showSpeed} disabled={previewing}
             onChange={v => commitDebounced({ ...local, speed: v })} />
         </div>
       </div>

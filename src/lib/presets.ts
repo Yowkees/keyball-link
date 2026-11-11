@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+import { TextKey } from '../i18n/text.enum';
 // プリセットキーマップ定義
 // row/col はファームウェアの物理マトリクス座標に対応
 //   右半分: row 0〜3（Keyball61は0〜4）, 左半分: row 4〜7（Keyball61は5〜9）
@@ -351,29 +353,29 @@ const via61_layer3: LayerMap = {
 export const PRESETS: Preset[] = [
   {
     id: 'keyball39-default',
-    name: 'Keyball39 デフォルト',
-    description: '公式チートシート準拠の4レイヤーキーマップ（JIS配列向け）',
+    get name() { return translate(TextKey.PresetsKeyballDefault); },
+    get description() { return translate(TextKey.PresetsFourLayerJISKeymapBasedOn); },
     model: 'keyball39',
     layers: [layer0, layer1, layer2, layer3],
   },
   {
     id: 'keyball39-via',
-    name: 'Keyball39 Remap版',
-    description: 'Remap対応の標準ファームウェアの初期キーマップを再現したもの',
+    get name() { return translate(TextKey.PresetsKeyballRemap); },
+    get description() { return translate(TextKey.PresetsRecreatesTheDefaultKeymapOfThe); },
     model: 'keyball39',
     layers: [via39_layer0, via39_layer1, via39_layer2, via39_layer3],
   },
   {
     id: 'keyball44-via',
-    name: 'Keyball44 Remap版',
-    description: 'Remap対応の標準ファームウェアの初期キーマップを再現したもの',
+    get name() { return translate(TextKey.PresetsKeyballRemap2); },
+    get description() { return translate(TextKey.PresetsRecreatesTheDefaultKeymapOfThe); },
     model: 'keyball44',
     layers: [via44_layer0, via44_layer1, via44_layer2, via44_layer3],
   },
   {
     id: 'keyball61-via',
-    name: 'Keyball61 Remap版',
-    description: 'Remap対応の標準ファームウェアの初期キーマップを再現したもの（EEPROM全消去キーは安全のため未搭載）',
+    get name() { return translate(TextKey.PresetsKeyballRemap3); },
+    get description() { return translate(TextKey.PresetsRecreatesTheStandardRemapKeymapOmitting); },
     model: 'keyball61',
     layers: [via61_layer0, via61_layer1, via61_layer2, via61_layer3],
   },

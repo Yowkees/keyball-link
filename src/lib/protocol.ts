@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+import { TextKey } from '../i18n/text.enum';
 // ファームウェアの kb_hid.h と対応するプロトコル定義
 
 import type { ModelKey } from '../layouts';
@@ -246,7 +248,7 @@ export function encodeMacroBuffer(slots: MacroSlot[], bufferSize: number = MACRO
   }
   // 超過分を黙って切り捨てるとEEPROM上のデータが壊れるためエラーにする
   if (bytes.length > bufferSize) {
-    throw new Error(`マクロの合計サイズ（${bytes.length}バイト）がバッファ容量（${bufferSize}バイト）を超えています。ステップを減らしてください。`);
+    throw new Error(translate(TextKey.ProtocolMacrosTotalBytesExceedingTheByte, { p0: bytes.length, p1: bufferSize }));
   }
   // バッファ末尾をゼロパディング
   while (bytes.length < bufferSize) bytes.push(0);
@@ -333,20 +335,20 @@ export interface LedConfig {
 // 本人希望でどちらのスタイルも選べるようにした）。速度は共通でgestureWaveSpeed
 // （GET/SET_GESTURE_WAVE_SPEED）で設定する。
 export const LED_EFFECTS = [
-  { id: 0,  label: 'オフ' },
-  { id: 1,  label: 'ソリッド' },
-  { id: 2,  label: 'ブリージング' },
-  { id: 14, label: 'リアクティブ' },
-  { id: 17, label: 'リップル' },
-  { id: 15, label: 'タイピングヒートマップ' },
-  { id: 16, label: 'トラックボールリアクティブ' },
-  { id: 8,  label: 'グラデーション' },
-  { id: 3,  label: 'レインボー' },
-  { id: 4,  label: 'スワール' },
-  { id: 9,  label: 'トゥインクル' },
-  { id: 7,  label: 'クリスマス' },
-  { id: 11, label: 'ハロウィン' },
-  { id: 13, label: 'イースター' },
+  { id: 0,  get label() { return translate(TextKey.BallPanelOff); } },
+  { id: 1,  get label() { return translate(TextKey.ProtocolSolid); } },
+  { id: 2,  get label() { return translate(TextKey.ProtocolBreathing); } },
+  { id: 14, get label() { return translate(TextKey.ProtocolReactive); } },
+  { id: 17, get label() { return translate(TextKey.ProtocolRipple); } },
+  { id: 15, get label() { return translate(TextKey.ProtocolTypingHeatmap); } },
+  { id: 16, get label() { return translate(TextKey.ProtocolTrackballReactive); } },
+  { id: 8,  get label() { return translate(TextKey.ProtocolGradient); } },
+  { id: 3,  get label() { return translate(TextKey.ProtocolRainbow); } },
+  { id: 4,  get label() { return translate(TextKey.ProtocolSwirl); } },
+  { id: 9,  get label() { return translate(TextKey.ProtocolTwinkle); } },
+  { id: 7,  get label() { return translate(TextKey.ProtocolChristmas); } },
+  { id: 11, get label() { return translate(TextKey.ProtocolHalloween); } },
+  { id: 13, get label() { return translate(TextKey.ProtocolEaster); } },
 ] as const;
 
 // AVR版（RGBLIGHT版）ファームが実際に対応しているエフェクトID。
@@ -449,7 +451,7 @@ export function makeLtKeycode(layer: number, kc: number): number {
 // レイヤー数は機種・ファームウェアにより異なる（AVR版は4、RP2040版は8など）ため、
 // 接続中の実際のレイヤー数を渡して選択肢を生成する。未接続時などは4件を既定値とする。
 export function getLayerTapLayers(layerCount: number = 4) {
-  return Array.from({ length: layerCount }, (_, i) => ({ value: i, label: `レイヤー ${i}` }));
+  return Array.from({ length: layerCount }, (_, i) => ({ value: i, get label() { return translate(TextKey.KeyConfigModalLayer, { p0: i }); } }));
 }
 
 // Mod-Tap キーコード: 0x2000 | (mod << 8) | kc
@@ -459,14 +461,14 @@ export function makeModTapKeycode(mod: number, kc: number): number {
 
 // 利用可能な Mod-Tap 修飾キー一覧
 export const MOD_TAP_MODS = [
-  { value: 0x02, label: 'Shift (左)' },
-  { value: 0x01, label: 'Ctrl (左)' },
-  { value: 0x04, label: 'Alt (左)' },
-  { value: 0x08, label: 'GUI (左)' },
-  { value: 0x12, label: 'Shift (右)' },
-  { value: 0x11, label: 'Ctrl (右)' },
-  { value: 0x14, label: 'Alt (右)' },
-  { value: 0x18, label: 'GUI (右)' },
+  { value: 0x02, get label() { return translate(TextKey.ProtocolLeftShift); } },
+  { value: 0x01, get label() { return translate(TextKey.ProtocolLeftCtrl); } },
+  { value: 0x04, get label() { return translate(TextKey.ProtocolLeftAlt); } },
+  { value: 0x08, get label() { return translate(TextKey.ProtocolLeftGUI); } },
+  { value: 0x12, get label() { return translate(TextKey.ProtocolRightShift); } },
+  { value: 0x11, get label() { return translate(TextKey.ProtocolRightCtrl); } },
+  { value: 0x14, get label() { return translate(TextKey.ProtocolRightAlt); } },
+  { value: 0x18, get label() { return translate(TextKey.ProtocolRightGUI); } },
 ] as const;
 
 // MODS（修飾＋キー同時送信）キーコード: 0x0100 | (mod5 << 8) | kc

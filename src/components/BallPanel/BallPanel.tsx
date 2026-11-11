@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState } from 'react';
 import type { KbSettings, ScrollInertiaConfig, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
@@ -81,15 +83,15 @@ export function BallPanel(p: BallPanelProps) {
   const usedElsewhere = (l: number) => l !== LAYER_NONE && l !== L;
   const opt = (key: string, label: string, used: number, blocked: boolean) => ({
     key,
-    label: usedElsewhere(used) ? `${label}（レイヤー${used}）` : label,
+    label: usedElsewhere(used) ? translate(TextKey.BallPanelLayer, { p0: label, p1: used }) : label,
     disabled: usedElsewhere(used) || blocked,
   });
   const options: { key: string; label: string; disabled: boolean }[] = [
-    { key: 'cursor', label: 'カーソル', disabled: false },
-    opt('scroll', 'スクロール', settings.scrollLayer, L === 0 || amlHere),
+    { key: 'cursor', get label() { return translate(TextKey.Cursor); }, disabled: false },
+    opt('scroll', translate(TextKey.Scroll), settings.scrollLayer, L === 0 || amlHere),
     ...(gestureModes
-      ? gestureModes.map((m, i) => opt(`g${i}`, `ジェスチャー${i + 1}`, m.layer, amlHere))
-      : gesture ? [opt('g', 'ジェスチャー', gesture.layer, amlHere)] : []),
+      ? gestureModes.map((m, i) => opt(`g${i}`, translate(TextKey.GestureNumber, { p0: i + 1 }), m.layer, amlHere))
+      : gesture ? [opt('g', translate(TextKey.Gesture), gesture.layer, amlHere)] : []),
   ];
   const precElsewhere = precision ? usedElsewhere(precision.layer) : false;
   const [editDir, setEditDir] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
@@ -125,7 +127,7 @@ export function BallPanel(p: BallPanelProps) {
   const tb = p.trackball;
   return (
     <>
-      <div className="led-panel__title">トラックボール設定</div>
+      <div className="led-panel__title">{translate(TextKey.TrackballSettings)}</div>
       <div className="led-panel ball-panel">
         <div className="led-panel__toprow">
           <select
@@ -142,13 +144,13 @@ export function BallPanel(p: BallPanelProps) {
         <div className="led-panel__sliders ball-panel__sliders">
           {tb && motion === 'cursor' && (
             <>
-              <span className="ball-panel__label">速さ（CPI）</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelSpeedCPI)}</span>
               <SliderControl value={tb.cpiIndex} min={0} max={MAX_CPI_INDEX} step={1} disabled={disabled} unit=""
                 format={v => String(cpiIndexToValue(v))} onCommit={v => p.onTrackballChange({ ...tb, cpiIndex: v })} />
-              <span className="ball-panel__label">加速度</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelAcceleration)}</span>
               <SliderControl value={tb.accel} min={0} max={MAX_ACCEL} step={1} disabled={disabled || !p.accelAvailable} unit=""
-                format={v => (!p.accelAvailable ? '—' : v === 0 ? 'オフ' : String(v))} onCommit={v => p.onTrackballChange({ ...tb, accel: v })} />
-              {!p.accelAvailable && <p className="settings-desc">この版（LED版）では加速度は使用できません</p>}
+                format={v => (!p.accelAvailable ? '—' : v === 0 ? translate(TextKey.BallPanelOff) : String(v))} onCommit={v => p.onTrackballChange({ ...tb, accel: v })} />
+              {!p.accelAvailable && <p className="settings-desc">{translate(TextKey.BallPanelAccelerationIsUnavailableInThisLED)}</p>}
               <div className="ball-panel__curve">
                 <DpiCurveEditor points={computeAccelCurvePoints(tb.accel)} disabled={!p.accelAvailable} interactive={false} yMax={127} />
               </div>
@@ -156,30 +158,30 @@ export function BallPanel(p: BallPanelProps) {
           )}
           {tb && motion === 'scroll' && (
             <>
-              <span className="ball-panel__label">スクロール速度</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelScrollSpeed)}</span>
               <SliderControl value={tb.scrollDiv} min={0} max={SCROLL_DIV_MAX} step={1} disabled={disabled} unit="" invert
                 onCommit={v => p.onTrackballChange({ ...tb, scrollDiv: v })} />
-              <ToggleRow label="縦スクロールを反転" desc="" checked={settings.scrollInvertV} disabled={disabled}
+              <ToggleRow label={translate(TextKey.BallPanelInvertVerticalScroll)} desc="" checked={settings.scrollInvertV} disabled={disabled}
                 onChange={v => run(() => p.onChange({ ...settings, scrollInvertV: v }))} />
-              <ToggleRow label="横スクロールを反転" desc="" checked={settings.scrollInvertH} disabled={disabled}
+              <ToggleRow label={translate(TextKey.BallPanelInvertHorizontalScroll)} desc="" checked={settings.scrollInvertH} disabled={disabled}
                 onChange={v => run(() => p.onChange({ ...settings, scrollInvertH: v }))} />
-              <span className="ball-panel__label">スクロール方向</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelScrollDirection)}</span>
               <select className="trackball-bar__select" value={tb.scrollMode} disabled={disabled}
                 onChange={e => p.onTrackballChange({ ...tb, scrollMode: Number(e.target.value) })}>
-                <option value={SCROLL_MODE.VERTICAL}>縦のみ</option>
-                <option value={SCROLL_MODE.HORIZONTAL}>横のみ</option>
-                <option value={SCROLL_MODE.FREE}>自由（縦横）</option>
+                <option value={SCROLL_MODE.VERTICAL}>{translate(TextKey.BallPanelVerticalOnly)}</option>
+                <option value={SCROLL_MODE.HORIZONTAL}>{translate(TextKey.BallPanelHorizontalOnly)}</option>
+                <option value={SCROLL_MODE.FREE}>{translate(TextKey.BallPanelBothAxes)}</option>
               </select>
               {p.scrollInertia && (() => {
                 const si = p.scrollInertia;
                 return (
                   <>
-                    <ToggleRow label="慣性スクロール" desc="" checked={si.enable} disabled={disabled}
+                    <ToggleRow label={translate(TextKey.BallPanelScrollInertia)} desc="" checked={si.enable} disabled={disabled}
                       onChange={v => run(() => p.onScrollInertiaChange({ ...si, enable: v }))} />
-                    <span className="ball-panel__label">慣性レベル</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelInertiaLevel)}</span>
                     <SliderControl value={si.strength} min={SCROLL_INERTIA_STRENGTH_MIN} max={SCROLL_INERTIA_STRENGTH_MAX} step={1}
                       disabled={disabled || !si.enable} unit="" onCommit={v => p.onScrollInertiaChange({ ...si, strength: v })} />
-                    <span className="ball-panel__label">発動しやすさ</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelTriggerSensitivity)}</span>
                     <SliderControl value={si.flickMult} min={SCROLL_INERTIA_FLICK_MULT_MIN} max={SCROLL_INERTIA_FLICK_MULT_MAX} step={1}
                       disabled={disabled || !si.enable} unit="" invert onCommit={v => p.onScrollInertiaChange({ ...si, flickMult: v })} />
                   </>
@@ -190,12 +192,12 @@ export function BallPanel(p: BallPanelProps) {
           {precision && !isGesture && (
             <>
               <ToggleRow
-                label="精密モード"
+                label={translate(TextKey.BallPanelPrecisionMode)}
                 desc="" checked={precisionOn} disabled={disabled || precElsewhere} onChange={togglePrecision}
               />
               {/* 減速レベルはOFFの時もグレーで出しておく（ON/OFFでパネルの高さが変わらないように） */}
-              <span className="ball-panel__label">減速レベル</span>
-              <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled || !precisionOn} unit="分の1"
+              <span className="ball-panel__label">{translate(TextKey.BallPanelSlowdownLevel)}</span>
+              <SliderControl value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1} disabled={disabled || !precisionOn} unit="" format={div => translate(TextKey.PrecisionRatio, { p0: div })}
                 onCommit={div => p.onPrecisionChange({ ...precision, div })} />
             </>
           )}
@@ -203,8 +205,8 @@ export function BallPanel(p: BallPanelProps) {
             const gm = gestureModes && isGesture && motion !== 'g' ? gestureModes[Number(motion.slice(1))] : null;
             const cfg = gm ?? (motion === 'g' ? gesture : null);
             if (!cfg) return null;
-            const dirs = [['up', '上 ↑', 'continuousUp'], ['down', '下 ↓', 'continuousDown'],
-              ['left', '左 ←', 'continuousLeft'], ['right', '右 →', 'continuousRight']] as const;
+            const dirs = [['up', translate(TextKey.BallPanelUp), 'continuousUp'], ['down', translate(TextKey.BallPanelDown), 'continuousDown'],
+              ['left', translate(TextKey.BallPanelLeft), 'continuousLeft'], ['right', translate(TextKey.BallPanelRight), 'continuousRight']] as const;
             const mi = gm ? Number(motion.slice(1)) : -1;
             return (
               <div className="ball-panel__gesture">
@@ -212,14 +214,12 @@ export function BallPanel(p: BallPanelProps) {
                   <div key={dir} className="gesture-row">
                     <span className="gesture-dir">{label}</span>
                     <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
-                      {getKeyDisplayLabel(cfg[dir], p.keyLayout) || '未設定'}
+                      {getKeyDisplayLabel(cfg[dir], p.keyLayout) || translate(TextKey.BallPanelNotSet)}
                     </button>
                     {gm && (
                       <label className="ball-panel__cont">
                         <input type="checkbox" disabled={disabled} checked={gm[contKey]}
-                          onChange={e => p.onGestureModeChange(mi, { ...gm, [contKey]: e.target.checked })} />
-                        連続入力
-                      </label>
+                          onChange={e => p.onGestureModeChange(mi, { ...gm, [contKey]: e.target.checked })} />{translate(TextKey.BallPanelRepeatInput)}</label>
                     )}
                   </div>
                 ))}
@@ -228,10 +228,10 @@ export function BallPanel(p: BallPanelProps) {
           })()}
           {p.gestureThreshold && isGesture && (
             <>
-              <span className="ball-panel__label">感度（横）</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelHorizontalSensitivity)}</span>
               <SliderControl value={p.gestureThreshold.h} min={10} max={200} step={5} disabled={disabled} unit="" invert
                 onCommit={h => p.onGestureThresholdChange({ ...p.gestureThreshold!, h })} />
-              <span className="ball-panel__label">感度（縦）</span>
+              <span className="ball-panel__label">{translate(TextKey.BallPanelVerticalSensitivity)}</span>
               <SliderControl value={p.gestureThreshold.v} min={10} max={200} step={5} disabled={disabled} unit="" invert
                 onCommit={v => p.onGestureThresholdChange({ ...p.gestureThreshold!, v })} />
             </>
@@ -242,30 +242,30 @@ export function BallPanel(p: BallPanelProps) {
             const color = p.gestureWaveColor?.[i];
             return (
               <>
-                <ToggleRow label="ジェスチャーウェーブ" desc="" checked={p.gestureWaveEnable} disabled={disabled}
+                <ToggleRow label={translate(TextKey.BallPanelGestureWave)} desc="" checked={p.gestureWaveEnable} disabled={disabled}
                   onChange={v => run(() => p.onGestureWaveEnableChange(v))} />
                 {p.gestureWaveStyle && (
                   <select className="trackball-bar__select" value={p.gestureWaveStyle[i]} disabled={off}
                     onChange={e => p.onGestureWaveStyleChange(i, Number(e.target.value))}>
-                    <option value={0}>シャープ（瞬間的に光る）</option>
-                    <option value={1}>ブリージング（柔らかく流れる）</option>
+                    <option value={0}>{translate(TextKey.BallPanelSharpBriefFlash)}</option>
+                    <option value={1}>{translate(TextKey.BallPanelBreathingSoftFlow)}</option>
                   </select>
                 )}
                 {color && (
                   <>
-                    <span className="ball-panel__label">色相</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelHue)}</span>
                     <HueBar key={i} color={color} disabled={off} onCommit={hue => p.onGestureWaveColorChange(i, { ...color, hue })} />
-                    <span className="ball-panel__label">彩度</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelSaturation)}</span>
                     <SliderControl value={color.sat} min={0} max={255} step={1} disabled={off} unit=""
                       onCommit={sat => p.onGestureWaveColorChange(i, { ...color, sat })} />
-                    <span className="ball-panel__label">明るさ</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelBrightness)}</span>
                     <SliderControl value={color.val} min={0} max={255} step={1} disabled={off} unit=""
                       onCommit={val => p.onGestureWaveColorChange(i, { ...color, val })} />
                   </>
                 )}
                 {p.gestureWaveSpeed && (
                   <>
-                    <span className="ball-panel__label">ウェーブの速さ</span>
+                    <span className="ball-panel__label">{translate(TextKey.BallPanelWaveSpeed)}</span>
                     <SliderControl value={p.gestureWaveSpeed[i]} min={1} max={255} step={1} disabled={off} unit=""
                       onCommit={v => p.onGestureWaveSpeedChange(i, v)} />
                   </>
@@ -275,8 +275,7 @@ export function BallPanel(p: BallPanelProps) {
           })()}
           {(motion === 'cursor' || motion === 'scroll') && (
             <p className="settings-desc ball-panel__note">
-              {motion === 'cursor' ? 'カーソル' : 'スクロール'}の設定は全レイヤー共通です（精密モードはレイヤーごと）
-            </p>
+              {motion === 'cursor' ? translate(TextKey.Cursor) : translate(TextKey.Scroll)}{translate(TextKey.BallPanelSettingsApplyToAllLayersPrecision)}</p>
           )}
         </div>
         {editDir && isGesture && (
@@ -317,7 +316,7 @@ function HueBar({ color, disabled, onCommit }: { color: GestureWaveColor; disabl
         <input
           type="range" min={0} max={255} step={1}
           className="hue-bar__input"
-          aria-label="色相"
+          aria-label={translate(TextKey.BallPanelHue)}
           value={hue}
           disabled={disabled}
           onChange={e => setHue(Number(e.target.value))}

@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import type { PrecisionConfig } from '../../lib/protocol';
 import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX } from '../../lib/protocol';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
@@ -15,32 +17,32 @@ interface PrecisionModeCardProps {
 
 export function PrecisionModeCard({ precision, onPrecisionChange, disabled, layersInclBase, layerWarn, changePrecisionLayer }: PrecisionModeCardProps) {
   if (precision === null) {
-    return <p className="settings-desc">このファームは非対応です。</p>;
+    return <p className="settings-desc">{translate(TextKey.DoubleFlickCardNotSupportedByThisFirmware)}</p>;
   }
   // 1行目に「精密モード」の見出しと連動レイヤーの選択欄、その下に減速レベル（2026-10-06、本人希望）
   return (
     <div className="precision-card">
       <div className="precision-card__head">
-        <span className="precision-card__title" data-tip={TIPS.precision}>精密モード</span>
+        <span className="precision-card__title" data-tip={TIPS.precision}>{translate(TextKey.BallPanelPrecisionMode)}</span>
         <select
           className="trackball-bar__select"
           value={precision.layer}
           disabled={disabled}
           onChange={e => changePrecisionLayer(Number(e.target.value))}
         >
-          <option value={LAYER_NONE}>なし</option>
+          <option value={LAYER_NONE}>{translate(TextKey.KeyConfigModalNone)}</option>
           {layersInclBase.map(l => (
-            <option key={l} value={l}>Layer {l}</option>
+            <option key={l} value={l}>{translate(TextKey.AppLayer)}{l}</option>
           ))}
         </select>
       </div>
       {layerWarn?.target === 'precision' && (
         <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
       )}
-      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.precisionDiv}>減速レベル</p>
+      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.precisionDiv}>{translate(TextKey.BallPanelSlowdownLevel)}</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
-        disabled={disabled} unit="分の1"
+        disabled={disabled} unit="" format={div => translate(TextKey.PrecisionRatio, { p0: div })}
         onCommit={div => onPrecisionChange({ ...precision, div })}
       />
     </div>

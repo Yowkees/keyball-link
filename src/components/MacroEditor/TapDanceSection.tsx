@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { Fragment, useState } from 'react';
 import type { TdSlot } from '../../lib/protocol';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -13,7 +15,7 @@ interface TapDanceSectionProps {
 }
 
 const EMPTY_TD: TdSlot = { tap: 0, hold: 0, dtap: 0, flags: 0 };
-const TD_FIELDS = [['tap', 'タップ'], ['dtap', 'ダブルタップ'], ['hold', '長押し']] as const;
+const TD_FIELDS = [['tap', translate(TextKey.GestureCardTap)], ['dtap', translate(TextKey.TapDanceSectionDoubleTap)], ['hold', translate(TextKey.TapDanceSectionLongPress)]] as const;
 const TD_TIPS = { tap: TIPS.tdTap, dtap: TIPS.tdDtap, hold: TIPS.tdHold };
 
 export function TapDanceSection({ tdSlots, onTdSlotChange, keyLayout, disabled }: TapDanceSectionProps) {

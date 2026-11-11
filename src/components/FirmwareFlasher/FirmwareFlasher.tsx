@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState, useRef, useEffect } from 'react';
 import { AVR109, isWebSerialSupported } from '../../lib/avr109';
 import { isFileSystemAccessSupported, flashUf2 } from '../../lib/uf2flash';
@@ -68,7 +70,7 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   const [message, setMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const firmwareRef = useRef<Uint8Array | null>(null);
-  const [flashCounts, setFlashCounts] = useState<Record<string, number>>({});
+  const [flashCounts, setFlashCounts] = useState<Record<string, number> | null>(null);
 
   // 接続中デバイスのproductIdからチップ種別を自動判定する（同じ機種名でも
   // AVR/RP2040でPIDが異なる。KEYBALL_MODEL値だけでは区別できない機種があるため）。
@@ -107,19 +109,19 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
     if (source === 'builtin') {
       if (chip === 'rp2040') {
         const path = BUILTIN_FIRMWARE_RP2040[selectedModel];
-        if (!path) throw new Error('この機種のRP2040版ファームウェアはまだありません');
+        if (!path) throw new Error(translate(TextKey.FirmwareFlasherRPFirmwareIsNotYetAvailable));
         const res = await fetch(path);
-        if (!res.ok) throw new Error(`ファームウェア取得失敗: ${res.status}`);
+        if (!res.ok) throw new Error(translate(TextKey.FirmwareFlasherCouldNotDownloadFirmware, { p0: res.status }));
         return new Uint8Array(await res.arrayBuffer());
       }
       const ledPath = BUILTIN_FIRMWARE_AVR_LED[selectedModel];
       const path = ledVersion && ledPath ? ledPath : BUILTIN_FIRMWARE_AVR[selectedModel];
-      if (!path) throw new Error('この機種のAVR版ファームウェアは配布していません');
+      if (!path) throw new Error(translate(TextKey.FirmwareFlasherAVRFirmwareIsNotDistributedFor));
       const res = await fetch(path);
-      if (!res.ok) throw new Error(`ファームウェア取得失敗: ${res.status}`);
+      if (!res.ok) throw new Error(translate(TextKey.FirmwareFlasherCouldNotDownloadFirmware, { p0: res.status }));
       return parseIntelHex(await res.text());
     }
-    if (!customFile) throw new Error('ファイルが選択されていません');
+    if (!customFile) throw new Error(translate(TextKey.FirmwareFlasherNoFileSelected));
     // RP2040の.uf2はビルド済みバイナリなのでそのまま読む。AVRの.hexはIntel HEX形式
     return chip === 'rp2040' ? new Uint8Array(await customFile.arrayBuffer()) : parseIntelHex(await customFile.text());
   };
@@ -129,11 +131,11 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
     setMessage('');
 
     try {
-      setMessage('ファームウェアを読み込んでいます…');
+      setMessage(translate(TextKey.FirmwareFlasherLoadingFirmware));
       firmwareRef.current = await loadFirmware();
 
       if (isHIDConnected) {
-        setMessage('ブートローダーモードに切り替え中…');
+        setMessage(translate(TextKey.FirmwareFlasherSwitchingToBootloaderMode));
         await onReboot();
         // ブートローダーが起動するまで待つ。RP2040はUSBメモリとして再認識され
         // OS側のマウント処理が入る分、AVRのシリアルポート再認識より時間がかかるため
@@ -156,36 +158,36 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   const openPortAndFlash = async () => {
     if (!('serial' in navigator)) {
       setPhase('error');
-      setMessage('このブラウザはWeb Serial非対応のため書き込みできません。Chrome または Edge をご利用ください。');
+      setMessage(translate(TextKey.FirmwareFlasherCannotFlashThisBrowserDoesNot));
       return;
     }
     setPhase('port');
-    setMessage('シリアルポートを選択してください（「ProMicro 5V」を選ぶ）');
+    setMessage(translate(TextKey.FirmwareFlasherSelectTheSerialPortProMicroV));
 
     let port: SerialPort;
     try {
       port = await navigator.serial.requestPort();
     } catch {
       setPhase('idle');
-      setMessage('ポート選択がキャンセルされました。');
+      setMessage(translate(TextKey.FirmwareFlasherPortSelectionCancelled));
       return;
     }
 
     setPhase('flashing');
     const flasher = new AVR109(port);
     try {
-      setMessage('ポートに接続中…');
+      setMessage(translate(TextKey.FirmwareFlasherConnectingToPort));
       await flasher.open();
       await flasher.flash(firmwareRef.current!, (pct, msg) => {
         setProgress(pct);
         setMessage(msg);
       });
       setPhase('done');
-      setMessage('書き込み完了！　キーボードが再起動します。');
+      setMessage(translate(TextKey.FirmwareFlasherFlashCompleteTheKeyboardWillRestart));
       if (source === 'builtin') {
         const key = flashCountKey(selectedModel, ledVersion && !!BUILTIN_FIRMWARE_AVR_LED[selectedModel]);
         reportFlash(key)
-          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 })))
+          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev?.[key] ?? 0) + 1 })))
           .catch(() => {
             // 統計送信の失敗は書き込み成功の表示には影響させない
           });
@@ -201,18 +203,18 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   const pickDirectoryAndFlash = async () => {
     if (!isFileSystemAccessSupported()) {
       setPhase('error');
-      setMessage('このブラウザはFile System Access API非対応のため書き込みできません。Chrome または Edge をご利用ください。');
+      setMessage(translate(TextKey.FirmwareFlasherCannotFlashThisBrowserDoesNot2));
       return;
     }
     setPhase('port');
-    setMessage('「RPI-RP2」という名前のドライブを選択してください');
+    setMessage(translate(TextKey.FirmwareFlasherSelectTheDriveNamedRPIRP));
 
     let dirHandle: FileSystemDirectoryHandle;
     try {
       dirHandle = await window.showDirectoryPicker!({ id: 'keyball-rp2040-uf2' });
     } catch {
       setPhase('idle');
-      setMessage('フォルダ選択がキャンセルされました。');
+      setMessage(translate(TextKey.FirmwareFlasherFolderSelectionCancelled));
       return;
     }
 
@@ -223,11 +225,11 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
         setMessage(msg);
       });
       setPhase('done');
-      setMessage('書き込み完了！　キーボードが再起動します。');
+      setMessage(translate(TextKey.FirmwareFlasherFlashCompleteTheKeyboardWillRestart));
       if (source === 'builtin') {
         const key = flashCountKey(selectedModel, false, 'rp2040');
         reportFlash(key)
-          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 })))
+          .then(() => setFlashCounts(prev => ({ ...prev, [key]: (prev?.[key] ?? 0) + 1 })))
           .catch(() => {
             // 統計送信の失敗は書き込み成功の表示には影響させない
           });
@@ -249,21 +251,21 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
   // 書き込みの手順（①選択→②書き込む）は1つのパネルにまとめ、注意書きは別の項目に分けた。
   const cards: BoardCard[] = [
     {
-      key: 'flash', title: 'ファームウェア書き込み', tip: TIPS.fwFlash,
+      key: 'flash', get title() { return translate(TextKey.FirmwareFlasherFlashFirmware); }, tip: TIPS.fwFlash,
       render: () => (
         <div className="fw-panel">
       {!supported && (
         <div className="flash-alert flash-alert--warn">
           {chip === 'rp2040'
-            ? 'File System Access API 非対応のブラウザです。Chrome または Edge をお使いください。'
-            : 'WebSerial API 非対応のブラウザです。Chrome または Edge をお使いください。'}
+            ? translate(TextKey.FirmwareFlasherThisBrowserDoesNotSupportThe)
+            : translate(TextKey.FirmwareFlasherThisBrowserDoesNotSupportWeb)}
         </div>
       )}
 
           <div className="fw-step">
-            <p className="fw-step__title"><span className="flash-step-num">1</span>ファームウェアを選択</p>
+            <p className="fw-step__title"><span className="flash-step-num">1</span>{translate(TextKey.FirmwareFlasherSelectFirmware)}</p>
           {/* 2026-10-06〜: 上から「モデル」→「AVR版/RP2040版」→「ビルド済み/ファイル」の順に選ぶ */}
-          <p className="fw-field-label">モデル</p>
+          <p className="fw-field-label">{translate(TextKey.FirmwareFlasherModel)}</p>
             <div className="model-selector">
               {/* 書き込み回数は機種の合計ではなく、ファームの種類ごと（AVR版・LED版・RP2040版）に下のボタンに出す（2026-10-27、本人希望） */}
               {(Object.keys(MODEL_LABELS) as ModelKey[]).map(model => (
@@ -275,79 +277,61 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
               ))}
               {detectedModel && (
                 <span className="detected-model">
-                  {detectedModel === selectedModel ? '✓ 接続中と一致' : `⚠ 接続中: ${MODEL_LABELS[detectedModel]}`}
+                  {detectedModel === selectedModel ? translate(TextKey.FirmwareFlasherMatchesConnectedKeyboard) : translate(TextKey.FirmwareFlasherConnected, { p0: MODEL_LABELS[detectedModel] })}
                 </span>
               )}
             </div>
 
-          <p className="fw-field-label">マイコン</p>
+          <p className="fw-field-label">{translate(TextKey.FirmwareFlasherMicrocontroller)}</p>
           <div className="fw-source-tabs">
             <button className={`fw-source-tab ${chip === 'avr' ? 'fw-source-tab--active' : ''}`}
               onClick={() => setChip('avr')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel])}
-              title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? 'この機種はRP2040版のみ配布しています' : undefined}>
-              AVR版（Pro Micro等）
-              {/* 通常版・LED版に分かれている機種は、下のバージョンのボタンにそれぞれの回数を出す */}
+              title={source === 'builtin' && !BUILTIN_FIRMWARE_AVR[selectedModel] ? translate(TextKey.FirmwareFlasherOnlyRPFirmwareIsAvailableFor) : undefined}>{translate(TextKey.FirmwareFlasherAVRProMicroEtc)}{/* 通常版・LED版に分かれている機種は、下のバージョンのボタンにそれぞれの回数を出す */}
               {BUILTIN_FIRMWARE_AVR[selectedModel] && !BUILTIN_FIRMWARE_AVR_LED[selectedModel] && (
-                <span className="fw-flash-count">(書き込み回数: {flashCounts[flashCountKey(selectedModel, false)] ?? 0})</span>
+                <span className="fw-flash-count" title={flashCounts === null ? translate(TextKey.CountUnavailable) : undefined}>{translate(TextKey.FirmwareFlasherFlashCount)}{flashCounts?.[flashCountKey(selectedModel, false)] ?? '—'})</span>
               )}
             </button>
             {RP2040_PUBLIC_RELEASE && (
               <button className={`fw-source-tab ${chip === 'rp2040' ? 'fw-source-tab--active' : ''}`}
                 onClick={() => setChip('rp2040')} disabled={isWorking || (source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel])}
-                title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? 'この機種のRP2040版はまだありません' : undefined}>
-                RP2040版（RP2040 ProMicro）
-                {BUILTIN_FIRMWARE_RP2040[selectedModel] && (
-                  <span className="fw-flash-count">(書き込み回数: {flashCounts[flashCountKey(selectedModel, false, 'rp2040')] ?? 0})</span>
+                title={source === 'builtin' && !BUILTIN_FIRMWARE_RP2040[selectedModel] ? translate(TextKey.FirmwareFlasherRPIsNotYetAvailableFor) : undefined}>{translate(TextKey.FirmwareFlasherRPRPProMicro)}{BUILTIN_FIRMWARE_RP2040[selectedModel] && (
+                  <span className="fw-flash-count" title={flashCounts === null ? translate(TextKey.CountUnavailable) : undefined}>{translate(TextKey.FirmwareFlasherFlashCount)}{flashCounts?.[flashCountKey(selectedModel, false, 'rp2040')] ?? '—'})</span>
                 )}
               </button>
             )}
           </div>
 
-          <p className="fw-field-label">ファームウェア</p>
+          <p className="fw-field-label">{translate(TextKey.Firmware)}</p>
           <div className="fw-source-tabs">
             <button className={`fw-source-tab ${source === 'builtin' ? 'fw-source-tab--active' : ''}`}
-              onClick={() => setSource('builtin')} disabled={isWorking}>
-              ビルド済みを使用
-            </button>
+              onClick={() => setSource('builtin')} disabled={isWorking}>{translate(TextKey.FirmwareFlasherUseBundledFirmware)}</button>
             <button className={`fw-source-tab ${source === 'file' ? 'fw-source-tab--active' : ''}`}
               onClick={() => setSource('file')} disabled={isWorking}>
-              {chip === 'rp2040' ? '.uf2 ファイルを選択' : '.hex ファイルを選択'}
+              {chip === 'rp2040' ? translate(TextKey.FirmwareFlasherChooseUfFile) : translate(TextKey.FirmwareFlasherChooseHexFile)}
             </button>
           </div>
 
           {source === 'builtin' && chip === 'avr' && BUILTIN_FIRMWARE_AVR_LED[selectedModel] && (
             <div className="version-selector" style={{ marginTop: 12 }}>
-              <p className="flash-step-label" style={{ marginBottom: 6 }}>
-                バージョン（この機種は容量の都合で2種類あります）
-              </p>
+              <p className="flash-step-label" style={{ marginBottom: 6 }}>{translate(TextKey.FirmwareFlasherVersionTwoVariantsDueToMemory)}</p>
               <div className="fw-source-tabs">
                 <button className={`fw-source-tab ${!ledVersion ? 'fw-source-tab--active' : ''}`}
-                  onClick={() => setLedVersion(false)} disabled={isWorking}>
-                  通常版（音量キーあり・マクロあり・LEDなし）
-                  <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
-                    (書き込み回数: {flashCounts[flashCountKey(selectedModel, false)] ?? 0})
+                  onClick={() => setLedVersion(false)} disabled={isWorking}>{translate(TextKey.FirmwareFlasherStandardMediaKeysAndMacrosNo)}<span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>{translate(TextKey.FirmwareFlasherFlashCount)}{flashCounts?.[flashCountKey(selectedModel, false)] ?? '—'})
                   </span>
                 </button>
                 <button className={`fw-source-tab ${ledVersion ? 'fw-source-tab--active' : ''}`}
-                  onClick={() => setLedVersion(true)} disabled={isWorking}>
-                  LED版（LEDあり・音量キーあり・マクロなし）
-                  <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
-                    (書き込み回数: {flashCounts[flashCountKey(selectedModel, true)] ?? 0})
+                  onClick={() => setLedVersion(true)} disabled={isWorking}>{translate(TextKey.FirmwareFlasherLEDLEDsAndMediaKeysNo)}<span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>{translate(TextKey.FirmwareFlasherFlashCount)}{flashCounts?.[flashCountKey(selectedModel, true)] ?? '—'})
                   </span>
                 </button>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.6 }}>
                 {ledVersion
-                  ? 'LEDが光ります。音量などのメディアキー・キーごとのタップ判定調整も使えます。かわりにマクロ・ジェスチャー・トラックボール加速は使えません。'
-                  : '音量などのメディアキー・マクロ・ジェスチャー・キーごとの詳細設定が使えます。LEDは光りません。'}
+                  ? translate(TextKey.FirmwareFlasherIncludesLEDsMediaKeysAndPer)
+                  : translate(TextKey.FirmwareFlasherIncludesMediaKeysMacrosGesturesAnd)}
               </p>
               {ledVersion && (
                 <div className="flash-alert flash-alert--warn" style={{ marginTop: 10 }}>
-                  ⚠ <strong>以前からLED版をお使いで、マクロを設定していた方へ</strong><br />
-                  v1.1.0からLED版はマクロが使えなくなり、かわりに音量などのメディアキーが使えるようになりました。<br />
-                  書き込むと、これまで設定していたマクロの内容は確認・編集できなくなります（取り出す機能はありません）。<br />
-                  必要な内容は、書き込む前に控えておいてください。
-                </div>
+                  ⚠ <strong>{translate(TextKey.FirmwareFlasherForExistingLEDFirmwareUsersWith)}</strong><br />{translate(TextKey.FirmwareFlasherSinceVLEDFirmwareSupportsMedia)}<br />{translate(TextKey.FirmwareFlasherAfterFlashingExistingMacrosCannotBe)}<br />{translate(TextKey.FirmwareFlasherKeepASeparateCopyOfAnything)}</div>
               )}
             </div>
           )}
@@ -362,33 +346,27 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
           )}
           </div>
           <div className="fw-step">
-            <p className="fw-step__title"><span className="flash-step-num">2</span>書き込む</p>
+            <p className="fw-step__title"><span className="flash-step-num">2</span>{translate(TextKey.FirmwareFlasherFlash)}</p>
           {chip === 'avr' ? (
             isHIDConnected ? (
-              <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わります。</p>
+              <p className="flash-step-label">{translate(TextKey.FirmwareFlasherClickFlashToSwitchToBootloader)}</p>
             ) : (
-              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
-                💡 「書き込む」を押すとポート選択ダイアログが開きます。<br />
-                {'　　'}<strong>ダイアログが開いた状態で</strong>リセットボタンを素早く2回押してください。<br />
-                {'　　'}「ProMicro 5V」がリストに現れたら選択すると書き込み開始です。
-              </div>
+              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>{translate(TextKey.FirmwareFlasherClickFlashToOpenThePort)}<br />
+                {'　　'}<strong>{translate(TextKey.FirmwareFlasherWithTheDialogOpen)}</strong>{translate(TextKey.FirmwareFlasherQuicklyPressTheResetButtonTwice)}<br />
+                {'　　'}{translate(TextKey.FirmwareFlasherWhenProMicroVAppearsSelectIt)}</div>
             )
           ) : (
             isHIDConnected ? (
-              <p className="flash-step-label">「書き込む」を押すと自動でブートローダーモードに切り替わり、フォルダ選択ダイアログが開きます。</p>
+              <p className="flash-step-label">{translate(TextKey.FirmwareFlasherClickFlashToEnterBootloaderMode)}</p>
             ) : (
-              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>
-                💡 「書き込む」を押すとフォルダ選択ダイアログが開きます。<br />
-                {'　　'}<strong>すでにKeyball Linkのファームウェアが入っている場合</strong>：リセットボタンを素早く2回押すとブートローダーモードになります。<br />
-                {'　　'}<strong>初めて書き込む・工場出荷状態の場合</strong>：BOOTSELボタンを押しながらUSBケーブルを挿し直してください。<br />
-                {'　　'}「RPI-RP2」という名前のドライブがリストに現れたら選択すると書き込み開始です。
-              </div>
+              <div className="flash-alert flash-alert--info" style={{ marginTop: 0 }}>{translate(TextKey.FirmwareFlasherClickFlashToOpenTheFolder)}<br />
+                {'　　'}<strong>{translate(TextKey.FirmwareFlasherIfKeyballLinkFirmwareIsAlready)}</strong>{translate(TextKey.FirmwareFlasherQuicklyPressResetTwiceToEnter)}<br />
+                {'　　'}<strong>{translate(TextKey.FirmwareFlasherForTheFirstFlashOrFactory)}</strong>{translate(TextKey.FirmwareFlasherHoldBOOTSELWhileReconnectingTheUSB)}<br />
+                {'　　'}{translate(TextKey.FirmwareFlasherSelectTheRPIRPDriveWhen)}</div>
             )
           )}
 
-          <button className="btn btn--primary" onClick={handleFlash} disabled={!canFlash}>
-            書き込む
-          </button>
+          <button className="btn btn--primary" onClick={handleFlash} disabled={!canFlash}>{translate(TextKey.FirmwareFlasherFlash)}</button>
 
       {/* メッセージ */}
       {message && (
@@ -412,44 +390,28 @@ export function FirmwareFlasher({ detectedModel, productId, isHIDConnected, onRe
       ),
     },
     ...(supported && !isHIDConnected ? [{
-      key: 'trouble', title: 'うまくいかない場合', tip: TIPS.fwTrouble,
+      key: 'trouble', get title() { return translate(TextKey.FirmwareFlasherTroubleshooting); }, tip: TIPS.fwTrouble,
       render: () => (
-        <p className="fw-note">
-          ブラウザからの書き込みは環境によって失敗することがあります。<br />
-          うまくいかない場合は <strong>QMK Toolbox</strong> で初回書き込みを行ってください。<br />
-          初回書き込み後は「キーボードに接続」→「書き込む」で自動的にブートローダーに切り替わります。
-        </p>
+        <p className="fw-note">{translate(TextKey.FirmwareFlasherBrowserFlashingMayFailDependingOn)}<br />{translate(TextKey.FirmwareFlasherIfFlashingFailsUse)}<strong>QMK Toolbox</strong>{translate(TextKey.FirmwareFlasherForTheInitialFlash)}<br />{translate(TextKey.FirmwareFlasherAfterTheInitialFlashConnectKeyboard)}</p>
       ),
     }] : []),
     {
-      key: 'both', title: '左右の両方に書き込む', tip: TIPS.fwBothHalves,
+      key: 'both', get title() { return translate(TextKey.FirmwareFlasherFlashBothHalves); }, tip: TIPS.fwBothHalves,
       render: () => (
-        <p className="fw-note">
-          Keyballは左右の基板それぞれにマイコンがあります。書き込み・更新をする時は、
-          USBケーブルを反対側に挿し替えて<strong>左右の両方に同じファームウェアを書き込んでください</strong>。<br />
-          片側だけ更新すると、LEDの光り方などが左右で合わなくなることがあります。
-        </p>
+        <p className="fw-note">{translate(TextKey.FirmwareFlasherEachHalfHasItsOwnMicrocontroller)}<strong>{translate(TextKey.FirmwareFlasherFlashTheSameFirmwareToBoth)}</strong>。<br />{translate(TextKey.FirmwareFlasherUpdatingOnlyOneHalfMayCause)}</p>
       ),
     },
     {
-      key: 'switch', title: '公式ファームからの乗り換え', tip: TIPS.fwSwitch,
+      key: 'switch', get title() { return translate(TextKey.FirmwareFlasherSwitchingFromOfficialFirmware); }, tip: TIPS.fwSwitch,
       render: () => (
-        <p className="fw-note">
-          書き込むと今のキー設定は引き継がれません。<br />
-          <strong>Remap</strong> などで現在のキーマップを保存（バックアップ）してから書き込んでください。
-        </p>
+        <p className="fw-note">{translate(TextKey.FirmwareFlasherYourCurrentKeySettingsWillNot)}<br />
+          <strong>Remap</strong>{translate(TextKey.FirmwareFlasherOrASimilarToolToBack)}</p>
       ),
     },
     {
-      key: 'revert', title: '他のファームに戻す', tip: TIPS.fwRevert,
+      key: 'revert', get title() { return translate(TextKey.FirmwareFlasherSwitchingToAnotherFirmware); }, tip: TIPS.fwRevert,
       render: () => (
-        <p className="fw-note">
-          Keyball Linkから正規ファームウェアなど別のファームウェアに書き戻す場合は、
-          <strong>先に画面上部の「初期化」▾ から「すべての設定を初期化する」を選んでKeyball Link独自の設定を消してから</strong>
-          書き込んでください（「キーマップをRemap版の初期設定にする」ではKeyball Link独自の設定は消えないのでご注意ください）。<br /><br />
-          設定を消さずに書き込むと、Keyball Link独自の設定がEEPROMに残ったまま新しいファームウェアが動き出し、
-          レイヤーが正しく切り替わらないなど意図しない動作の原因になることがあります。
-        </p>
+        <p className="fw-note">{translate(TextKey.FirmwareFlasherBeforeReplacingKeyballLinkWithOfficial)}<strong>{translate(TextKey.FirmwareFlasherChooseResetResetAllSettingsAt)}</strong>{translate(TextKey.FirmwareFlasherFlashTheOtherFirmwareRestoringThe)}<br /><br />{translate(TextKey.FirmwareFlasherOtherwiseKeyballLinkSettingsRemainIn)}</p>
       ),
     },
   ];

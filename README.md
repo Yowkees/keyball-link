@@ -1,5 +1,19 @@
 # Keyball Link
 
+## Idiomas e execução com Docker
+
+O seletor ao lado do botão de tema oferece **日本語** (padrão), **中文（简体）**, **English** e **Português**, com a escolha salva no navegador.
+
+```bash
+docker compose up --build -d
+```
+
+Abra [http://localhost:5173](http://localhost:5173). Para encerrar, execute `docker compose down`.
+
+O Compose compila o front e serve os arquivos com Nginx, sem montar pastas do computador ou dispositivos USB. A API de estatísticas depende de Cloudflare KV e não faz parte deste ambiente local.
+
+As traduções ficam em `src/i18n/`, com uma implementação por idioma. Execute `npm run check:i18n` para verificar mensagens, placeholders, persistência e os dados funcionais do teclado. Essa verificação também é executada durante o build do Docker.
+
 Keyball39/44/61/+ 向けのWebベースキーマップ設定ツールです。
 WebHID API を使用してブラウザから直接キーボードと通信します。
 

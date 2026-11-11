@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -251,14 +253,14 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
             onMouseLeave={() => setHoverDesc(null)}
           >
-            <span className="key__label">{ballLabel ?? 'カーソル'}</span>
+            <span className="key__label">{ballLabel ?? translate(TextKey.Cursor)}</span>
           </button>
         )}
       </div>
       </div>
       {showDescBar && (
         <div className="key-desc-bar" ref={descRef}>
-          {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
+          {hoverDesc ?? translate(TextKey.KeyboardLayoutClickAKeyToConfigureIt)}
         </div>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState, useEffect, useRef } from 'react';
 import type { TrackballConfig, DpiCurveConfig } from '../../lib/protocol';
 import { cpiIndexToValue, computeAccelCurvePoints } from '../../lib/protocol';
@@ -48,7 +50,7 @@ function TrackballSlider({
 
   return (
     <div className="trackball-bar__item" style={dimmed ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
-      title={dimmed ? (dimmedReason ?? 'このファーム版（LED版）では加速度は使用できません') : undefined}>
+      title={dimmed ? (dimmedReason ?? translate(TextKey.TrackballSettingsAccelerationIsUnavailableInThisLED)) : undefined}>
       <span className="trackball-bar__label" data-tip={tip}>{label}</span>
       <input
         type="range"
@@ -63,7 +65,7 @@ function TrackballSlider({
       />
       {/* 数値は他の設定バーと同じくバーの右隣に表示する（2026-10-06、本人希望） */}
       <span className="tapping-term-value">{dimmed ? '—' : renderLabel(local)}</span>
-      {dimmed && <span className="trackball-bar__scale">この版では無効</span>}
+      {dimmed && <span className="trackball-bar__scale">{translate(TextKey.TrackballSettingsDisabledInThisVersion)}</span>}
     </div>
   );
 }
@@ -84,7 +86,7 @@ export function TrackballSettings({ config, onChange, accelAvailable = true, dpi
 
   return (
     <div className="trackball-bar">
-      <span className="trackball-bar__title">トラックボール</span>
+      <span className="trackball-bar__title">{translate(TextKey.TrackballSettingsTrackball)}</span>
 
       <TrackballSlider
         label="CPI"
@@ -97,12 +99,12 @@ export function TrackballSettings({ config, onChange, accelAvailable = true, dpi
       />
 
       <TrackballSlider
-        label="加速度"
+        label={translate(TextKey.BallPanelAcceleration)}
         tip={TIPS.accel}
         value={config.accel}
         min={0}
         max={MAX_ACCEL}
-        renderLabel={v => v === 0 ? 'オフ' : String(v)}
+        renderLabel={v => v === 0 ? translate(TextKey.BallPanelOff) : String(v)}
         onCommit={v => onChange({ ...config, accel: v })}
         dimmed={!accelAvailable}
       />

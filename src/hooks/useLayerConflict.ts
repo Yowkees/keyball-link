@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+import { TextKey } from '../i18n/text.enum';
 import { useState } from 'react';
 import type { KbSettings, GestureConfig, GestureModeConfig, PrecisionConfig } from '../lib/protocol';
 import { LAYER_NONE } from '../lib/protocol';
@@ -32,20 +34,20 @@ export function useLayerConflict(
     const isGestureFamily = target === 'gesture' || target === 'gestureMode';
     if (target !== 'precision') {
       if (target !== 'aml' && settings.autoMouseEnable)
-        others.push(['オートマウスレイヤー', settings.autoMouseLayer]);
+        others.push([translate(TextKey.TrackballSettingsTabAutoMouseLayer), settings.autoMouseLayer]);
       if (target !== 'scroll' && settings.scrollLayer !== LAYER_NONE)
-        others.push(['スクロールレイヤー', settings.scrollLayer]);
+        others.push([translate(TextKey.UseLayerConflictScrollLayer), settings.scrollLayer]);
     }
     if (target !== 'gesture' && gesture && gesture.layer !== LAYER_NONE)
-      others.push(['ジェスチャーレイヤー', gesture.layer]);
+      others.push([translate(TextKey.GestureCardGestureLayer), gesture.layer]);
     if (gestureModes) {
       gestureModes.forEach((m, i) => {
         if (target === 'gestureMode' && i === excludeMode) return;
-        if (m.layer !== LAYER_NONE) others.push([`ジェスチャー${i + 1}`, m.layer]);
+        if (m.layer !== LAYER_NONE) others.push([translate(TextKey.GestureNumber, { p0: i + 1 }), m.layer]);
       });
     }
     if (isGestureFamily && precision && precision.layer !== LAYER_NONE)
-      others.push(['精密モードレイヤー', precision.layer]);
+      others.push([translate(TextKey.UseLayerConflictPrecisionModeLayer), precision.layer]);
     const hit = others.find(([, l]) => l === val);
     return hit ? hit[0] : null;
   };
@@ -55,7 +57,7 @@ export function useLayerConflict(
   const changeLayer = (target: LayerLinkTarget, val: number, save: () => void, excludeMode?: number) => {
     const c = conflictName(target, val, excludeMode);
     if (c) {
-      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。`, mode: excludeMode });
+      setLayerWarn({ target, get msg() { return translate(TextKey.UseLayerConflictCannotSaveThisLayerIsAlready, { p0: c }); }, mode: excludeMode });
     } else {
       setLayerWarn(null);
       save();

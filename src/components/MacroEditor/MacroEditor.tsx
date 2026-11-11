@@ -1,3 +1,5 @@
+import { translate } from '../../i18n';
+import { TextKey } from '../../i18n/text.enum';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getKeyDisplayLabel } from '../../lib/keycodes';
 import type { KeyLayout } from '../../lib/keycodes';
@@ -14,8 +16,8 @@ const MAX_RECORD_STEPS = 40;
 // マクロのステップとして選べるキーのグループ（レイヤー切替・RGB・マクロ自身などは
 // tap_code16/register_code16では正しく動作しないため候補から除外する）
 const MACRO_ALLOWED_GROUPS = [
-  '文字', '数字', '記号', 'Shift記号', 'JIS記号', '基本', '矢印', 'F',
-  '修飾', '日本語', 'マウス', 'メディア', 'テンキー', 'システム',
+  translate(TextKey.KeyConfigModalLetters), translate(TextKey.KeyConfigModalNumbers), translate(TextKey.KeyConfigModalSymbols), translate(TextKey.KeyConfigModalShiftSymbols), translate(TextKey.KeyConfigModalJISSymbols), translate(TextKey.KeyConfigModalBasic), translate(TextKey.KeyConfigModalArrows), 'F',
+  translate(TextKey.KeyConfigModalModifiers), translate(TextKey.KeyConfigModalJapanese), translate(TextKey.KeyConfigModalMouse), translate(TextKey.KeyConfigModalMedia), translate(TextKey.KeyConfigModalNumpad), translate(TextKey.KeyConfigModalSystem),
 ];
 
 interface MacroEditorProps {
@@ -39,7 +41,7 @@ function StepRow({ step, index, num, count, keyLayout, onDelete, onToggleDelay, 
   setDragState: (s: { from: number; over: number } | null) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
-  const label = step.keycode ? getKeyDisplayLabel(step.keycode, keyLayout) : '（キーなし）';
+  const label = step.keycode ? getKeyDisplayLabel(step.keycode, keyLayout) : translate(TextKey.MacroEditorNoKey);
   const dragging = dragState?.from === index;
   const dropTarget = dragState && dragState.over === index && dragState.from !== index;
   return (
@@ -59,15 +61,15 @@ function StepRow({ step, index, num, count, keyLayout, onDelete, onToggleDelay, 
               <input type="number" className="mstep-delay-input"
                 value={step.delayMs} min={0} max={9999} step={50}
                 onChange={e => onChangeDelay(Math.max(0, Math.min(9999, Number(e.target.value))))} />
-              <button className="mstep-delay-rm" onClick={onToggleDelay} title="遅延を削除">×</button>
+              <button className="mstep-delay-rm" onClick={onToggleDelay} title={translate(TextKey.MacroEditorRemoveDelay)}>×</button>
             </span>
           ) : (
-            <button className="mstep-delay-add" onClick={onToggleDelay} title="遅延を追加">＋ 遅延</button>
+            <button className="mstep-delay-add" onClick={onToggleDelay} title={translate(TextKey.MacroEditorAddDelay)}>{translate(TextKey.MacroEditorDelay)}</button>
           )}
         </div>
       )}
       <div className="mstep-key">
-        <span className="mstep-grip" title="ドラッグで並べ替え">⋮⋮</span>
+        <span className="mstep-grip" title={translate(TextKey.MacroEditorDragToReorder)}>⋮⋮</span>
         <span className="mstep-num">{num}</span>
         <button className="mstep-key-btn" onClick={() => setShowPicker(true)}>
           {label.replace('\n', ' / ')}
@@ -75,13 +77,13 @@ function StepRow({ step, index, num, count, keyLayout, onDelete, onToggleDelay, 
         <button
           className={`mstep-hold-btn ${step.hold ? 'mstep-hold-btn--on' : ''}`}
           onClick={onToggleHold}
-          title={step.hold ? 'マクロキーを押している間ずっと押し続けます' : '押して離します'}
+          title={step.hold ? translate(TextKey.MacroEditorHeldDownWhileTheMacroKey) : translate(TextKey.MacroEditorPressAndRelease)}
         >
-          {step.hold ? '🔒 ホールド' : 'タップ'}
+          {step.hold ? translate(TextKey.MacroEditorHold) : translate(TextKey.GestureCardTap)}
         </button>
-        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title="1つ上へ">▲</button>
-        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title="1つ下へ">▼</button>
-        <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
+        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title={translate(TextKey.MacroEditorMoveUp)}>▲</button>
+        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title={translate(TextKey.MacroEditorMoveDown)}>▼</button>
+        <button className="mstep-delete" onClick={onDelete} title={translate(TextKey.MacroEditorDelete)}>✕</button>
       </div>
       {showPicker && (
         <KeyConfigModal
@@ -159,33 +161,33 @@ function TextBlockRow({ item, index, count, firstStep, onMove, dragState, setDra
               <input type="number" className="mstep-delay-input"
                 value={firstStep.delayMs} min={0} max={9999} step={50}
                 onChange={e => onChangeDelay(Math.max(0, Math.min(9999, Number(e.target.value))))} />
-              <button className="mstep-delay-rm" onClick={onToggleDelay} title="遅延を削除">×</button>
+              <button className="mstep-delay-rm" onClick={onToggleDelay} title={translate(TextKey.MacroEditorRemoveDelay)}>×</button>
             </span>
           ) : (
-            <button className="mstep-delay-add" onClick={onToggleDelay} title="遅延を追加">＋ 遅延</button>
+            <button className="mstep-delay-add" onClick={onToggleDelay} title={translate(TextKey.MacroEditorAddDelay)}>{translate(TextKey.MacroEditorDelay)}</button>
           )}
         </div>
       )}
       <div className="mstep-key">
-        <span className="mstep-grip" title="ドラッグで並べ替え">⋮⋮</span>
+        <span className="mstep-grip" title={translate(TextKey.MacroEditorDragToReorder)}>⋮⋮</span>
         <span className="mstep-num">{item.start + 1}〜{item.end}</span>
-        <span className="mstep-text-badge">文</span>
-        <button className="mstep-key-btn mstep-text" onClick={() => { setValue(shown); setEditing(true); }} title={shown === item.text ? 'クリックして文を編集' : `実際に打つキー: ${item.text}（クリックして文を編集）`}>
+        <span className="mstep-text-badge">{translate(TextKey.MacroEditorText)}</span>
+        <button className="mstep-key-btn mstep-text" onClick={() => { setValue(shown); setEditing(true); }} title={shown === item.text ? translate(TextKey.MacroEditorClickToEditText) : translate(TextKey.MacroEditorActualKeysClickToEditText, { p0: item.text })}>
           {shown.replace(/\n/g, '⏎')}
         </button>
-        <button className="mstep-hold-btn" onClick={onSplit} title="1キーずつのステップに分けて表示">分ける</button>
-        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title="1つ上へ">▲</button>
-        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title="1つ下へ">▼</button>
-        <button className="mstep-delete" onClick={onDelete} title="削除">✕</button>
+        <button className="mstep-hold-btn" onClick={onSplit} title={translate(TextKey.MacroEditorShowAsIndividualKeySteps)}>{translate(TextKey.MacroEditorSplit)}</button>
+        <button className="mstep-move" onClick={() => onMove(index, index - 1)} disabled={index === 0} title={translate(TextKey.MacroEditorMoveUp)}>▲</button>
+        <button className="mstep-move" onClick={() => onMove(index, index + 1)} disabled={index === count - 1} title={translate(TextKey.MacroEditorMoveDown)}>▼</button>
+        <button className="mstep-delete" onClick={onDelete} title={translate(TextKey.MacroEditorDelete)}>✕</button>
       </div>
       {editing && (
         <div className="macro-text-panel" style={{ marginTop: 8, marginBottom: 0 }}>
           <textarea className="macro-text-input" rows={2} autoFocus value={value} onChange={e => setValue(e.target.value)} />
           <div className="macro-text-actions">
-            <button className="btn btn--primary btn--small" onClick={() => { onReplace(value); setEditing(false); }} disabled={!value}>反映</button>
+            <button className="btn btn--primary btn--small" onClick={() => { onReplace(value); setEditing(false); }} disabled={!value}>{translate(TextKey.MacroEditorApply)}</button>
             <button className="btn btn--ghost btn--small" onClick={() => setValue(romajiToKana(value))}
-              title="ローマ字で保存されている日本語を、かなに戻して表示します（英単語もかなになるので注意）">ローマ字をかなに戻す</button>
-            <button className="btn btn--ghost btn--small" onClick={() => setEditing(false)}>キャンセル</button>
+              title={translate(TextKey.MacroEditorConvertSavedRomajiBackToKana)}>{translate(TextKey.MacroEditorConvertRomajiToKana)}</button>
+            <button className="btn btn--ghost btn--small" onClick={() => setEditing(false)}>{translate(TextKey.MacroEditorCancel)}</button>
           </div>
         </div>
       )}
@@ -373,7 +375,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
       setEditorState('idle');
       setDraft(null);
     } catch (e) {
-      alert(`マクロの保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+      alert(translate(TextKey.MacroEditorCouldNotSaveMacro, { p0: e instanceof Error ? e.message : String(e) }));
     } finally {
       setSaving(false);
     }
@@ -388,12 +390,12 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
   return (
     <div className="macro-editor">
       {!isConnected && (
-        <div className="settings-notice">キーボードに接続するとマクロを編集できます。</div>
+        <div className="settings-notice">{translate(TextKey.MacroEditorConnectTheKeyboardToEditMacros)}</div>
       )}
 
       {/* バッファ使用量 */}
       <div className="macro-buffer-bar">
-        <span className="macro-buffer-label" data-tip={TIPS.macroBuffer}>バッファ使用量</span>
+        <span className="macro-buffer-label" data-tip={TIPS.macroBuffer}>{translate(TextKey.MacroEditorBufferUsage)}</span>
         <div className="macro-buffer-track">
           <div className="macro-buffer-fill" style={{ width: `${bufferPct}%`, background: bufferPct > 90 ? 'var(--red)' : 'var(--accent)' }} />
         </div>
@@ -414,8 +416,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
                 <span className="macro-slot-id">M{i}</span>
                 <span className="macro-slot-preview">
                   {hasContent
-                    ? `${s.steps.length}ステップ: ` + s.steps.slice(0, 4).map(st => getKeyDisplayLabel(st.keycode, keyLayout)).join(' → ') + (s.steps.length > 4 ? '…' : '')
-                    : '（空）'}
+                    ? translate(TextKey.MacroEditorSteps, { p0: s.steps.length }) + s.steps.slice(0, 4).map(st => getKeyDisplayLabel(st.keycode, keyLayout)).join(' → ') + (s.steps.length > 4 ? '…' : '')
+                    : translate(TextKey.MacroEditorEmpty)}
                 </span>
               </button>
             );
@@ -429,23 +431,23 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
             <div className="macro-edit-toolbar">
               {editorState === 'idle' && (
                 <>
-                  <button className="btn btn--primary" onClick={startRecording} disabled={!isConnected}>● 記録開始</button>
-                  <button className="btn btn--ghost" onClick={() => selectSlot(selected)} disabled={!isConnected}>✎ 手動編集</button>
-                  <button className="btn btn--ghost" onClick={openTextFromIdle} disabled={!isConnected}>Aa 文を登録</button>
+                  <button className="btn btn--primary" onClick={startRecording} disabled={!isConnected}>{translate(TextKey.MacroEditorStartRecording)}</button>
+                  <button className="btn btn--ghost" onClick={() => selectSlot(selected)} disabled={!isConnected}>{translate(TextKey.MacroEditorEditManually)}</button>
+                  <button className="btn btn--ghost" onClick={openTextFromIdle} disabled={!isConnected}>{translate(TextKey.MacroEditorAaAddText)}</button>
                 </>
               )}
               {editorState === 'recording' && (
-                <button className="btn btn--record-stop" onClick={stopRecording}>■ 記録停止</button>
+                <button className="btn btn--record-stop" onClick={stopRecording}>{translate(TextKey.MacroEditorStopRecording)}</button>
               )}
               {editorState === 'editing' && (
                 <>
-                  <button className="btn btn--ghost btn--small" onClick={addStep}>＋ キー追加</button>
-                  <button className="btn btn--ghost btn--small" onClick={() => setTextOpen(o => !o)}>＋ 文を追加</button>
+                  <button className="btn btn--ghost btn--small" onClick={addStep}>{translate(TextKey.MacroEditorAddKey)}</button>
+                  <button className="btn btn--ghost btn--small" onClick={() => setTextOpen(o => !o)}>{translate(TextKey.MacroEditorAddText)}</button>
                   {splitAll && (
-                    <button className="btn btn--ghost btn--small" onClick={() => setSplitAll(false)} title="続けて打つ文字を「文」としてまとめて表示します">文をまとめる</button>
+                    <button className="btn btn--ghost btn--small" onClick={() => setSplitAll(false)} title={translate(TextKey.MacroEditorGroupConsecutiveCharactersIntoText)}>{translate(TextKey.MacroEditorGroupText)}</button>
                   )}
-                  <button className="btn btn--ghost btn--small" onClick={removeAllDelays} disabled={!draft}>遅延を全削除</button>
-                  <button className="btn btn--ghost btn--small" onClick={() => setDraft({ steps: [] })}>全クリア</button>
+                  <button className="btn btn--ghost btn--small" onClick={removeAllDelays} disabled={!draft}>{translate(TextKey.MacroEditorRemoveAllDelays)}</button>
+                  <button className="btn btn--ghost btn--small" onClick={() => setDraft({ steps: [] })}>{translate(TextKey.MacroEditorClearAll)}</button>
                 </>
               )}
             </div>
@@ -453,10 +455,8 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
 
           {editorState === 'recording' && (
             <div className="macro-recording-indicator">
-              <span className="macro-rec-dot">●</span>
-              記録中… キーを押してください
-              {draft && draft.steps.length > 0 && (
-                <span className="macro-rec-count">{draft.steps.length}ステップ記録済み（上限 {MAX_RECORD_STEPS}）</span>
+              <span className="macro-rec-dot">●</span>{translate(TextKey.MacroEditorRecordingPressKeys)}{draft && draft.steps.length > 0 && (
+                <span className="macro-rec-count">{draft.steps.length}{translate(TextKey.MacroEditorStepsRecordedLimit)}{MAX_RECORD_STEPS}）</span>
               )}
             </div>
           )}
@@ -479,25 +479,24 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
                 className="macro-text-input"
                 rows={3}
                 autoFocus
-                placeholder="登録したい文を入力（例: Thank you! / よろしくおねがいします）"
+                placeholder={translate(TextKey.MacroEditorEnterTextEGThankYou)}
                 value={text}
                 onChange={e => setText(e.target.value)}
               />
               {textResult && (
                 <div className="macro-text-info">
                   {textResult.hasJapanese && (
-                    <p>日本語はローマ字で送ります: <code>{textResult.romaji}</code><br />
-                      送る側のPCで日本語入力をONにしておくと、ひらがなで入力されます（漢字には変換されません）。</p>
+                    <p>{translate(TextKey.MacroEditorJapaneseIsSentAsRomaji)}<code>{textResult.romaji}</code><br />{translate(TextKey.MacroEditorEnableJapaneseInputOnTheReceiving)}</p>
                   )}
                   {textResult.unsupported.length > 0 && (
-                    <p style={{ color: 'var(--red)' }}>送れない文字があります（漢字など）: {textResult.unsupported.join(' ')}</p>
+                    <p style={{ color: 'var(--red)' }}>{translate(TextKey.MacroEditorSomeCharactersCannotBeSentE)}{textResult.unsupported.join(' ')}</p>
                   )}
-                  <p>{textResult.steps.length}ステップ（約{textResult.steps.length * 3}バイト）を追加します。</p>
+                  <p>{textResult.steps.length}{translate(TextKey.MacroEditorStepsAbout)}{textResult.steps.length * 3}{translate(TextKey.MacroEditorBytesWillBeAdded)}</p>
                 </div>
               )}
               <div className="macro-text-actions">
-                <button className="btn btn--primary btn--small" onClick={addText} disabled={!textResult || textResult.steps.length === 0}>ステップに追加</button>
-                <button className="btn btn--ghost btn--small" onClick={() => { setTextOpen(false); setText(''); }}>閉じる</button>
+                <button className="btn btn--primary btn--small" onClick={addText} disabled={!textResult || textResult.steps.length === 0}>{translate(TextKey.MacroEditorAddToSteps)}</button>
+                <button className="btn btn--ghost btn--small" onClick={() => { setTextOpen(false); setText(''); }}>{translate(TextKey.MacroEditorClose)}</button>
               </div>
             </div>
           )}
@@ -505,7 +504,7 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
           {(editorState === 'recording' || editorState === 'editing') && draft && (
             <div className="macro-steps">
               {draft.steps.length === 0 && editorState === 'editing' && (
-                <p className="macro-empty-hint">キーがありません。「記録開始」または「＋ キー追加」で登録できます。</p>
+                <p className="macro-empty-hint">{translate(TextKey.MacroEditorNoKeysUseStartRecordingOr)}</p>
               )}
               {editorState === 'editing' && items.map((it, idx) => {
                 if (it.kind === 'text') {
@@ -546,14 +545,12 @@ export function MacroEditor({ slots, keyLayout, isConnected, onSave, bufferSize 
           {editorState === 'editing' && (
             <div className="macro-edit-actions">
               {overCapacity && (
-                <p className="macro-edit-desc" style={{ color: 'var(--red)' }}>
-                  バッファ容量を超えています。ステップを減らすか、他のスロットのマクロを削除してください。
-                </p>
+                <p className="macro-edit-desc" style={{ color: 'var(--red)' }}>{translate(TextKey.MacroEditorBufferCapacityExceededReduceStepsOr)}</p>
               )}
               <button className="btn btn--primary" onClick={handleSave} disabled={saving || !draft || overCapacity}>
-                {saving ? '保存中...' : 'キーボードに保存'}
+                {saving ? translate(TextKey.MacroEditorSaving) : translate(TextKey.MacroEditorSaveToKeyboard)}
               </button>
-              <button className="btn btn--ghost" onClick={cancelEdit}>キャンセル</button>
+              <button className="btn btn--ghost" onClick={cancelEdit}>{translate(TextKey.MacroEditorCancel)}</button>
             </div>
           )}
 

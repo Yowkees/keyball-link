@@ -99,7 +99,7 @@ function ModTapPanel({ currentCode, onSelect }: KeyPickerProps) {
 
 // Layer-Tap ビルダーパネル
 function LayerTapPanel({ currentCode, onSelect, layerCount }: KeyPickerProps) {
-  const isLT = currentCode >= 0x4000 && currentCode <= 0x43FF;
+  const isLT = currentCode >= 0x4000 && currentCode <= 0x4FFF;  // レイヤー0〜15（以前は0〜3まで）
   const [layer, setLayer] = useState(isLT ? (currentCode >> 8) & 0x0F : 1);
   const [baseKc, setBaseKc] = useState(isLT ? currentCode & 0xFF : 0x00);
   const layerTapLayers = getLayerTapLayers(layerCount);
@@ -148,7 +148,7 @@ type KeyType = '通常' | 'Mod-Tap' | 'Layer-Tap';
 
 function detectKeyType(code: number): KeyType {
   if (code >= 0x2000 && code <= 0x2FFF) return 'Mod-Tap';
-  if (code >= 0x4000 && code <= 0x43FF) return 'Layer-Tap';
+  if (code >= 0x4000 && code <= 0x4FFF) return 'Layer-Tap';
   return '通常';
 }
 

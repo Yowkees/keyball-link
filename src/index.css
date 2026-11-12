@@ -806,6 +806,13 @@ body { background: var(--bg); overflow-x: hidden; }
 .picker-key--current .picker-key__char,
 .picker-key--current .picker-key__name { color: var(--key-sel-fg); }
 
+/* 検索中に矢印キー・Enterで選べる候補の枠（2026-11-12）。
+   今のキー（塗りつぶし）と区別できるよう、太い枠線だけで示す */
+.picker-key--cursor {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 .picker-key__char {
   font-size: 13px;
   font-weight: 700;

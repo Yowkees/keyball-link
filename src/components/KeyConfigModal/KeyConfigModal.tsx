@@ -8,6 +8,7 @@ import {
   makeModsKeycode, MODIFIER_BITS, MOD_RIGHT_BIT,
 } from '../../lib/protocol';
 import { t, tk } from '../../lib/i18n';
+import { useKeySearchNav } from './useKeySearchNav';
 
 export type PanelType = '通常' | 'ホールド' | 'カスタム';
 
@@ -66,9 +67,10 @@ const TAP_KEY_GROUPS: { label: string; keys: KeycodeEntry[] }[] = [
 ];
 
 // ── タップキーピッカー（ホールドタブのタップ側・ジェスチャーのタップ側で使用） ──────
-export function TapKeyPicker({ value, keyLayout, onChange }: {
+export function TapKeyPicker({ value, keyLayout, autoFocus, onChange }: {
   value: number;
   keyLayout: KeyLayout;
+  autoFocus?: boolean;  // true: 開いた時に検索欄へカーソルを置く（すぐ検索語を打てる）
   onChange: (kc: number) => void;
 }) {
   const [search, setSearch] = useState('');
@@ -89,12 +91,23 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
     return true;
   });
 
+  // 検索中は矢印キーで結果を選び、Enterで決める
+  const { cursor: navCursor, gridRef: navGridRef, onKeyDown: navKeyDown } = useKeySearchNav({
+    count: filtered.length,
+    active: search.trim() !== '',
+    resetKey: `${search}|${activeGroup}`,
+    isSelectable: () => true,
+    onPick: i => onChange(filtered[i].code),
+  });
+
   return (
     <div className="tap-picker">
       <div className="tap-picker__search-wrap">
         <input
           className="modal-search__input" type="text" placeholder={t('キーを検索…')}
           value={search} onChange={e => { setSearch(e.target.value); setActiveGroup('すべて'); }}
+          onKeyDown={navKeyDown}
+          autoFocus={autoFocus}
         />
         {search && <button className="modal-search__clear" onClick={() => setSearch('')}>✕</button>}
       </div>
@@ -105,15 +118,20 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
           ))}
         </div>
       )}
-      <div className="tap-picker__grid">
-        <button className={`picker-key ${value === 0 ? 'picker-key--current' : ''}`} onClick={() => onChange(0)} onMouseEnter={() => setHoverDesc(null)} title={t('なし')}>
-          <span className="picker-key__char">—</span>
-          <span className="picker-key__name">{t('なし')}</span>
-        </button>
-        {filtered.map(k => (
+      <div className="tap-picker__grid" ref={navGridRef}>
+        {/* 検索中は「なし」を出さない（一致したキーが先頭に来て、すぐ選べるように） */}
+        {!search && (
+          <button className={`picker-key ${value === 0 ? 'picker-key--current' : ''}`} onClick={() => onChange(0)} onMouseEnter={() => setHoverDesc(null)} title={t('なし')}>
+            <span className="picker-key__char">—</span>
+            <span className="picker-key__name">{t('なし')}</span>
+          </button>
+        )}
+        {filtered.map((k, i) => (
           <button
-            key={k.code}
-            className={`picker-key ${k.code === value ? 'picker-key--current' : ''}`}
+            // 同じキーが別のグループにもある（例: 記号とJIS記号）ので、グループ名も含めて区別する
+            key={`${k.groupLabel}-${k.code}`}
+            data-nav-idx={i}
+            className={`picker-key ${k.code === value ? 'picker-key--current' : ''} ${navCursor === i ? 'picker-key--cursor' : ''}`}
             onClick={() => onChange(k.code)}
             onMouseEnter={() => setHoverDesc(getKeyDescription(k.code, keyLayout))}
             onMouseLeave={() => setHoverDesc(null)}
@@ -133,13 +151,16 @@ export function TapKeyPicker({ value, keyLayout, onChange }: {
 }
 
 // ── 通常キーパネル（修飾キー付加対応） ────────────────────
-function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode, compact, onSelect }: {
+function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode, compact, liveMods, onSelect }: {
   currentCode: number;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
   allowedGroups?: string[];
   excludeCode?: (code: number) => boolean;
   compact?: boolean;  // true: カテゴリはドロップダウン+検索を横並び、キーは5列固定（右側常時パネル用）
+  // true: 修飾キーのボタンを押すと、選択中のキーにその場で付け外しする（右側常時パネルでキー選択中のみ。
+  // 2026-11-12 本人決定。別ウィンドウの選択画面は従来どおり「先に修飾キー → キーを押す」）
+  liveMods?: boolean;
   onSelect: (c: number) => void;
 }) {
   const [activeCategory, setActiveCategory] = useState('すべて');
@@ -175,8 +196,28 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
   });
 
   const right = (mods & MOD_RIGHT_BIT) !== 0;
-  const toggleMod = (bit: number) => setMods(m => m ^ bit);
   const modsActive = (mods & 0x0F) !== 0;
+
+  // 選択中のキーの「元のキー」（Shift+A なら A）。修飾キーと組み合わせられない
+  // キー（レイヤー切替・ホールド付きなど）や、なし／透過（0x00〜0x03）なら 0
+  const liveBase = (() => {
+    if (!liveMods) return 0;
+    const isModsCode = currentCode >= 0x0100 && currentCode <= 0x1FFF;
+    if (!isModsCode && !isBasicKey(currentCode)) return 0;
+    const base = currentCode & 0xFF;
+    return base >= 0x04 ? base : 0;
+  })();
+
+  const toggleMod = (bit: number) => {
+    const next = mods ^ bit;
+    setMods(next);
+    // 選択中のキーに、その場で修飾キーを付け外しする（例: A → Shift+A → A）。
+    // 修飾キーが1つも無くなったら元のキーだけに戻す
+    if (liveBase) {
+      const code = (next & 0x0F) ? makeModsKeycode(next, liveBase) : liveBase;
+      if (code !== currentCode) onSelect(code);
+    }
+  };
 
   // キークリック時：修飾が選択されていて基本キーなら MODS、それ以外は素のコード
   const handleKey = (code: number) => {
@@ -186,6 +227,25 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
       onSelect(code);
     }
   };
+
+  // このファームで使えないキーと、修飾キーと組み合わせられないキーは選べない（薄く表示する）
+  const isDimmed = (e: KeycodeEntry) => (modsActive && !isBasicKey(e.code)) || isKeycodeUnavailable(e, avail);
+
+  // 検索中は矢印キーで結果を選び、Enterで決める（クリックと同じ処理）
+  const { cursor: navCursor, gridRef: navGridRef, onKeyDown: navKeyDown } = useKeySearchNav({
+    count: filtered.length,
+    active: search.trim() !== '',
+    resetKey: `${search}|${activeCategory}|${mods}`,
+    isSelectable: i => !isDimmed(filtered[i]),
+    onPick: i => handleKey(filtered[i].code),
+  });
+
+  // 右側常時パネルでキーを選んだら、検索欄にカーソルを置く（すぐ検索語を打てる）。
+  // 画面が勝手にスクロールしないよう preventScroll を付ける
+  const compactSearchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (liveMods) compactSearchRef.current?.focus({ preventScroll: true });
+  }, [liveMods]);
 
   const modLabel = MODIFIER_BITS.filter(m => mods & m.bit)
     .map(m => (right ? 'R' : '') + m.label).join('+');
@@ -235,6 +295,8 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
             <input
               type="text" placeholder={t('キーを検索…')}
               value={search} onChange={e => setSearch(e.target.value)}
+              onKeyDown={navKeyDown}
+              ref={compactSearchRef}
             />
           </div>
         </div>
@@ -244,6 +306,7 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
             <input
               className="modal-search__input" type="text" placeholder={t('キーを検索…')}
               value={search} onChange={e => { setSearch(e.target.value); setActiveCategory('すべて'); }}
+              onKeyDown={navKeyDown}
               autoFocus
             />
             {search && <button className="modal-search__clear" onClick={() => setSearch('')}>✕</button>}
@@ -260,14 +323,15 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
       <div className="key-desc-bar" style={{ marginBottom: 8 }}>
         {hoverDesc ?? t('キーにマウスを乗せると説明が表示されます')}
       </div>
-      <div className={`modal-panel__grid ${compact ? 'modal-panel__grid--compact' : ''}`}>
-        {filtered.map((e: KeycodeEntry) => {
+      <div className={`modal-panel__grid ${compact ? 'modal-panel__grid--compact' : ''}`} ref={navGridRef}>
+        {filtered.map((e: KeycodeEntry, i) => {
           const fwUnavail = isKeycodeUnavailable(e, avail);
-          const dimmed = (modsActive && !isBasicKey(e.code)) || fwUnavail;
+          const dimmed = isDimmed(e);
           return (
             <button
-              key={e.code}
-              className={`picker-key ${e.code === currentCode ? 'picker-key--current' : ''} ${dimmed ? 'picker-key--dim' : ''}`}
+              key={`${e.group}-${e.code}`}
+              data-nav-idx={i}
+              className={`picker-key ${e.code === currentCode ? 'picker-key--current' : ''} ${dimmed ? 'picker-key--dim' : ''} ${navCursor === i ? 'picker-key--cursor' : ''}`}
               draggable={!fwUnavail}
               onDragStart={ev => { if (fwUnavail) { ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', String(modsActive && isBasicKey(e.code) ? makeModsKeycode(mods, e.code) : e.code)); }}
               onClick={() => { if (!fwUnavail) handleKey(e.code); }}
@@ -303,19 +367,22 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
   onSelect: (c: number) => void;
 }) {
   const isMT = currentCode >= 0x2000 && currentCode <= 0x3FFF;
-  const isLT = currentCode >= 0x4000 && currentCode <= 0x43FF;
+  // Layer-Tap はレイヤー0〜15（0x4000〜0x4FFF）。以前は0〜3（〜0x43FF）しか見分けられず、
+  // RP2040版（8レイヤー）で「長押しでレイヤー4〜7」を開き直すと表示が崩れていた（2026-11-12修正）
+  const isLT = currentCode >= 0x4000 && currentCode <= 0x4FFF;
   // タップキーのみ登録済み（通常キー、または修飾+キーのMODS）のところへホールド
   // 動作を追加する場合、既存のタップ内容を引き継ぐ（0にリセットしない）。
   const isMods = currentCode >= 0x0100 && currentCode <= 0x1FFF;
   const existingTapKc = (isMods || isBasicKey(currentCode)) ? currentCode & 0xFF : 0x00;
 
+  // 今の設定にある修飾キー・レイヤーだけを選ばれた状態にする。未設定のキーで
+  // Shift やレイヤー1を最初から選んだように見せない（2026-11-12修正）
   const [kind, setKind]     = useState<HoldKind>(isLT ? 'layer' : 'mod');
-  const [mod, setMod]       = useState(isMT ? (currentCode >> 8) & 0x1F : 0x02);
-  const [layer, setLayer]   = useState(isLT ? (currentCode >> 8) & 0x0F : 1);
+  const [mod, setMod]       = useState(isMT ? (currentCode >> 8) & 0x1F : 0);
+  const [layer, setLayer]   = useState<number | null>(isLT ? (currentCode >> 8) & 0x0F : null);
   const [baseKc, setBaseKc] = useState((isMT || isLT) ? currentCode & 0xFF : existingTapKc);
   const layerTapLayers = getLayerTapLayers(layerCount);
 
-  const toggleMod = (bit: number) => setMod(m => m ^ bit);
   const modRight  = (mod & MOD_RIGHT_BIT) !== 0;
   const modActive = (mod & 0x0F) !== 0;
 
@@ -323,24 +390,39 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
   const modLabel = MODIFIER_BITS.filter(m => mod & m.bit).map(m => (modRight ? 'R' : '') + m.label).join('+');
   const holdLabel =
     kind === 'mod' ? (modActive ? modLabel : t('（修飾キー未選択）')) :
+    layer === null ? t('（レイヤー未選択）') :
     (layerTapLayers.find(l => l.value === layer)?.label ?? t('レイヤー {0}', layer));
 
-  // ホールド時の動作・タップ時のキーの両方が有効な組み合わせになったら即座に反映する
-  // （「通常」タブが1クリックで即反映されるのと同じ操作感に揃える。適用ボタンは持たない）。
-  // 初回マウント時（既存のタップキーを引き継いで表示しただけ）は反映しない
-  // ようにする。しないと、既存のタップキーへ既定の修飾キー(Shift)が使用者の
-  // 操作なしに即座に確定してしまう。
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+  // 使用者が操作した時だけ、キーボードへ反映する（開いただけ・タブを切り替えただけでは書き込まない）。
+  // 「通常」タブが1クリックで即反映されるのと同じ操作感に揃える（適用ボタンは持たない）。
+  // ホールドの修飾キーやレイヤーを全部外したら、タップのキーだけに戻して長押しの動きを消す
+  // （以前は何も送らず、キーボードに長押しの動きが残っていた。2026-11-12修正）。
+  const apply = (next: { kind: HoldKind; mod: number; layer: number | null; baseKc: number }) => {
+    if (next.baseKc === 0) return;  // タップのキーが決まるまでは反映しない
+    let code: number;
+    if (next.kind === 'mod') {
+      code = (next.mod & 0x0F) ? makeModTapKeycode(next.mod, next.baseKc) : next.baseKc;
+    } else {
+      code = next.layer !== null ? makeLtKeycode(next.layer, next.baseKc) : next.baseKc;
     }
-    const valid = baseKc !== 0 && (kind !== 'mod' || modActive);
-    if (!valid) return;
-    onSelect(kind === 'mod' ? makeModTapKeycode(mod, baseKc) : makeLtKeycode(layer, baseKc));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, mod, layer, baseKc]);
+    if (code !== currentCode) onSelect(code);
+  };
+
+  const toggleMod = (bit: number) => {
+    const next = mod ^ bit;
+    setMod(next);
+    apply({ kind, mod: next, layer, baseKc });
+  };
+  // 選択中のレイヤーをもう一度押したら解除する
+  const clickLayer = (value: number) => {
+    const next = layer === value ? null : value;
+    setLayer(next);
+    apply({ kind, mod, layer: next, baseKc });
+  };
+  const changeTap = (kc: number) => {
+    setBaseKc(kc);
+    apply({ kind, mod, layer, baseKc: kc });
+  };
 
   return (
     <div className="builder-panel">
@@ -370,7 +452,7 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
         {kind === 'layer' && (
           <div className="builder-layer-buttons">
             {layerTapLayers.map(l => (
-              <button key={l.value} className={`btn btn--layer ${layer === l.value ? 'btn--layer-active' : ''}`} onClick={() => setLayer(l.value)}>{l.label}</button>
+              <button key={l.value} className={`btn btn--layer ${layer === l.value ? 'btn--layer-active' : ''}`} onClick={() => clickLayer(l.value)}>{l.label}</button>
             ))}
           </div>
         )}
@@ -380,7 +462,7 @@ function HoldPanel({ currentCode, keyLayout, layerCount, onSelect }: {
           スクロールする（見出し・上のホールド設定は常に見えたままにする） */}
       <div className="builder-section builder-section--grow">
         <div className="builder-section__label">{t('タップ時のキー')}</div>
-        <TapKeyPicker value={baseKc} keyLayout={keyLayout} onChange={setBaseKc} />
+        <TapKeyPicker value={baseKc} keyLayout={keyLayout} autoFocus onChange={changeTap} />
       </div>
 
       <div className="builder-preview">
@@ -522,7 +604,7 @@ export function KeyConfigPanel({
       )}
 
       <div className="modal-body key-config-panel__body">
-        {effectivePanel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} compact onSelect={onSelect} />}
+        {effectivePanel === '通常'    && <NormalPanel currentCode={currentCode} keyLayout={keyLayout} avail={avail} compact liveMods={selected} onSelect={onSelect} />}
         {effectivePanel === 'ホールド' && <HoldPanel   currentCode={currentCode} keyLayout={keyLayout} layerCount={layerCount} onSelect={onSelect} />}
         {effectivePanel === 'カスタム' && <CustomPanel currentCode={currentCode} keyLayout={keyLayout} onSelect={onSelect} />}
       </div>

@@ -3,7 +3,7 @@ import { buildHueGradient } from '../../lib/hueGradient';
 import type { GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
-import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
+import { getKeyDisplayLabel, isGestureExcludedKeycode, gestureKeyForOs } from '../../lib/keycodes';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
@@ -38,6 +38,7 @@ interface GestureCardProps {
   changeGestureModeLayer: (mode: number, v: number) => void;
   gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム。RP2040版v0.6.0〜）
   onGestureNameChange: (mode: number, name: string) => Promise<void>;
+  gestureOsAdaptActive: boolean;  // Windowsにつないでいて「画面切り替えのジェスチャーをOSに合わせる」がON（表示を置き換え後のキーにする）
 }
 
 export function GestureCard({
@@ -45,7 +46,7 @@ export function GestureCard({
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
-  gestureNames, onGestureNameChange,
+  gestureNames, onGestureNameChange, gestureOsAdaptActive,
 }: GestureCardProps) {
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
@@ -98,7 +99,7 @@ export function GestureCard({
               <div key={dir} className="gesture-row">
                 <span className="gesture-dir" data-tip={TIPS.gestureKeys}>{label}</span>
                 <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditModeDir({ mode: gestureModeTab, dir })}>
-                  {getKeyDisplayLabel(mode[dir], keyLayout) || t('未設定')}
+                  {getKeyDisplayLabel(gestureKeyForOs(mode[dir], gestureOsAdaptActive), keyLayout) || t('未設定')}
                 </button>
                 <label className="setting-row__desc" data-tip={TIPS.gestureContinuous} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
                   <input
@@ -111,6 +112,10 @@ export function GestureCard({
                 </label>
               </div>
             ))}
+            {/* 置き換えて表示している時だけ、その旨を書く（2026-11-12） */}
+            {dirs.some(([dir]) => gestureKeyForOs(mode[dir], gestureOsAdaptActive) !== mode[dir]) && (
+              <p className="settings-desc" style={{ marginTop: 6 }}>{t('Windowsにつないでいるため、Ctrl+矢印はWindowsの画面切り替えのキーに置き換えて表示しています（GUIはWindowsキー）。')}</p>
+            )}
           </div>
 
           <div className="card-sep">

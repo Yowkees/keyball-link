@@ -753,3 +753,17 @@ export function isKeycodeUnavailable(
   if (layer !== null && layer >= avail.layerCount) return true;
   return false;
 }
+
+// 「画面切り替えのジェスチャーをOSに合わせる」（RP2040版v0.6.0〜）がONで、Windowsにつないでいる時に、
+// キーボードが実際に送るキー。ファームのkb_gesture_os_adapt（kb_settings.c）と同じ置き換えにすること。
+// 画面のジェスチャーの表示を、実際に送るキーに合わせるために使う（2026-11-12、本人希望）。
+const GESTURE_OS_ADAPT_WINDOWS: Record<number, number> = {
+  0x0150: 0x0950,  // Ctrl+← → Win+Ctrl+←（左のデスクトップ）
+  0x014F: 0x094F,  // Ctrl+→ → Win+Ctrl+→（右のデスクトップ）
+  0x0152: 0x082B,  // Ctrl+↑ → Win+Tab（タスクビュー）
+  0x0151: 0x0807,  // Ctrl+↓ → Win+D（デスクトップを表示）
+};
+export const OS_ID_WINDOWS = 2;  // OS自動判別の結果の番号（protocol.tsのOS_VARIANT_NAMESの並び）
+export function gestureKeyForOs(kc: number, osAdaptOn: boolean): number {
+  return osAdaptOn ? (GESTURE_OS_ADAPT_WINDOWS[kc] ?? kc) : kc;
+}

@@ -18,7 +18,7 @@ import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlde
 import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
-import { setGestureDisplayNames } from './lib/keycodes';
+import { setGestureDisplayNames, OS_ID_WINDOWS } from './lib/keycodes';
 import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
@@ -800,6 +800,9 @@ export default function App() {
 
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。
+  // Windowsにつないでいて「画面切り替えのジェスチャーをOSに合わせる」がONなら、ジェスチャーの表示を置き換え後のキーにする
+  const gestureOsAdaptActive = state.gestureOsAdapt === true && state.detectedOs === OS_ID_WINDOWS;
+
   const accelAvailable = !isConnected || state.gesture !== null || chip === 'rp2040'
     || state.model === 'keyball39' || state.model === 'keyballplus';
 
@@ -838,6 +841,7 @@ export default function App() {
           scrollInertia={state.scrollInertia}
           onScrollInertiaChange={handleScrollInertiaChange}
           gestureNames={state.gestureNames}
+          gestureOsAdaptActive={gestureOsAdaptActive}
           onGestureNameChange={async (i, name) => {
             try { await setGestureName(i, name); setHasUnsaved(true); }
             catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
@@ -1218,6 +1222,7 @@ export default function App() {
                           }}
                           keyLayout={keyLayout}
                           avail={fwAvail}
+                          gestureOsAdaptActive={gestureOsAdaptActive}
                         />
                       </div>
                     ) : (

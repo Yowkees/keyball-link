@@ -862,4 +862,6 @@ export const EN: Record<string, string> = {
 
   '画面切り替えのジェスチャーをOSに合わせる': 'Match screen-switching gestures to the OS',
   'Windowsにつないだ時、ジェスチャーで送るCtrl+矢印（Macの画面切り替え）を、Windowsの同じ操作に置き換えます。Ctrl+←/→はWin+Ctrl+←/→（デスクトップの切り替え）、Ctrl+↑はWin+Tab（タスクビュー）、Ctrl+↓はWin+D（デスクトップを表示）になります。どのジェスチャーに設定していても置き換わります。Macではそのままです。': 'When connected to Windows, replaces the Ctrl+arrow keys sent by gestures (screen switching on Mac) with the matching Windows shortcuts: Ctrl+←/→ becomes Win+Ctrl+←/→ (switch desktops), Ctrl+↑ becomes Win+Tab (Task View) and Ctrl+↓ becomes Win+D (show desktop). This applies to any gesture. Nothing changes on a Mac.',
+
+  'Windowsにつないでいるため、Ctrl+矢印はWindowsの画面切り替えのキーに置き換えて表示しています（GUIはWindowsキー）。': 'Connected to Windows, so Ctrl+arrow keys are shown as the Windows screen-switching keys they are replaced with (GUI is the Windows key).',
 };

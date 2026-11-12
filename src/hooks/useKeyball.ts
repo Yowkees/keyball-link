@@ -254,17 +254,30 @@ export function useKeyball() {
         isLoading: false,
       });
       // ボールの左右は、左右の基板が情報交換を終えるまで（起動から約2秒）「不明」になることがある。
-      // 挿してすぐ接続した時に手動表示のままにならないよう、不明なら1秒おきに数回聞き直す（2026-11-12）
-      if (detectedBallSide === null && firmwareReportsBallSide(pid != null ? chipForProductId(pid) : undefined, firmwareVersion)) {
+      // 挿してすぐ接続した時に手動表示のままにならないよう、不明なら1秒おきに数回聞き直す（2026-11-12）。
+      // OS自動判別の結果も、挿した直後は「判別中」(0)のことがあるので同じように聞き直す
+      // （「画面切り替えのジェスチャーをOSに合わせる」の表示がOSに合わせて変わるように）。
+      const retryBallSide = detectedBallSide === null && firmwareReportsBallSide(pid != null ? chipForProductId(pid) : undefined, firmwareVersion);
+      const retryOs = detectedOs === 0;
+      if (retryBallSide || retryOs) {
         const kb = hid.current;
         void (async () => {
-          for (let i = 0; i < 5; i++) {
+          let needSide = retryBallSide, needOs = retryOs;
+          for (let i = 0; i < 5 && (needSide || needOs); i++) {
             await new Promise(r => setTimeout(r, 1000));
             if (!kb.connected) return;  // 切断したらやめる
-            try {
-              const side = await kb.getBallSide();
-              if (side) { setPartial({ detectedBallSide: side }); return; }
-            } catch { return; }
+            if (needSide) {
+              try {
+                const side = await kb.getBallSide();
+                if (side) { setPartial({ detectedBallSide: side }); needSide = false; }
+              } catch { needSide = false; }
+            }
+            if (needOs) {
+              try {
+                const os = await kb.getDetectedOs();
+                if (os !== 0) { setPartial({ detectedOs: os }); needOs = false; }
+              } catch { needOs = false; }
+            }
           }
         })();
       }

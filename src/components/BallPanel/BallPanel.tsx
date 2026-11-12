@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { KbSettings, ScrollInertiaConfig, TrackballConfig, PrecisionConfig, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
-import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
+import { getKeyDisplayLabel, isGestureExcludedKeycode, gestureKeyForOs } from '../../lib/keycodes';
 import { KeyConfigModal } from '../KeyConfigModal/KeyConfigModal';
 import {
   LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX, SCROLL_MODE, cpiIndexToValue, computeAccelCurvePoints,
@@ -58,6 +58,7 @@ interface BallPanelProps {
   onGestureNameChange: (mode: number, name: string) => Promise<void>;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
+  gestureOsAdaptActive: boolean;  // Windowsにつないでいて「画面切り替えのジェスチャーをOSに合わせる」がON（表示を置き換え後のキーにする）
 }
 
 export function BallPanel(p: BallPanelProps) {
@@ -224,7 +225,7 @@ export function BallPanel(p: BallPanelProps) {
                   <div key={dir} className="gesture-row">
                     <span className="gesture-dir">{label}</span>
                     <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
-                      {getKeyDisplayLabel(cfg[dir], p.keyLayout) || t('未設定')}
+                      {getKeyDisplayLabel(gestureKeyForOs(cfg[dir], p.gestureOsAdaptActive), p.keyLayout) || t('未設定')}
                     </button>
                     {gm && (
                       <label className="ball-panel__cont">
@@ -235,6 +236,10 @@ export function BallPanel(p: BallPanelProps) {
                     )}
                   </div>
                 ))}
+                {/* 置き換えて表示している時だけ、その旨を書く（2026-11-12） */}
+                {dirs.some(([dir]) => gestureKeyForOs(cfg[dir], p.gestureOsAdaptActive) !== cfg[dir]) && (
+                  <p className="settings-desc" style={{ marginTop: 6 }}>{t('Windowsにつないでいるため、Ctrl+矢印はWindowsの画面切り替えのキーに置き換えて表示しています（GUIはWindowsキー）。')}</p>
+                )}
               </div>
             );
           })()}

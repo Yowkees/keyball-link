@@ -1,6 +1,7 @@
 import type { LedConfig, LayerLedConfig } from '../../lib/protocol';
 import { LAYER_LED_DEFAULT } from '../LayerFeatures/LayerLedCard';
 import { LEDSettings } from './LEDSettings';
+import { t } from '../../lib/i18n';
 
 interface LedPanelProps {
   led: LedConfig | null;   // 通常LED設定。nullなら通常版ファームでLED自体が非対応
@@ -29,9 +30,9 @@ export function LedPanel({
   if (!led) {
     return (
       <>
-        <div className="led-panel__title">LED設定</div>
+        <div className="led-panel__title">{t('LED設定')}</div>
         <p className="settings-desc" style={{ color: 'var(--red)' }}>
-          ⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。
+          {t('⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。')}
         </p>
       </>
     );
@@ -44,7 +45,7 @@ export function LedPanel({
   if (target === 'normal') {
     return (
       <>
-        <div className="led-panel__title">LED設定</div>
+        <div className="led-panel__title">{t('LED設定')}</div>
         <LEDSettings
           config={led}
           onChange={onLedChange}
@@ -61,7 +62,7 @@ export function LedPanel({
 
   return (
     <>
-      <div className="led-panel__title">LED設定</div>
+      <div className="led-panel__title">{t('LED設定')}</div>
       <LEDSettings
         config={shown}
         offPreview={led}

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 // Intel HEX フォーマットをバイナリに変換する
 export function parseIntelHex(hexText: string): Uint8Array {
   const FLASH_SIZE = 32768; // ATmega32U4: 32KB
@@ -34,7 +35,7 @@ export function parseIntelHex(hexText: string): Uint8Array {
 
   // データが1バイトもない＝HEX形式でないファイルの可能性が高い
   if (maxAddr === 0) {
-    throw new Error('有効なデータが見つかりません。Intel HEX形式のファームウェアファイルか確認してください。');
+    throw new Error(t('有効なデータが見つかりません。Intel HEX形式のファームウェアファイルか確認してください。'));
   }
 
   // ページサイズ（128B）単位に切り上げ

@@ -1,3 +1,4 @@
+import { t, tk } from './i18n';
 // レイヤー・ジェスチャーの名前（2026-11-04〜、RP2040版v0.6.0〜）。名前はキーボードの中に保存する。
 // 1つUTF-8で24バイトまで（日本語なら8文字）。名前が無い時は番号で表示する。
 
@@ -32,5 +33,9 @@ export function decodeName(bytes: ArrayLike<number>): string {
 }
 
 // 画面に出す名前
-export const gestureLabel = (i: number, names?: string[] | null) => names?.[i] || `ジェスチャー${i + 1}`;
+// 名前はキーボードに保存された文字のまま出す。ただし、ファームが書き込む初期の名前（日本語）と
+// 同じ時だけ、表示中の言語へ訳す（英語表示で「画面切り替え」などが日本語のまま出ないように）
+export const displayName = (name: string) => (DEFAULT_GESTURE_NAMES.includes(name) ? t(name) : name);
+const DEFAULT_GESTURE_NAMES: string[] = [tk('画面切り替え'), tk('音量・明るさ'), tk('矢印キー'), tk('文字入力'), tk('ブラウザ'), tk('音楽・動画')];
+export const gestureLabel = (i: number, names?: string[] | null) => (names?.[i] ? displayName(names[i]) : t('ジェスチャー{0}', i + 1));
 export const layerLabel = (i: number, names?: string[] | null) => (names?.[i] ? `L${i} ${names[i]}` : `L${i}`);

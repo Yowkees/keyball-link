@@ -9,6 +9,7 @@ import { KeyDisplaySection, MacOSSetupSection, isMacOSPlatform } from '../KeyLay
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import type { ModelKey } from '../../layouts';
 import { TIPS } from '../../lib/tips';
+import { t } from '../../lib/i18n';
 
 interface SettingsTabProps {
   settings: KbSettings;
@@ -50,10 +51,10 @@ export function SettingsTab({
 
   const cards: BoardCard[] = [
     {
-      key: 'keyopt', title: 'キー動作オプション', className: 'board-card--narrow', tip: TIPS.keyopt,
+      key: 'keyopt', title: t('キー動作オプション'), className: 'board-card--narrow', tip: TIPS.keyopt,
       render: () => (
         <div>
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.tappingTerm}>長押し判定時間</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.tappingTerm}>{t('長押し判定時間')}</p>
           <SliderControl
             value={settings.tappingTerm} min={50} max={500} step={10}
             disabled={disabled} unit="ms"
@@ -76,43 +77,43 @@ export function SettingsTab({
               onChange={v => apply({ permissiveHold: v })}
             />
           </div>
-          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>{t('保存中…')}</p>}
         </div>
       ),
     },
     ...(fwFeatures.osDetection ? [{
-      key: 'os', title: 'OS自動判別', className: 'board-card--narrow', tip: TIPS.osdetect,
+      key: 'os', title: t('OS自動判別'), className: 'board-card--narrow', tip: TIPS.osdetect,
       render: () => (
         <>
           <div className="setting-row">
             <div className="setting-row__text">
-              <span className="setting-row__label" data-tip={TIPS.osResult}>現在の判定結果</span>
+              <span className="setting-row__label" data-tip={TIPS.osResult}>{t('現在の判定結果')}</span>
             </div>
             <span style={{ fontWeight: 600, fontSize: '1.05em' }}>
               {detectedOs == null
-                ? (isConnected ? '—' : '未接続')
-                : (OS_VARIANT_NAMES[detectedOs] ?? '不明')}
+                ? (isConnected ? '—' : t('未接続'))
+                : (OS_VARIANT_NAMES[detectedOs] ? t(OS_VARIANT_NAMES[detectedOs]) : t('不明'))}
             </span>
           </div>
           <div className="setting-rows">
             <ToggleRow
-              label="OSに合わせて ⌘(Cmd) と Ctrl を自動で入れ替える"
+              label={t('OSに合わせて ⌘(Cmd) と Ctrl を自動で入れ替える')}
               desc="" tip={TIPS.osSwap}
               checked={settings.osAutoSwap} disabled={disabled}
               onChange={v => apply({ osAutoSwap: v })}
             />
           </div>
-          {saving && <p className="td-saving" style={{ marginTop: 8 }}>保存中…</p>}
+          {saving && <p className="td-saving" style={{ marginTop: 8 }}>{t('保存中…')}</p>}
         </>
       ),
     }] : []),
     ...(oledAnimEnabled !== null || bootAnimEnabled !== null ? [{
-      key: 'oled', title: 'アニメーション', className: 'board-card--narrow', tip: TIPS.oled,
+      key: 'oled', title: t('アニメーション'), className: 'board-card--narrow', tip: TIPS.oled,
       render: () => (
         <div className="setting-rows">
           {bootAnimEnabled !== null && (
             <ToggleRow
-              label="起動アニメーション"
+              label={t('起動アニメーション')}
               desc="" tip={TIPS.bootAnim}
               checked={bootAnimEnabled} disabled={disabled}
               onChange={async v => {
@@ -123,7 +124,7 @@ export function SettingsTab({
           )}
           {oledAnimEnabled !== null && (
             <ToggleRow
-              label="OLEDアニメーション"
+              label={t('OLEDアニメーション')}
               desc="" tip={TIPS.oledAnim}
               checked={oledAnimEnabled} disabled={disabled}
               onChange={async v => {
@@ -136,15 +137,15 @@ export function SettingsTab({
       ),
     }] : []),
     {
-      key: 'layout', title: 'キー表示の配列設定', className: 'board-card--narrow', tip: TIPS.keydisplay,
+      key: 'layout', title: t('キー表示の配列設定'), className: 'board-card--narrow', tip: TIPS.keydisplay,
       render: () => <KeyDisplaySection keyLayout={keyLayout} onKeyLayoutChange={onKeyLayoutChange} />,
     },
     ...(isMacOSPlatform() ? [{
-      key: 'macos', title: 'macOS キーボードタイプ設定', tip: TIPS.macos,
+      key: 'macos', title: t('macOS キーボードタイプ設定'), tip: TIPS.macos,
       render: () => <MacOSSetupSection defaultLayout={keyLayout} model={model} productId={productId} />,
     }] : []),
     ...(onTestLed ? [{
-      key: 'led', title: 'LED位置実測（開発用）', className: 'board-card--narrow', tip: TIPS.ledtest,
+      key: 'led', title: t('LED位置実測（開発用）'), className: 'board-card--narrow', tip: TIPS.ledtest,
       render: () => (
         <>
           <div className="tapping-term-row" style={{ gap: 8, alignItems: 'center' }}>
@@ -157,10 +158,10 @@ export function SettingsTab({
                 await onTestLed(next);
               }}
             >
-              ← 戻る
+              {t('← 戻る')}
             </button>
             <span className="tapping-term-value" style={{ minWidth: 80, textAlign: 'center' }}>
-              {testLedIndex === null ? '未実施' : `index ${testLedIndex} / ${ledCount - 1}`}
+              {testLedIndex === null ? t('未実施') : `index ${testLedIndex} / ${ledCount - 1}`}
             </span>
             <button
               className="btn btn--small"
@@ -171,7 +172,7 @@ export function SettingsTab({
                 await onTestLed(next);
               }}
             >
-              次へ →
+              {t('次へ →')}
             </button>
             {testLedIndex !== null && (
               <button
@@ -182,7 +183,7 @@ export function SettingsTab({
                   await onTestLed(0xFF);
                 }}
               >
-                終了
+                {t('終了')}
               </button>
             )}
           </div>
@@ -190,7 +191,7 @@ export function SettingsTab({
       ),
     }] : []),
     ...(children ? [{
-      key: 'matrix', title: 'テストマトリクス', tip: TIPS.matrix,
+      key: 'matrix', title: t('テストマトリクス'), tip: TIPS.matrix,
       render: () => children,
     }] : []),
   ];
@@ -200,7 +201,7 @@ export function SettingsTab({
     <div className="settings-tab">
       {!isConnected && (
         <div className="settings-notice">
-          キーボードに接続すると設定を変更できます。
+          {t('キーボードに接続すると設定を変更できます。')}
         </div>
       )}
       <SettingsSidebarBoard cards={cards} />

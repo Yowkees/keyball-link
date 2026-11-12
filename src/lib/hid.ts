@@ -3,6 +3,7 @@
 import { KEYBALL_VID, KEYBALL_USAGE_PAGE, KEYBALL_USAGE_ID, CMD, makePacket, TD_SLOT_COUNT, MACRO_BUFFER_SIZE, MACRO_CHUNK_SIZE, emptyMacroSlot, encodeMacroBuffer, decodeMacroBuffer, KB_FLAG_AUTO_SHIFT, KB_FLAG_COMBO, KB_FLAG_PERMISSIVE_HOLD, KB_FLAG_RETRO_TAPPING, KB_FLAG_SCROLL_INV_V, KB_FLAG_SCROLL_INV_H, KB_FLAG_AML_DISABLE, KB_FLAG_OS_AUTO_SWAP, LAYER_NONE, GESTURE_TH_DEFAULT, GESTURE_TH_MIN, GESTURE_TH_MAX, GESTURE_WAVE_SPEED_DEFAULT, GESTURE_WAVE_SPEED_MIN, GESTURE_WAVE_SPEED_MAX, GESTURE_WAVE_STYLE_SHARP, GESTURE_WAVE_STYLE_BREATH, type GestureWaveColor, SCROLL_INERTIA_FLICK_MULT_MIN, SCROLL_INERTIA_FLICK_MULT_MAX, SCROLL_INERTIA_FLICK_MULT_DEFAULT, SHAKE_THRESHOLD_DEFAULT, SHAKE_THRESHOLD_MIN, SHAKE_THRESHOLD_MAX, SHAKE_REVERSALS_DEFAULT, SHAKE_REVERSALS_MIN, SHAKE_REVERSALS_MAX, SHAKE_RUN_MAX_MS_DEFAULT, SHAKE_RUN_MAX_MS_MIN, SHAKE_RUN_MAX_MS_MAX, DFLICK_WINDOW_MS_DEFAULT, DFLICK_WINDOW_MS_MIN, DFLICK_WINDOW_MS_MAX, DFLICK_FLICK_THRESHOLD_DEFAULT, DFLICK_FLICK_THRESHOLD_MIN, DFLICK_FLICK_THRESHOLD_MAX, DFLICK_MAX_DURATION_MS_DEFAULT, DFLICK_MAX_DURATION_MS_MIN, DFLICK_MAX_DURATION_MS_MAX, COMBO_SLOT_COUNT, COMBO_MAX_KEYS, DPI_CURVE_X } from './protocol';
 import { decodeName, nameBytes, NAME_MAX_BYTES } from './names';
 import type { KeyboardInfo, KeyballModel, TrackballConfig, LedConfig, TdSlot, KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, FirmwareVersion, PrecisionConfig, LayerLedConfig, ScrollInertiaConfig, ShakeConfig, DFlickConfig, ComboSlot, DpiCurveConfig } from './protocol';
+import { t } from './i18n';
 
 export class KeyballHID {
   private device: HIDDevice | null = null;
@@ -42,7 +43,7 @@ export class KeyballHID {
     const devices = await navigator.hid.requestDevice({
       filters: [{ vendorId: KEYBALL_VID, usagePage: KEYBALL_USAGE_PAGE, usage: KEYBALL_USAGE_ID }],
     });
-    if (devices.length === 0) throw new Error('デバイスが選択されませんでした');
+    if (devices.length === 0) throw new Error(t('デバイスが選択されませんでした'));
     this.device = devices[0];
     if (!this.device.opened) await this.device.open();
     navigator.hid.addEventListener('disconnect', this.handleDeviceDisconnect);
@@ -69,12 +70,12 @@ export class KeyballHID {
   }
 
   private sendCommandNow(packet: Uint8Array): Promise<Uint8Array> {
-    if (!this.device?.opened) return Promise.reject(new Error('未接続'));
+    if (!this.device?.opened) return Promise.reject(new Error(t('未接続')));
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.device?.removeEventListener('inputreport', handler);
-        reject(new Error('タイムアウト'));
+        reject(new Error(t('タイムアウト')));
       }, 3000);
 
       const handler = (e: HIDInputReportEvent) => {
@@ -116,11 +117,11 @@ export class KeyballHID {
   async setKeycode(layer: number, row: number, col: number, keycode: number): Promise<void> {
     const r = await this.sendCommand(makePacket(CMD.SET_KEYCODE, layer, this.toFirmwareRow(row), col, (keycode >> 8) & 0xFF, keycode & 0xFF));
     if (r[0] !== CMD.SET_KEYCODE) {
-      throw new Error(`SET_KEYCODE 応答異常 (cmd=0x${r[0].toString(16).padStart(2,'0')}) — ファームウェアがコマンドを認識していない可能性があります`);
+      throw new Error(t('SET_KEYCODE 応答異常 (cmd=0x{0}) — ファームウェアがコマンドを認識していない可能性があります', r[0].toString(16).padStart(2,'0')));
     }
     const readback = await this.getKeycode(layer, row, col);
     if (readback !== keycode) {
-      throw new Error(`書き込み検証失敗 — 書き込み値: 0x${keycode.toString(16).toUpperCase()}, 読み取り値: 0x${readback.toString(16).toUpperCase()} (ファームウェアがSET_KEYCODEをサポートしていない可能性があります)`);
+      throw new Error(t('書き込み検証失敗 — 書き込み値: 0x{0}, 読み取り値: 0x{1} (ファームウェアがSET_KEYCODEをサポートしていない可能性があります)', keycode.toString(16).toUpperCase(), readback.toString(16).toUpperCase()));
     }
   }
 
@@ -158,7 +159,7 @@ export class KeyballHID {
   async save(): Promise<void> {
     const r = await this.sendCommand(makePacket(CMD.SAVE));
     if (r[0] !== CMD.SAVE) {
-      throw new Error(`SAVE 応答異常 (cmd=0x${r[0].toString(16).padStart(2,'0')})`);
+      throw new Error(t('SAVE 応答異常 (cmd=0x{0})', r[0].toString(16).padStart(2,'0')));
     }
   }
 
@@ -169,7 +170,7 @@ export class KeyballHID {
   async getLed(): Promise<LedConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_LED));
     // LED非対応版（RGBLIGHT無効）は未対応コマンドとして 0xFF を返す → 例外にしてstate.led=nullにする
-    if (r[0] !== CMD.GET_LED) throw new Error('LED非対応のファームです');
+    if (r[0] !== CMD.GET_LED) throw new Error(t('LED非対応のファームです'));
     return { effectId: r[1], hue: r[2], sat: r[3], val: r[4], speed: r[5] };
   }
 
@@ -180,7 +181,7 @@ export class KeyballHID {
   // レイヤー連動LED機能そのものの有効/無効（RP2040版など対応ファームのみ。非対応FWでは例外）
   async getLayerLedEnable(): Promise<boolean> {
     const r = await this.sendCommand(makePacket(CMD.GET_LAYER_LED_ENABLE));
-    if (r[0] !== CMD.GET_LAYER_LED_ENABLE) throw new Error('レイヤー連動LED非対応のファームです');
+    if (r[0] !== CMD.GET_LAYER_LED_ENABLE) throw new Error(t('レイヤー連動LED非対応のファームです'));
     return r[1] !== 0;
   }
 
@@ -191,7 +192,7 @@ export class KeyballHID {
   // 指定レイヤー(1-7)のLED設定を取得・変更する
   async getLayerLed(layer: number): Promise<LayerLedConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_LAYER_LED, layer));
-    if (r[0] !== CMD.GET_LAYER_LED) throw new Error('レイヤー連動LED非対応のファームです');
+    if (r[0] !== CMD.GET_LAYER_LED) throw new Error(t('レイヤー連動LED非対応のファームです'));
     return { enabled: r[2] !== 0, effectId: r[3], hue: r[4], sat: r[5], val: r[6], speed: r[7] };
   }
 
@@ -272,7 +273,7 @@ export class KeyballHID {
   // ジェスチャー設定取得（GESTURE_ENABLE非対応FWでは応答コードが異なるため例外）
   async getGesture(): Promise<GestureConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE));
-    if (r[0] !== CMD.GET_GESTURE) throw new Error('ジェスチャー非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE) throw new Error(t('ジェスチャー非対応のファームです'));
     return {
       up:    (r[1] << 8) | r[2],
       down:  (r[3] << 8) | r[4],
@@ -303,7 +304,7 @@ export class KeyballHID {
   // 複数ジェスチャーモード（RP2040版限定。非対応FWでは例外＝旧単一モードのgestureにフォールバック）
   async getGestureMode(mode: number): Promise<GestureModeConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_MODE, mode));
-    if (r[0] !== CMD.GET_GESTURE_MODE) throw new Error('複数ジェスチャーモード非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_MODE) throw new Error(t('複数ジェスチャーモード非対応のファームです'));
     const cont = r[10] ?? 0;
     return {
       up:    (r[2] << 8) | r[3],
@@ -333,7 +334,7 @@ export class KeyballHID {
 
   async getGestureThreshold(): Promise<GestureThreshold> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_THRESHOLD));
-    if (r[0] !== CMD.GET_GESTURE_THRESHOLD) throw new Error('複数ジェスチャーモード非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_THRESHOLD) throw new Error(t('複数ジェスチャーモード非対応のファームです'));
     return {
       h: (r[1] >= GESTURE_TH_MIN && r[1] <= GESTURE_TH_MAX) ? r[1] : GESTURE_TH_DEFAULT,
       v: (r[2] >= GESTURE_TH_MIN && r[2] <= GESTURE_TH_MAX) ? r[2] : GESTURE_TH_DEFAULT,
@@ -350,7 +351,7 @@ export class KeyballHID {
   // → 応答[cmd, mode, speed, status]でmodeを一度エコーバックする形式。
   async getGestureWaveSpeed(mode: number): Promise<number> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_SPEED, mode));
-    if (r[0] !== CMD.GET_GESTURE_WAVE_SPEED) throw new Error('ジェスチャーウェーブ非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_WAVE_SPEED) throw new Error(t('ジェスチャーウェーブ非対応のファームです'));
     return (r[2] >= GESTURE_WAVE_SPEED_MIN && r[2] <= GESTURE_WAVE_SPEED_MAX) ? r[2] : GESTURE_WAVE_SPEED_DEFAULT;
   }
 
@@ -360,7 +361,7 @@ export class KeyballHID {
 
   async getGestureWaveEnable(): Promise<boolean> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_ENABLE));
-    if (r[0] !== CMD.GET_GESTURE_WAVE_ENABLE) throw new Error('ジェスチャーウェーブ非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_WAVE_ENABLE) throw new Error(t('ジェスチャーウェーブ非対応のファームです'));
     return r[1] !== 0;
   }
 
@@ -371,7 +372,7 @@ export class KeyballHID {
   // 見た目・色もモードごと（速さと同じ2026-09-30〜の変更）
   async getGestureWaveStyle(mode: number): Promise<number> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_STYLE, mode));
-    if (r[0] !== CMD.GET_GESTURE_WAVE_STYLE) throw new Error('ジェスチャーウェーブのスタイル切り替えに非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_WAVE_STYLE) throw new Error(t('ジェスチャーウェーブのスタイル切り替えに非対応のファームです'));
     return r[2] === GESTURE_WAVE_STYLE_BREATH ? GESTURE_WAVE_STYLE_BREATH : GESTURE_WAVE_STYLE_SHARP;
   }
 
@@ -381,7 +382,7 @@ export class KeyballHID {
 
   async getGestureWaveColor(mode: number): Promise<GestureWaveColor> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_WAVE_COLOR, mode));
-    if (r[0] !== CMD.GET_GESTURE_WAVE_COLOR) throw new Error('ジェスチャーウェーブの色設定に非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_WAVE_COLOR) throw new Error(t('ジェスチャーウェーブの色設定に非対応のファームです'));
     return { hue: r[2], sat: r[3], val: r[4] };
   }
 
@@ -393,14 +394,14 @@ export class KeyballHID {
   // 非対応ファームでは応答コードが一致しないので例外にする。
   async getDetectedOs(): Promise<number> {
     const r = await this.sendCommand(makePacket(CMD.GET_OS));
-    if (r[0] !== CMD.GET_OS) throw new Error('OS自動判別非対応のファームです');
+    if (r[0] !== CMD.GET_OS) throw new Error(t('OS自動判別非対応のファームです'));
     return r[1];
   }
 
   // DPIカーブ: トラックボールの動きの速さ→実際に送る速さを5点の折れ線で調整する機能
   async getDpiCurve(): Promise<DpiCurveConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_DPI_CURVE));
-    if (r[0] !== CMD.GET_DPI_CURVE) throw new Error('DPIカーブ非対応のファームです');
+    if (r[0] !== CMD.GET_DPI_CURVE) throw new Error(t('DPIカーブ非対応のファームです'));
     const points: number[] = [];
     for (let i = 0; i < DPI_CURVE_X.length; i++) points.push(r[2 + i]);
     return { enable: r[1] !== 0, points };
@@ -413,7 +414,7 @@ export class KeyballHID {
   // シェイク機能（トラックボールを振ると設定したキーを発動。RP2040版限定）
   async getShakeConfig(): Promise<ShakeConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_SHAKE));
-    if (r[0] !== CMD.GET_SHAKE) throw new Error('シェイク機能非対応のファームです');
+    if (r[0] !== CMD.GET_SHAKE) throw new Error(t('シェイク機能非対応のファームです'));
     const threshold = r[3];
     const reversals = r[4];
     const runMaxMs  = r[5] * 10;
@@ -440,7 +441,7 @@ export class KeyballHID {
   // ダブルフリック（同じ方向へ短時間で2回フリックすると追加でキーを発動。RP2040版限定）
   async getDFlickConfig(): Promise<DFlickConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_DFLICK));
-    if (r[0] !== CMD.GET_DFLICK) throw new Error('ダブルフリック非対応のファームです');
+    if (r[0] !== CMD.GET_DFLICK) throw new Error(t('ダブルフリック非対応のファームです'));
     const windowMs = (r[9] ?? 0) * 10;
     const flickThreshold = r[10];
     const maxDurationMs = (r[11] ?? 0) * 10;
@@ -473,7 +474,7 @@ export class KeyballHID {
   // コンボ（複数キー同時押しで別のキーを発動。RP2040版限定）
   async getComboSlot(idx: number): Promise<ComboSlot> {
     const r = await this.sendCommand(makePacket(CMD.GET_COMBO, idx));
-    if (r[0] !== CMD.GET_COMBO) throw new Error('コンボ非対応のファームです');
+    if (r[0] !== CMD.GET_COMBO) throw new Error(t('コンボ非対応のファームです'));
     const keys: number[] = [];
     for (let i = 0; i < COMBO_MAX_KEYS; i++) {
       keys.push((r[2 + i * 2] << 8) | r[3 + i * 2]);
@@ -508,7 +509,7 @@ export class KeyballHID {
   // 精密モードの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
   async getPrecisionConfig(): Promise<PrecisionConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_PRECISION));
-    if (r[0] !== CMD.GET_PRECISION) throw new Error('精密モード非対応のファームです');
+    if (r[0] !== CMD.GET_PRECISION) throw new Error(t('精密モード非対応のファームです'));
     return {
       div:   r[1],
       layer: (r[2] !== undefined && r[2] <= 7) ? r[2] : LAYER_NONE,  // 連動レイヤー（旧応答/未設定はなし）
@@ -522,7 +523,7 @@ export class KeyballHID {
   // 慣性スクロールの設定取得・変更（RP2040版など対応ファームのみ。非対応FWでは例外）
   async getScrollInertiaConfig(): Promise<ScrollInertiaConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_SCROLL_INERTIA));
-    if (r[0] !== CMD.GET_SCROLL_INERTIA) throw new Error('慣性スクロール非対応のファームです');
+    if (r[0] !== CMD.GET_SCROLL_INERTIA) throw new Error(t('慣性スクロール非対応のファームです'));
     const flickMult = r[3] ?? 0;
     return {
       enable:    r[1] !== 0,
@@ -541,7 +542,7 @@ export class KeyballHID {
   // ファームウェアのバージョン取得（GET_VERSION非対応の旧ファームでは例外）
   async getVersion(): Promise<FirmwareVersion> {
     const r = await this.sendCommand(makePacket(CMD.GET_VERSION));
-    if (r[0] !== CMD.GET_VERSION) throw new Error('バージョン情報非対応のファームです');
+    if (r[0] !== CMD.GET_VERSION) throw new Error(t('バージョン情報非対応のファームです'));
     return { major: r[1], minor: r[2], patch: r[3] };
   }
 
@@ -549,7 +550,7 @@ export class KeyballHID {
   // ボール無し・両側ボール・反対側と未接続で判断できない時は null（手動の選択を使う）。
   async getBallSide(): Promise<'left' | 'right' | null> {
     const r = await this.sendCommand(makePacket(CMD.GET_BALL_SIDE));
-    if (r[0] !== CMD.GET_BALL_SIDE) throw new Error('ボールの左右の取得に非対応のファームです');
+    if (r[0] !== CMD.GET_BALL_SIDE) throw new Error(t('ボールの左右の取得に非対応のファームです'));
     const thisIsLeft = r[1] === 1, thisHave = r[2] === 1, thatEnable = r[3] === 1, thatHave = r[4] === 1;
     if (!thatEnable) return thisHave ? (thisIsLeft ? 'left' : 'right') : null;
     const left  = thisIsLeft ? thisHave : thatHave;
@@ -560,7 +561,7 @@ export class KeyballHID {
 
   async getOledAnimEnabled(): Promise<boolean> {
     const r = await this.sendCommand(makePacket(CMD.GET_OLED_ANIM));
-    if (r[0] !== CMD.GET_OLED_ANIM) throw new Error('OLEDアニメーションの設定に非対応のファームです');
+    if (r[0] !== CMD.GET_OLED_ANIM) throw new Error(t('OLEDアニメーションの設定に非対応のファームです'));
     return r[1] === 1;
   }
 
@@ -570,7 +571,7 @@ export class KeyballHID {
 
   async getBootAnimEnabled(): Promise<boolean> {
     const r = await this.sendCommand(makePacket(CMD.GET_BOOT_ANIM));
-    if (r[0] !== CMD.GET_BOOT_ANIM) throw new Error('起動アニメーションの設定に非対応のファームです');
+    if (r[0] !== CMD.GET_BOOT_ANIM) throw new Error(t('起動アニメーションの設定に非対応のファームです'));
     return r[1] === 1;
   }
 
@@ -581,8 +582,8 @@ export class KeyballHID {
   // レイヤー・ジェスチャーの名前（RP2040版v0.6.0〜。非対応ファームでは例外）
   async getName(kind: number, idx: number): Promise<string> {
     const r = await this.sendCommand(makePacket(CMD.GET_NAME, kind, idx));
-    if (r[0] !== CMD.GET_NAME) throw new Error('名前に非対応のファームです');
-    if (r[1] !== 0) throw new Error('名前の番号が範囲外です');
+    if (r[0] !== CMD.GET_NAME) throw new Error(t('名前に非対応のファームです'));
+    if (r[1] !== 0) throw new Error(t('名前の番号が範囲外です'));
     return decodeName(r.slice(2, 2 + NAME_MAX_BYTES));
   }
 
@@ -600,7 +601,7 @@ export class KeyballHID {
   // 画面切り替えのジェスチャーをOSに合わせるか（RP2040版v0.6.0〜）
   async getGestureOsAdapt(): Promise<boolean> {
     const r = await this.sendCommand(makePacket(CMD.GET_GESTURE_OS_ADAPT));
-    if (r[0] !== CMD.GET_GESTURE_OS_ADAPT) throw new Error('この設定に非対応のファームです');
+    if (r[0] !== CMD.GET_GESTURE_OS_ADAPT) throw new Error(t('この設定に非対応のファームです'));
     return r[1] === 1;
   }
 
@@ -641,7 +642,7 @@ export class KeyballHID {
       const r = await this.sendCommand(makePacket(
         CMD.GET_MACRO, (offset >> 8) & 0xFF, offset & 0xFF,
       ));
-      if (r[0] !== CMD.GET_MACRO) throw new Error('マクロ非対応のファームです');
+      if (r[0] !== CMD.GET_MACRO) throw new Error(t('マクロ非対応のファームです'));
       const len = Math.min(MACRO_CHUNK_SIZE, size - offset);
       buffer.set(r.slice(3, 3 + len), offset);
     }
@@ -660,7 +661,7 @@ export class KeyballHID {
         len,
         ...chunk,
       ));
-      if (r[0] !== CMD.SET_MACRO) throw new Error('マクロ非対応のファームです');
+      if (r[0] !== CMD.SET_MACRO) throw new Error(t('マクロ非対応のファームです'));
     }
   }
 

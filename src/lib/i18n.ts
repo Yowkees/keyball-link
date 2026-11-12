@@ -71,6 +71,13 @@ export function t(ja: string, ...args: (string | number)[]): string {
   return fill(en, args);
 }
 
+// 訳す文言の「印」だけを付ける（そのままの日本語を返す）。ファイルの読み込み時に作る一覧データなど、
+// その場で訳すと言語を切り替えた時に古い言語のまま残るものに使う。表示する所で t(値) を通して訳す。
+// 訳し漏れ確認スクリプトは tk("…") も辞書に必要な文言として数える。
+export function tk(ja: string): string {
+  return ja;
+}
+
 // エラーの中身を文字列にする（よく使うので共通化）
 export function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);

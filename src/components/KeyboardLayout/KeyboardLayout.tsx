@@ -4,6 +4,7 @@ import type { KeyLayout } from '../../lib/keycodes';
 import { getKeyDescription } from '../../lib/keycodes';
 import { Key, type KeyRect, type KeyMark, type KeyHeat } from './Key';
 import type { KleKeyGeometry } from '../../layouts/kleGeometry';
+import { t } from '../../lib/i18n';
 
 const KEY_SIZE = 52;
 const GAP = 4;
@@ -257,14 +258,14 @@ export function KeyboardLayout({ layout, keycodes, selectedIndex, ballSide, keyL
             onMouseEnter={() => ballTitle && setHoverDesc(ballTitle)}
             onMouseLeave={() => setHoverDesc(null)}
           >
-            <span className="key__label">{ballLabel ?? 'カーソル'}</span>
+            <span className="key__label">{ballLabel ?? t('カーソル')}</span>
           </button>
         )}
       </div>
       </div>
       {showDescBar && (
         <div className="key-desc-bar" ref={descRef}>
-          {hoverDesc ?? 'キーをクリックで設定 ／ マウスを乗せると説明が表示されます'}
+          {hoverDesc ?? t('キーをクリックで設定 ／ マウスを乗せると説明が表示されます')}
         </div>
       )}
     </div>

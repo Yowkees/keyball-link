@@ -879,7 +879,8 @@ export default function App() {
         </button>
         {/* 表示言語の切り替え（2026-11-12〜）。押すともう一方の言語になる */}
         <button className="btn btn--ghost lang-toggle" onClick={() => setLang(lang === 'ja' ? 'en' : 'ja')} title={lang === 'ja' ? 'Switch to English' : '日本語に切り替え'}>
-          {lang === 'ja' ? 'English' : '日本語'}
+          {/* 日本語表示では上部のボタン列が折り返さないよう短く「EN」にする（英語表示の時は文字が短いので「日本語」） */}
+          {lang === 'ja' ? 'EN' : '日本語'}
         </button>
         <div className="accent-picker">
           {ACCENT_SWATCHES.map(a => (

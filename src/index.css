@@ -277,7 +277,7 @@ body { background: var(--bg); overflow-x: hidden; }
 /* 表示言語の切り替えボタン（2026-11-12〜）。テーマ切替の隣に同じ大きさで置く */
 .lang-toggle {
   font-size: 12px;
-  padding: 4px 12px;
+  padding: 4px 10px;
   flex-shrink: 0;
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { clampName, NAME_MAX_BYTES } from '../../lib/names';
+import { t } from '../../lib/i18n';
 
 // レイヤー・ジェスチャーの名前の入力欄（2026-11-04〜）。Enterか、欄の外をクリックした時に保存する。
 // 日本語入力の変換中のEnterでは保存しない。長すぎる名前は保存の時に24バイト（日本語8文字）で切る。
@@ -23,7 +24,7 @@ export function NameInput({ value, placeholder, disabled, onSave }: {
       value={draft}
       placeholder={placeholder}
       disabled={disabled}
-      title={tooLong ? '長すぎます。保存の時に日本語8文字（英数字24文字）までに切ります' : '名前（日本語8文字・英数字24文字まで）。空にすると番号で表示します'}
+      title={tooLong ? t('長すぎます。保存の時に日本語8文字（英数字24文字）までに切ります') : t('名前（日本語8文字・英数字24文字まで）。空にすると番号で表示します')}
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={e => {

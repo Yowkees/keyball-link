@@ -17,8 +17,8 @@ function walk(dir, out = []) {
   return out;
 }
 
-// t('…') の中の文字列（シングルクォート、\' のエスケープに対応）を集める
-const callRe = /\bt\(\s*'((?:[^'\\]|\\.)*)'/g;
+// t('…') と tk('…') の中の文字列（シングルクォート、\' のエスケープに対応）を集める
+const callRe = /\btk?\(\s*'((?:[^'\\]|\\.)*)'/g;
 const used = new Map();   // 文言 → 使っているファイル
 for (const file of walk(src)) {
   const text = fs.readFileSync(file, 'utf8');

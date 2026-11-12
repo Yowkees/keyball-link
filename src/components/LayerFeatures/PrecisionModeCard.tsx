@@ -3,6 +3,7 @@ import { LAYER_NONE, PRECISION_DIV_MIN, PRECISION_DIV_MAX } from '../../lib/prot
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl } from '../SettingsControls/SettingsControls';
 import { TIPS } from '../../lib/tips';
+import { t } from '../../lib/i18n';
 
 interface PrecisionModeCardProps {
   precision: PrecisionConfig | null;
@@ -15,20 +16,20 @@ interface PrecisionModeCardProps {
 
 export function PrecisionModeCard({ precision, onPrecisionChange, disabled, layersInclBase, layerWarn, changePrecisionLayer }: PrecisionModeCardProps) {
   if (precision === null) {
-    return <p className="settings-desc">このファームは非対応です。</p>;
+    return <p className="settings-desc">{t('このファームは非対応です。')}</p>;
   }
   // 1行目に「精密モード」の見出しと連動レイヤーの選択欄、その下に減速レベル（2026-10-06、本人希望）
   return (
     <div className="precision-card">
       <div className="precision-card__head">
-        <span className="precision-card__title" data-tip={TIPS.precision}>精密モード</span>
+        <span className="precision-card__title" data-tip={TIPS.precision}>{t('精密モード')}</span>
         <select
           className="trackball-bar__select"
           value={precision.layer}
           disabled={disabled}
           onChange={e => changePrecisionLayer(Number(e.target.value))}
         >
-          <option value={LAYER_NONE}>なし</option>
+          <option value={LAYER_NONE}>{t('なし')}</option>
           {layersInclBase.map(l => (
             <option key={l} value={l}>Layer {l}</option>
           ))}
@@ -37,10 +38,10 @@ export function PrecisionModeCard({ precision, onPrecisionChange, disabled, laye
       {layerWarn?.target === 'precision' && (
         <p className="settings-desc" style={{ color: 'var(--red)', marginTop: 4 }}>⚠ {layerWarn.msg}</p>
       )}
-      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.precisionDiv}>減速レベル</p>
+      <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.precisionDiv}>{t('減速レベル')}</p>
       <SliderControl
         value={precision.div} min={PRECISION_DIV_MIN} max={PRECISION_DIV_MAX} step={1}
-        disabled={disabled} unit="分の1"
+        disabled={disabled} unit="" format={v => t('{0} 分の1', v)}
         onCommit={div => onPrecisionChange({ ...precision, div })}
       />
     </div>

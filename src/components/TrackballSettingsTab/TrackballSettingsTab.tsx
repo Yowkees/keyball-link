@@ -16,6 +16,7 @@ import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import { HeaderToggle } from '../SettingsControls/SettingsControls';
 import { TIPS } from '../../lib/tips';
+import { t } from '../../lib/i18n';
 
 interface TrackballSettingsTabProps {
   isConnected: boolean;
@@ -94,7 +95,7 @@ export function TrackballSettingsTab({
   const cards: BoardCard[] = [
     ...(trackball ? [{
       // 左にCPI・加速度・精密モード、右に速度カーブ
-      key: 'ball', title: 'ボール動作・精密モード', className: 'board-card--ball',
+      key: 'ball', title: t('ボール動作・精密モード'), className: 'board-card--ball',
       render: () => (
         <>
         <TrackballSettings
@@ -114,7 +115,7 @@ export function TrackballSettingsTab({
     }] : []),
     {
       // スクロール方向・反転もここに置く（2026-10-06、ボール動作から移動）
-      key: 'scroll', title: 'スクロール設定', className: 'board-card--scroll',
+      key: 'scroll', title: t('スクロール設定'), className: 'board-card--scroll',
       render: () => (
         <ScrollLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
@@ -127,7 +128,7 @@ export function TrackballSettingsTab({
     },
     {
       // 横2列分を使い、中を左右2列（割り当て・感度｜ウェーブ）に分ける
-      key: 'gesture', title: 'ジェスチャー', className: 'board-card--gesture',
+      key: 'gesture', title: t('ジェスチャー'), className: 'board-card--gesture',
       render: () => (
         <GestureCard
           gesture={gesture} onGestureChange={onGestureChange}
@@ -144,7 +145,7 @@ export function TrackballSettingsTab({
       ),
     },
     {
-      key: 'aml', title: 'オートマウスレイヤー', className: 'board-card--aml',
+      key: 'aml', title: t('オートマウスレイヤー'), className: 'board-card--aml',
       render: () => (
         <AutoMouseLayerCard
           settings={settings} disabled={disabled} switchableLayers={switchableLayers} layerWarn={layerWarn}
@@ -155,19 +156,19 @@ export function TrackballSettingsTab({
     },
     {
       // シェイクとダブルフリックは1枚にまとめ、中を左右2列にする（ON/OFFは各小見出しの右）
-      key: 'motion', title: 'シェイク・ダブルフリック', className: 'board-card--motion',
+      key: 'motion', title: t('シェイク・ダブルフリック'), className: 'board-card--motion',
       render: () => (
         <div className="motion-cols">
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title" data-tip={TIPS.shake}>シェイク</span>
+              <span className="motion-col__title" data-tip={TIPS.shake}>{t('シェイク')}</span>
               {shake && <HeaderToggle checked={shake.enable} disabled={disabled} onChange={v => onShakeChange({ ...shake, enable: v })} />}
             </div>
             <ShakeCard shake={shake} onShakeChange={onShakeChange} disabled={disabled} keyLayout={keyLayout} />
           </section>
           <section className="motion-col">
             <div className="motion-col__head">
-              <span className="motion-col__title" data-tip={TIPS.dflick}>ダブルフリック</span>
+              <span className="motion-col__title" data-tip={TIPS.dflick}>{t('ダブルフリック')}</span>
               {dflick && <HeaderToggle checked={dflick.enable} disabled={disabled} onChange={v => onDFlickChange({ ...dflick, enable: v })} />}
             </div>
             <DoubleFlickCard dflick={dflick} onDFlickChange={onDFlickChange} disabled={disabled} keyLayout={keyLayout} />

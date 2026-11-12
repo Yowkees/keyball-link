@@ -1,3 +1,5 @@
+import { t, tk, getLang } from './i18n';
+import { displayName } from './names';
 // QMK キーコード定義（よく使うキーのみ）
 
 export interface KeycodeEntry {
@@ -99,13 +101,13 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00D5, 'MB5', 'MB5', 'マウス'),
 
   // 日本語キー
-  K(0x0087, 'ろ',          'KC_RO',       '日本語'),
-  K(0x0088, 'かな(JIS)',   'KANA(JIS)',   '日本語'),
+  K(0x0087, tk('ろ'),          'KC_RO',       '日本語'),
+  K(0x0088, tk('かな(JIS)'),   'KANA(JIS)',   '日本語'),
   K(0x0089, '¥',           'JYEN',        '日本語'),
-  K(0x008A, '変換',        'HENK',        '日本語'),
-  K(0x008B, '無変換',      'MHEN',        '日本語'),
-  K(0x0090, 'かな (Mac)', 'LANG1(かな)/Mac推奨', '日本語'),
-  K(0x0091, '英数 (Mac)', 'LANG2(英数)/Mac推奨', '日本語'),
+  K(0x008A, tk('変換'),        'HENK',        '日本語'),
+  K(0x008B, tk('無変換'),      'MHEN',        '日本語'),
+  K(0x0090, tk('かな (Mac)'), tk('LANG1(かな)/Mac推奨'), '日本語'),
+  K(0x0091, tk('英数 (Mac)'), tk('LANG2(英数)/Mac推奨'), '日本語'),
 
   // レイヤー切替
   // RP2040版（8レイヤー）に合わせてレイヤー7まで用意（AVR版は4レイヤーまでのため、
@@ -216,8 +218,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x00AD, 'Stop',   'MSTP',  'メディア'),
   K(0x00AE, 'Play',   'MPLY',  'メディア'),
   K(0x00AF, 'Select', 'MSEL',  'メディア'),
-  K(0x00BD, '画面 明るさ+', 'BRIU', 'メディア'),  // PC画面の明るさ調整（OS/ディスプレイがUSB HIDの明るさキーに対応している場合のみ有効。外部モニタ等では反応しないことがある）
-  K(0x00BE, '画面 明るさ-', 'BRID', 'メディア'),  // 同上
+  K(0x00BD, tk('画面 明るさ+'), 'BRIU', 'メディア'),  // PC画面の明るさ調整（OS/ディスプレイがUSB HIDの明るさキーに対応している場合のみ有効。外部モニタ等では反応しないことがある）
+  K(0x00BE, tk('画面 明るさ-'), 'BRID', 'メディア'),  // 同上
 
   // マウス移動・ホイール（既存 MB1〜MB5 に追加）
   K(0x00CD, 'M↑',    'MS_U',  'マウス'),
@@ -258,17 +260,17 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x7E0A, 'AML ON/OFF', 'AML_TO',  'Keyball'),
   K(0x7E0B, 'AML +50ms',  'AML_I50', 'Keyball'),
   K(0x7E0C, 'AML -50ms',  'AML_D50', 'Keyball'),
-  K(0x7E0D, 'Scroll 縦',  'SSNP_VRT','Keyball'),
-  K(0x7E0E, 'Scroll 横',  'SSNP_HOR','Keyball'),
-  K(0x7E0F, 'Scroll 自由','SSNP_FRE','Keyball'),
-  K(0x7E10, 'ジェスチャー1', 'GST_HOLD', 'Keyball'),  // 押している間ジェスチャーモード1に切り替え（RP2040版）。振るとモード1の割当キー送出
-  K(0x7E11, '精密モード', 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて精密モードにする（RP2040版など対応FWのみ）
-  K(0x7E12, 'AML解除', 'AML_OFF', 'Keyball'),  // タイムアウトを待たずオートマウスレイヤーを即座に解除
-  K(0x7E13, 'ジェスチャー2', 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
-  K(0x7E14, 'ジェスチャー3', 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
-  K(0x7E15, 'ジェスチャー4', 'GST_HOLD4', 'Keyball'),  // 押している間ジェスチャーモード4に切り替え（RP2040版限定）
-  K(0x7E16, 'ジェスチャー5', 'GST_HOLD5', 'Keyball'),  // 押している間ジェスチャーモード5に切り替え（RP2040版v0.4.18〜）
-  K(0x7E17, 'ジェスチャー6', 'GST_HOLD6', 'Keyball'),  // 押している間ジェスチャーモード6に切り替え（RP2040版v0.4.18〜）
+  K(0x7E0D, tk('Scroll 縦'),  'SSNP_VRT','Keyball'),
+  K(0x7E0E, tk('Scroll 横'),  'SSNP_HOR','Keyball'),
+  K(0x7E0F, tk('Scroll 自由'),'SSNP_FRE','Keyball'),
+  K(0x7E10, tk('ジェスチャー1'), 'GST_HOLD', 'Keyball'),  // 押している間ジェスチャーモード1に切り替え（RP2040版）。振るとモード1の割当キー送出
+  K(0x7E11, tk('精密モード'), 'PRC_MO', 'Keyball'),  // 押している間だけCPIを下げて精密モードにする（RP2040版など対応FWのみ）
+  K(0x7E12, tk('AML解除'), 'AML_OFF', 'Keyball'),  // タイムアウトを待たずオートマウスレイヤーを即座に解除
+  K(0x7E13, tk('ジェスチャー2'), 'GST_HOLD2', 'Keyball'),  // 押している間ジェスチャーモード2に切り替え（RP2040版限定）
+  K(0x7E14, tk('ジェスチャー3'), 'GST_HOLD3', 'Keyball'),  // 押している間ジェスチャーモード3に切り替え（RP2040版限定）
+  K(0x7E15, tk('ジェスチャー4'), 'GST_HOLD4', 'Keyball'),  // 押している間ジェスチャーモード4に切り替え（RP2040版限定）
+  K(0x7E16, tk('ジェスチャー5'), 'GST_HOLD5', 'Keyball'),  // 押している間ジェスチャーモード5に切り替え（RP2040版v0.4.18〜）
+  K(0x7E17, tk('ジェスチャー6'), 'GST_HOLD6', 'Keyball'),  // 押している間ジェスチャーモード6に切り替え（RP2040版v0.4.18〜）
 
   // レイヤー拡張（DF / OSL / TT）
   K(0x5240, 'DF(0)', 'DF0', 'レイヤー'),
@@ -326,7 +328,7 @@ const JIS_CHAR_MAP: Record<number, string> = {
   0x0030: '[',    // KC_RBRC → US:] / JIS:[
   0x0031: ']',    // KC_BSLS → US:\\ / JIS:]
   0x0034: ':',    // KC_QUOT → US:' / JIS::
-  0x0035: '半角', // KC_GRV  → US:` / JIS:半角/全角
+  0x0035: tk('半角'), // KC_GRV  → US:` / JIS:半角/全角
   // Shiftキー組み合わせ
   0x021F: '"',    // S+2 → US:@ / JIS:"
   0x0223: '&',    // S+6 → US:^ / JIS:&
@@ -348,7 +350,13 @@ const MOD_NAMES: Record<number, string> = {
 };
 
 function baseLabel(kc: number): string {
-  return codeMap.get(kc)?.short ?? `0x${kc.toString(16)}`;
+  return tl(codeMap.get(kc)?.short ?? `0x${kc.toString(16)}`);
+}
+
+// 日本語を含むキーの名前（かな・変換・ジェスチャー1 など）を、表示中の言語へ訳す（2026-11-12〜）。
+// 英数字だけの名前はそのまま返す。画面にキーの名前を出す所で使う
+export function tl(s: string): string {
+  return /[\u3040-\u30ff\u4e00-\u9fff]/.test(s) ? t(s) : s;
 }
 
 export function findKeycode(code: number): KeycodeEntry {
@@ -405,9 +413,10 @@ export function getShiftLabel(code: number, layout: KeyLayout): string | null {
 
   const shiftCode = code + 0x0200;
   if (layout === 'JIS' && JIS_CHAR_MAP[shiftCode] !== undefined) {
-    return JIS_CHAR_MAP[shiftCode];
+    return tl(JIS_CHAR_MAP[shiftCode]);
   }
-  return codeMap.get(shiftCode)?.label ?? null;
+  const l = codeMap.get(shiftCode)?.label;
+  return l ? tl(l) : null;
 }
 
 // キーコードを配列設定に応じた表示文字に変換する
@@ -418,10 +427,10 @@ export function setGestureDisplayNames(names: string[] | null) { gestureDisplayN
 
 export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
   const gi = GESTURE_HOLD_CODES.indexOf(code);
-  if (gi >= 0 && gestureDisplayNames[gi]) return gestureDisplayNames[gi];
+  if (gi >= 0 && gestureDisplayNames[gi]) return displayName(gestureDisplayNames[gi]);
   // JIS配列オーバーライド（直接マップに存在するキー）
   if (layout === 'JIS' && JIS_CHAR_MAP[code] !== undefined) {
-    return JIS_CHAR_MAP[code];
+    return tl(JIS_CHAR_MAP[code]);
   }
 
   // LT (Layer-Tap): 0x4000–0x4FFF
@@ -431,7 +440,7 @@ export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
     const tapCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined)
       ? JIS_CHAR_MAP[kc]
       : (codeMap.get(kc)?.label ?? `0x${kc.toString(16)}`);
-    return `${tapCh}\nL${layer}`;
+    return `${tl(tapCh)}\nL${layer}`;
   }
 
   // MT (Mod-Tap): 0x2000–0x3FFF
@@ -442,10 +451,10 @@ export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
       ? JIS_CHAR_MAP[kc]
       : (codeMap.get(kc)?.label ?? `0x${kc.toString(16)}`);
     const modName = MOD_NAMES[mod] ?? `M${mod}`;
-    return `${tapCh}\n${modName}`;
+    return `${tl(tapCh)}\n${modName}`;
   }
 
-  return findKeycode(code).label;
+  return tl(findKeycode(code).label);
 }
 
 // JIS配列記号: macOS日本語キーボード設定で出力される文字 → 対応する基本キーコード
@@ -461,7 +470,7 @@ export const JIS_TAP_KEYS: KeycodeEntry[] = [
 // 修飾キーの日本語名（MODS/Mod-Tap説明用）
 function modBitsToJa(mod: number): string {
   const right = (mod & 0x10) !== 0;
-  const pre = right ? '右' : '';
+  const pre = right ? (getLang() === 'ja' ? '右' : 'Right ') : '';
   const parts: string[] = [];
   if (mod & 0x01) parts.push(pre + 'Ctrl');
   if (mod & 0x02) parts.push(pre + 'Shift');
@@ -475,192 +484,192 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   const disp = getKeyDisplayLabel(code, layout).replace('\n', ' / ');
   const J = layout === 'JIS';
 
-  if (code === KC_NO)   return '何も割り当てられていません';
-  if (code === KC_TRNS) return '透過：下のレイヤーのキーがそのまま使われます';
+  if (code === KC_NO)   return t('何も割り当てられていません');
+  if (code === KC_TRNS) return t('透過：下のレイヤーのキーがそのまま使われます');
 
   // ── 個別キーの具体的な説明 ──────────────────────────────
   // 基本操作
-  if (code === 0x002C) return 'スペースを入力します';
-  if (code === 0x0028) return '改行・確定します（Enter）';
-  if (code === 0x002A) return 'カーソルの左の文字を1つ削除します（Backspace）';
-  if (code === 0x0029) return '操作をキャンセルします（Esc）';
-  if (code === 0x002B) return 'タブを入力・次の入力欄に移動します（Tab）';
-  if (code === 0x0039) return '大文字/小文字のロックを切り替えます（CapsLock）';
-  if (code === 0x004C) return 'カーソルの右の文字を1つ削除します（Delete）';
-  if (code === 0x0049) return '上書き入力モードを切り替えます（Insert）';
-  if (code === 0x004A) return '行の先頭に移動します（Home）';
-  if (code === 0x004D) return '行の末尾に移動します（End）';
-  if (code === 0x004B) return '1画面分上にスクロールします（PageUp）';
-  if (code === 0x004E) return '1画面分下にスクロールします（PageDown）';
+  if (code === 0x002C) return t('スペースを入力します');
+  if (code === 0x0028) return t('改行・確定します（Enter）');
+  if (code === 0x002A) return t('カーソルの左の文字を1つ削除します（Backspace）');
+  if (code === 0x0029) return t('操作をキャンセルします（Esc）');
+  if (code === 0x002B) return t('タブを入力・次の入力欄に移動します（Tab）');
+  if (code === 0x0039) return t('大文字/小文字のロックを切り替えます（CapsLock）');
+  if (code === 0x004C) return t('カーソルの右の文字を1つ削除します（Delete）');
+  if (code === 0x0049) return t('上書き入力モードを切り替えます（Insert）');
+  if (code === 0x004A) return t('行の先頭に移動します（Home）');
+  if (code === 0x004D) return t('行の末尾に移動します（End）');
+  if (code === 0x004B) return t('1画面分上にスクロールします（PageUp）');
+  if (code === 0x004E) return t('1画面分下にスクロールします（PageDown）');
 
   // 矢印
-  if (code === 0x004F) return 'カーソルを右に1文字移動します';
-  if (code === 0x0050) return 'カーソルを左に1文字移動します';
-  if (code === 0x0051) return 'カーソルを下に1行移動します';
-  if (code === 0x0052) return 'カーソルを上に1行移動します';
+  if (code === 0x004F) return t('カーソルを右に1文字移動します');
+  if (code === 0x0050) return t('カーソルを左に1文字移動します');
+  if (code === 0x0051) return t('カーソルを下に1行移動します');
+  if (code === 0x0052) return t('カーソルを上に1行移動します');
 
   // ファンクション
-  if (code === 0x003A) return 'F1：ヘルプ表示など（アプリによって異なります）';
-  if (code === 0x003B) return 'F2：ファイル名変更など（アプリによって異なります）';
-  if (code === 0x003C) return 'F3：検索など（アプリによって異なります）';
-  if (code === 0x003D) return 'F4：アドレスバーなど（アプリによって異なります）';
-  if (code === 0x003E) return 'F5：ページ更新（ブラウザ）など（アプリによって異なります）';
-  if (code >= 0x003F && code <= 0x0045) return `F${code - 0x003A + 1}：ファンクションキーです（アプリによって動作が異なります）`;
+  if (code === 0x003A) return t('F1：ヘルプ表示など（アプリによって異なります）');
+  if (code === 0x003B) return t('F2：ファイル名変更など（アプリによって異なります）');
+  if (code === 0x003C) return t('F3：検索など（アプリによって異なります）');
+  if (code === 0x003D) return t('F4：アドレスバーなど（アプリによって異なります）');
+  if (code === 0x003E) return t('F5：ページ更新（ブラウザ）など（アプリによって異なります）');
+  if (code >= 0x003F && code <= 0x0045) return t('F{0}：ファンクションキーです（アプリによって動作が異なります）', code - 0x003A + 1);
 
   // 修飾キー
-  if (code === 0x00E0) return '押している間 Ctrl（コントロール）として動作します（例: Ctrl+C でコピー）';
-  if (code === 0x00E1) return '押している間 Shift として動作します（大文字入力・記号入力）';
-  if (code === 0x00E2) return '押している間 Alt（macOS: Option）として動作します';
-  if (code === 0x00E3) return '押している間 ⌘ Command（Windows: Windowsキー）として動作します';
-  if (code === 0x00E4) return '押している間 右Ctrl として動作します（左Ctrlと同じ効果）';
-  if (code === 0x00E5) return '押している間 右Shift として動作します';
-  if (code === 0x00E6) return '押している間 右Alt（macOS: 右Option）として動作します';
-  if (code === 0x00E7) return '押している間 右⌘ Command として動作します';
+  if (code === 0x00E0) return t('押している間 Ctrl（コントロール）として動作します（例: Ctrl+C でコピー）');
+  if (code === 0x00E1) return t('押している間 Shift として動作します（大文字入力・記号入力）');
+  if (code === 0x00E2) return t('押している間 Alt（macOS: Option）として動作します');
+  if (code === 0x00E3) return t('押している間 ⌘ Command（Windows: Windowsキー）として動作します');
+  if (code === 0x00E4) return t('押している間 右Ctrl として動作します（左Ctrlと同じ効果）');
+  if (code === 0x00E5) return t('押している間 右Shift として動作します');
+  if (code === 0x00E6) return t('押している間 右Alt（macOS: 右Option）として動作します');
+  if (code === 0x00E7) return t('押している間 右⌘ Command として動作します');
 
   // 記号（JIS/USで出力が異なるキー）
-  if (code === 0x002D) return J ? 'ハイフン(-)・長音符(ー)を入力します' : 'マイナス・ハイフン(-)を入力します';
-  if (code === 0x002E) return J ? 'キャレット(^)を入力します' : 'イコール(=)を入力します';
-  if (code === 0x002F) return J ? 'アットマーク(@)を入力します' : '左角括弧([)を入力します';
-  if (code === 0x0030) return J ? '左角括弧([)を入力します' : '右角括弧(])を入力します';
-  if (code === 0x0031) return J ? '右角括弧(])を入力します' : 'バックスラッシュ(\\)・円記号(¥)を入力します';
-  if (code === 0x0033) return 'セミコロン(;)を入力します';
-  if (code === 0x0034) return J ? 'コロン(:)を入力します' : "シングルクォート(')を入力します";
-  if (code === 0x0035) return J ? '半角/全角を切り替えます（日本語入力のオン/オフ）' : 'バッククォート(`)を入力します';
-  if (code === 0x0036) return 'カンマ(,)を入力します';
-  if (code === 0x0037) return 'ピリオド(.)を入力します';
-  if (code === 0x0038) return 'スラッシュ(/)を入力します';
+  if (code === 0x002D) return J ? t('ハイフン(-)・長音符(ー)を入力します') : t('マイナス・ハイフン(-)を入力します');
+  if (code === 0x002E) return J ? t('キャレット(^)を入力します') : t('イコール(=)を入力します');
+  if (code === 0x002F) return J ? t('アットマーク(@)を入力します') : t('左角括弧([)を入力します');
+  if (code === 0x0030) return J ? t('左角括弧([)を入力します') : t('右角括弧(])を入力します');
+  if (code === 0x0031) return J ? t('右角括弧(])を入力します') : t('バックスラッシュ(\\)・円記号(¥)を入力します');
+  if (code === 0x0033) return t('セミコロン(;)を入力します');
+  if (code === 0x0034) return J ? t('コロン(:)を入力します') : t('シングルクォート(\')を入力します');
+  if (code === 0x0035) return J ? t('半角/全角を切り替えます（日本語入力のオン/オフ）') : t('バッククォート(`)を入力します');
+  if (code === 0x0036) return t('カンマ(,)を入力します');
+  if (code === 0x0037) return t('ピリオド(.)を入力します');
+  if (code === 0x0038) return t('スラッシュ(/)を入力します');
 
   // Shift記号（0x0200番台はMODS範囲だが個別に明示）
-  if (code === 0x021E) return '感嘆符(!)を入力します';
-  if (code === 0x021F) return J ? 'ダブルクォート(")を入力します' : 'アットマーク(@)を入力します';
-  if (code === 0x0220) return 'ハッシュ・シャープ(#)を入力します';
-  if (code === 0x0221) return 'ドル記号($)を入力します';
-  if (code === 0x0222) return 'パーセント(%)を入力します';
-  if (code === 0x0223) return J ? 'アンパサンド(&)を入力します' : 'キャレット(^)を入力します';
-  if (code === 0x0224) return J ? "シングルクォート(')を入力します" : 'アンパサンド(&)を入力します';
-  if (code === 0x0225) return J ? '左丸括弧(()を入力します' : 'アスタリスク(*)を入力します';
-  if (code === 0x0226) return J ? '右丸括弧())を入力します' : '左丸括弧(()を入力します';
-  if (code === 0x0227) return J ? 'イコール(=)を入力します' : '右丸括弧())を入力します';
-  if (code === 0x0287) return 'アンダースコア(_)を入力します（JIS: Shift+ろ）';
-  if (code === 0x022D) return J ? 'イコール(=)を入力します（JIS: Shift+-）' : 'アンダースコア(_)を入力します';
-  if (code === 0x022E) return J ? 'チルダ(~)を入力します' : 'プラス(+)を入力します';
-  if (code === 0x022F) return J ? 'バッククォート(`)を入力します' : '左波括弧({)を入力します';
-  if (code === 0x0230) return J ? '左波括弧({)を入力します' : '右波括弧(})を入力します';
-  if (code === 0x0231) return J ? '右波括弧(})を入力します' : 'パイプ(|)を入力します';
-  if (code === 0x0233) return J ? 'プラス(+)を入力します' : 'コロン(:)を入力します';
-  if (code === 0x0234) return J ? 'アスタリスク(*)を入力します' : 'ダブルクォート(")を入力します';
-  if (code === 0x0235) return J ? 'チルダ(~)はキャレット(^)のShiftです（JIS）' : 'チルダ(~)を入力します';
-  if (code === 0x0236) return '左山括弧・小なり(<)を入力します';
-  if (code === 0x0237) return '右山括弧・大なり(>)を入力します';
-  if (code === 0x0238) return '疑問符(?)を入力します';
+  if (code === 0x021E) return t('感嘆符(!)を入力します');
+  if (code === 0x021F) return J ? t('ダブルクォート(")を入力します') : t('アットマーク(@)を入力します');
+  if (code === 0x0220) return t('ハッシュ・シャープ(#)を入力します');
+  if (code === 0x0221) return t('ドル記号($)を入力します');
+  if (code === 0x0222) return t('パーセント(%)を入力します');
+  if (code === 0x0223) return J ? t('アンパサンド(&)を入力します') : t('キャレット(^)を入力します');
+  if (code === 0x0224) return J ? t('シングルクォート(\')を入力します') : t('アンパサンド(&)を入力します');
+  if (code === 0x0225) return J ? t('左丸括弧(()を入力します') : t('アスタリスク(*)を入力します');
+  if (code === 0x0226) return J ? t('右丸括弧())を入力します') : t('左丸括弧(()を入力します');
+  if (code === 0x0227) return J ? t('イコール(=)を入力します') : t('右丸括弧())を入力します');
+  if (code === 0x0287) return t('アンダースコア(_)を入力します（JIS: Shift+ろ）');
+  if (code === 0x022D) return J ? t('イコール(=)を入力します（JIS: Shift+-）') : t('アンダースコア(_)を入力します');
+  if (code === 0x022E) return J ? t('チルダ(~)を入力します') : t('プラス(+)を入力します');
+  if (code === 0x022F) return J ? t('バッククォート(`)を入力します') : t('左波括弧({)を入力します');
+  if (code === 0x0230) return J ? t('左波括弧({)を入力します') : t('右波括弧(})を入力します');
+  if (code === 0x0231) return J ? t('右波括弧(})を入力します') : t('パイプ(|)を入力します');
+  if (code === 0x0233) return J ? t('プラス(+)を入力します') : t('コロン(:)を入力します');
+  if (code === 0x0234) return J ? t('アスタリスク(*)を入力します') : t('ダブルクォート(")を入力します');
+  if (code === 0x0235) return J ? t('チルダ(~)はキャレット(^)のShiftです（JIS）') : t('チルダ(~)を入力します');
+  if (code === 0x0236) return t('左山括弧・小なり(<)を入力します');
+  if (code === 0x0237) return t('右山括弧・大なり(>)を入力します');
+  if (code === 0x0238) return t('疑問符(?)を入力します');
 
   // マウスボタン
-  if (code === 0x00D1) return '左クリックします（MB1）';
-  if (code === 0x00D2) return '右クリックします（MB2）';
-  if (code === 0x00D3) return '中クリック（ホイールボタン）します（MB3）';
-  if (code === 0x00D4) return 'ブラウザの「戻る」ボタンを押します（MB4）';
-  if (code === 0x00D5) return 'ブラウザの「進む」ボタンを押します（MB5）';
-  if (code === 0x00CD) return 'マウスカーソルを上に移動します';
-  if (code === 0x00CE) return 'マウスカーソルを下に移動します';
-  if (code === 0x00CF) return 'マウスカーソルを左に移動します';
-  if (code === 0x00D0) return 'マウスカーソルを右に移動します';
-  if (code === 0x00D9) return 'ホイールを上にスクロールします';
-  if (code === 0x00DA) return 'ホイールを下にスクロールします';
-  if (code === 0x00DB) return 'ホイールを左にスクロールします（横スクロール）';
-  if (code === 0x00DC) return 'ホイールを右にスクロールします（横スクロール）';
-  if (code === 0x00DD) return 'マウス移動速度を低速（精密操作）にします（ACL0）';
-  if (code === 0x00DE) return 'マウス移動速度を中速にします（ACL1）';
-  if (code === 0x00DF) return 'マウス移動速度を高速にします（ACL2）';
+  if (code === 0x00D1) return t('左クリックします（MB1）');
+  if (code === 0x00D2) return t('右クリックします（MB2）');
+  if (code === 0x00D3) return t('中クリック（ホイールボタン）します（MB3）');
+  if (code === 0x00D4) return t('ブラウザの「戻る」ボタンを押します（MB4）');
+  if (code === 0x00D5) return t('ブラウザの「進む」ボタンを押します（MB5）');
+  if (code === 0x00CD) return t('マウスカーソルを上に移動します');
+  if (code === 0x00CE) return t('マウスカーソルを下に移動します');
+  if (code === 0x00CF) return t('マウスカーソルを左に移動します');
+  if (code === 0x00D0) return t('マウスカーソルを右に移動します');
+  if (code === 0x00D9) return t('ホイールを上にスクロールします');
+  if (code === 0x00DA) return t('ホイールを下にスクロールします');
+  if (code === 0x00DB) return t('ホイールを左にスクロールします（横スクロール）');
+  if (code === 0x00DC) return t('ホイールを右にスクロールします（横スクロール）');
+  if (code === 0x00DD) return t('マウス移動速度を低速（精密操作）にします（ACL0）');
+  if (code === 0x00DE) return t('マウス移動速度を中速にします（ACL1）');
+  if (code === 0x00DF) return t('マウス移動速度を高速にします（ACL2）');
 
   // 日本語
-  if (code === 0x0087) return 'ろキーを入力します（JIS配列専用）';
-  if (code === 0x0088) return 'かな入力モードに切り替えます（JIS配列専用）';
-  if (code === 0x0089) return '円記号(¥)を入力します（JIS配列専用）';
-  if (code === 0x008A) return '変換キー：日本語入力を変換します（JIS配列専用）';
-  if (code === 0x008B) return '無変換キー：日本語入力をキャンセルします（JIS配列専用）';
-  if (code === 0x0090) return 'かな入力モードに切り替えます（macOS推奨: LANG1）';
-  if (code === 0x0091) return '英数入力モードに切り替えます（macOS推奨: LANG2）';
+  if (code === 0x0087) return t('ろキーを入力します（JIS配列専用）');
+  if (code === 0x0088) return t('かな入力モードに切り替えます（JIS配列専用）');
+  if (code === 0x0089) return t('円記号(¥)を入力します（JIS配列専用）');
+  if (code === 0x008A) return t('変換キー：日本語入力を変換します（JIS配列専用）');
+  if (code === 0x008B) return t('無変換キー：日本語入力をキャンセルします（JIS配列専用）');
+  if (code === 0x0090) return t('かな入力モードに切り替えます（macOS推奨: LANG1）');
+  if (code === 0x0091) return t('英数入力モードに切り替えます（macOS推奨: LANG2）');
 
   // メディア
-  if (code === 0x00A8) return '音声をミュート/解除します（Mute）';
-  if (code === 0x00A9) return '音量を上げます（Volume Up）';
-  if (code === 0x00AA) return '音量を下げます（Volume Down）';
-  if (code === 0x00AB) return '次のトラックへ進みます（Next Track）';
-  if (code === 0x00AC) return '前のトラックへ戻ります（Previous Track）';
-  if (code === 0x00AD) return '再生を停止します（Stop）';
-  if (code === 0x00AE) return '再生・一時停止を切り替えます（Play/Pause）';
-  if (code === 0x00AF) return 'メディア選択ダイアログを開きます（Select）';
-  if (code === 0x00BD) return 'PC画面の明るさを上げます。OSやディスプレイがUSB HIDの明るさキーに対応している場合のみ有効です（ノートPC内蔵ディスプレイでは動作しやすいですが、外部モニタでは反応しないことがあります）';
-  if (code === 0x00BE) return 'PC画面の明るさを下げます（対応状況は明るさ+と同様）';
+  if (code === 0x00A8) return t('音声をミュート/解除します（Mute）');
+  if (code === 0x00A9) return t('音量を上げます（Volume Up）');
+  if (code === 0x00AA) return t('音量を下げます（Volume Down）');
+  if (code === 0x00AB) return t('次のトラックへ進みます（Next Track）');
+  if (code === 0x00AC) return t('前のトラックへ戻ります（Previous Track）');
+  if (code === 0x00AD) return t('再生を停止します（Stop）');
+  if (code === 0x00AE) return t('再生・一時停止を切り替えます（Play/Pause）');
+  if (code === 0x00AF) return t('メディア選択ダイアログを開きます（Select）');
+  if (code === 0x00BD) return t('PC画面の明るさを上げます。OSやディスプレイがUSB HIDの明るさキーに対応している場合のみ有効です（ノートPC内蔵ディスプレイでは動作しやすいですが、外部モニタでは反応しないことがあります）');
+  if (code === 0x00BE) return t('PC画面の明るさを下げます（対応状況は明るさ+と同様）');
 
   // システム
-  if (code === 0x0046) return 'スクリーンショット（画面キャプチャ）を撮ります（Print Screen）';
-  if (code === 0x0047) return 'スクロールロックを切り替えます（Scroll Lock）';
-  if (code === 0x0048) return '一時停止します（Pause）';
-  if (code === 0x0053) return 'テンキーのロックを切り替えます（Num Lock）';
-  if (code === 0x0065) return 'コンテキストメニューを開きます（右クリックと同じ）';
+  if (code === 0x0046) return t('スクリーンショット（画面キャプチャ）を撮ります（Print Screen）');
+  if (code === 0x0047) return t('スクロールロックを切り替えます（Scroll Lock）');
+  if (code === 0x0048) return t('一時停止します（Pause）');
+  if (code === 0x0053) return t('テンキーのロックを切り替えます（Num Lock）');
+  if (code === 0x0065) return t('コンテキストメニューを開きます（右クリックと同じ）');
 
   // テンキー
-  if (code === 0x0054) return 'テンキーの ÷（割り算）を入力します';
-  if (code === 0x0055) return 'テンキーの ×（掛け算）を入力します';
-  if (code === 0x0056) return 'テンキーの −（引き算）を入力します';
-  if (code === 0x0057) return 'テンキーの +（足し算）を入力します';
-  if (code === 0x0058) return 'テンキーの Enter を入力します';
-  if (code >= 0x0059 && code <= 0x0062) return `テンキーの ${code - 0x0059} を入力します`;
-  if (code === 0x0063) return 'テンキーの .(小数点) を入力します';
+  if (code === 0x0054) return t('テンキーの ÷（割り算）を入力します');
+  if (code === 0x0055) return t('テンキーの ×（掛け算）を入力します');
+  if (code === 0x0056) return t('テンキーの −（引き算）を入力します');
+  if (code === 0x0057) return t('テンキーの +（足し算）を入力します');
+  if (code === 0x0058) return t('テンキーの Enter を入力します');
+  if (code >= 0x0059 && code <= 0x0062) return t('テンキーの {0} を入力します', code - 0x0059);
+  if (code === 0x0063) return t('テンキーの .(小数点) を入力します');
 
   // RGB / LED
-  if (code === 0x7820) return 'LEDのオン/オフを切り替えます';
-  if (code === 0x7821) return 'LEDの光り方パターンを次に進めます';
-  if (code === 0x7822) return 'LEDの光り方パターンを前に戻します';
-  if (code === 0x7823) return 'LEDの色相（色）を変えます（Hue+）';
-  if (code === 0x7824) return 'LEDの色相（色）を戻します（Hue-）';
-  if (code === 0x7825) return 'LEDの彩度（色の濃さ）を上げます';
-  if (code === 0x7826) return 'LEDの彩度（色の濃さ）を下げます';
-  if (code === 0x7827) return 'LEDの明るさを上げます';
-  if (code === 0x7828) return 'LEDの明るさを下げます';
-  if (code === 0x7829) return 'LEDアニメーションの速度を上げます';
-  if (code === 0x782A) return 'LEDアニメーションの速度を下げます';
+  if (code === 0x7820) return t('LEDのオン/オフを切り替えます');
+  if (code === 0x7821) return t('LEDの光り方パターンを次に進めます');
+  if (code === 0x7822) return t('LEDの光り方パターンを前に戻します');
+  if (code === 0x7823) return t('LEDの色相（色）を変えます（Hue+）');
+  if (code === 0x7824) return t('LEDの色相（色）を戻します（Hue-）');
+  if (code === 0x7825) return t('LEDの彩度（色の濃さ）を上げます');
+  if (code === 0x7826) return t('LEDの彩度（色の濃さ）を下げます');
+  if (code === 0x7827) return t('LEDの明るさを上げます');
+  if (code === 0x7828) return t('LEDの明るさを下げます');
+  if (code === 0x7829) return t('LEDアニメーションの速度を上げます');
+  if (code === 0x782A) return t('LEDアニメーションの速度を下げます');
 
   // Keyball 独自
-  if (code === 0x7E00) return 'Keyballの全設定をリセットします（要再起動）';
-  if (code === 0x7E01) return '現在の設定をEEPROMに保存します';
-  if (code === 0x7E02) return 'トラックボールの速度(CPI)を100上げます';
-  if (code === 0x7E03) return 'トラックボールの速度(CPI)を100下げます';
-  if (code === 0x7E04) return 'トラックボールの速度(CPI)を1000上げます';
-  if (code === 0x7E05) return 'トラックボールの速度(CPI)を1000下げます';
-  if (code === 0x7E06) return 'スクロールモードをON/OFFします（トラックボールがスクロール操作になります）';
-  if (code === 0x7E07) return '押している間だけスクロールモードになります';
-  if (code === 0x7E08) return 'スクロール速度を上げます（分周値を大きく）';
-  if (code === 0x7E09) return 'スクロール速度を下げます（分周値を小さく）';
-  if (code === 0x7E0A) return 'オートマウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます';
-  if (code === 0x7E0B) return 'オートマウスレイヤーが切れるまでの時間を50ms延ばします';
-  if (code === 0x7E0C) return 'オートマウスレイヤーが切れるまでの時間を50ms縮めます';
-  if (code === 0x7E0D) return 'スクロール方向を縦のみに固定します';
-  if (code === 0x7E0E) return 'スクロール方向を横のみに固定します';
-  if (code === 0x7E0F) return 'スクロール方向の固定を解除します（自由に縦横スクロール）';
-  if (code === 0x7E10) return '押している間ジェスチャーモード1に切り替わり、トラックボールを上下左右に振るとそのモードの割当キーが発動します（設定タブで各モードの操作を変更できます）';
-  if (code === 0x7E12) return 'オートマウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します';
-  if (code === 0x7E13) return '押している間ジェスチャーモード2に切り替わります（RP2040版限定）';
-  if (code === 0x7E14) return '押している間ジェスチャーモード3に切り替わります（RP2040版限定）';
-  if (code === 0x7E15) return '押している間ジェスチャーモード4に切り替わります（RP2040版限定）';
-  if (code === 0x7E16) return '押している間ジェスチャーモード5に切り替わります（RP2040版限定）';
-  if (code === 0x7E17) return '押している間ジェスチャーモード6に切り替わります（RP2040版限定）';
+  if (code === 0x7E00) return t('Keyballの全設定をリセットします（要再起動）');
+  if (code === 0x7E01) return t('現在の設定をEEPROMに保存します');
+  if (code === 0x7E02) return t('トラックボールの速度(CPI)を100上げます');
+  if (code === 0x7E03) return t('トラックボールの速度(CPI)を100下げます');
+  if (code === 0x7E04) return t('トラックボールの速度(CPI)を1000上げます');
+  if (code === 0x7E05) return t('トラックボールの速度(CPI)を1000下げます');
+  if (code === 0x7E06) return t('スクロールモードをON/OFFします（トラックボールがスクロール操作になります）');
+  if (code === 0x7E07) return t('押している間だけスクロールモードになります');
+  if (code === 0x7E08) return t('スクロール速度を上げます（分周値を大きく）');
+  if (code === 0x7E09) return t('スクロール速度を下げます（分周値を小さく）');
+  if (code === 0x7E0A) return t('オートマウスレイヤー（トラックボールを触ると自動でレイヤー切替）のON/OFFを切り替えます');
+  if (code === 0x7E0B) return t('オートマウスレイヤーが切れるまでの時間を50ms延ばします');
+  if (code === 0x7E0C) return t('オートマウスレイヤーが切れるまでの時間を50ms縮めます');
+  if (code === 0x7E0D) return t('スクロール方向を縦のみに固定します');
+  if (code === 0x7E0E) return t('スクロール方向を横のみに固定します');
+  if (code === 0x7E0F) return t('スクロール方向の固定を解除します（自由に縦横スクロール）');
+  if (code === 0x7E10) return t('押している間ジェスチャーモード1に切り替わり、トラックボールを上下左右に振るとそのモードの割当キーが発動します（設定タブで各モードの操作を変更できます）');
+  if (code === 0x7E12) return t('オートマウスレイヤー中に押すと、タイムアウトを待たず即座にレイヤーを解除します');
+  if (code === 0x7E13) return t('押している間ジェスチャーモード2に切り替わります（RP2040版限定）');
+  if (code === 0x7E14) return t('押している間ジェスチャーモード3に切り替わります（RP2040版限定）');
+  if (code === 0x7E15) return t('押している間ジェスチャーモード4に切り替わります（RP2040版限定）');
+  if (code === 0x7E16) return t('押している間ジェスチャーモード5に切り替わります（RP2040版限定）');
+  if (code === 0x7E17) return t('押している間ジェスチャーモード6に切り替わります（RP2040版限定）');
 
   // ワンショット修飾
-  if (code === 0x52A1) return '次の1キーだけ Ctrl として動作します（ワンショット）';
-  if (code === 0x52A2) return '次の1キーだけ Shift として動作します（ワンショット）';
-  if (code === 0x52A4) return '次の1キーだけ Alt として動作します（ワンショット）';
-  if (code === 0x52A8) return '次の1キーだけ ⌘ Command として動作します（ワンショット）';
+  if (code === 0x52A1) return t('次の1キーだけ Ctrl として動作します（ワンショット）');
+  if (code === 0x52A2) return t('次の1キーだけ Shift として動作します（ワンショット）');
+  if (code === 0x52A4) return t('次の1キーだけ Alt として動作します（ワンショット）');
+  if (code === 0x52A8) return t('次の1キーだけ ⌘ Command として動作します（ワンショット）');
 
   // ブートローダー
-  if (code === 0x7C00) return 'ファームウェア書き込みモード（ブートローダー）に移行します。長押し推奨。';
+  if (code === 0x7C00) return t('ファームウェア書き込みモード（ブートローダー）に移行します。長押し推奨。');
 
   // タップダンス
-  if (code >= 0x5700 && code <= 0x5707) return `タップダンス ${code - 0x5700}：連打回数や長押しで動作が変わります（タップダンスタブで設定）`;
+  if (code >= 0x5700 && code <= 0x5707) return t('タップダンス {0}：連打回数や長押しで動作が変わります（タップダンスタブで設定）', code - 0x5700);
 
   // マクロ
-  if (code >= 0x7700 && code <= 0x770F) return `マクロ ${code - 0x7700} を実行します（マクロタブで内容を設定・確認できます）`;
+  if (code >= 0x7700 && code <= 0x770F) return t('マクロ {0} を実行します（マクロタブで内容を設定・確認できます）', code - 0x7700);
 
   // ── 組み合わせキーコードの範囲 ──────────────────────────
   // MODS（修飾＋キー同時送信）
@@ -668,30 +677,30 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
     const mod = (code >> 8) & 0x1F;
     const kc  = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `${modBitsToJa(mod)} を押しながら ${kcCh} を入力します`;
+    return t('{0} を押しながら {1} を入力します', modBitsToJa(mod), kcCh);
   }
   // Mod-Tap
   if (code >= 0x2000 && code <= 0x3FFF) {
     const mod = (code >> 8) & 0x1F;
     const kc  = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `タップ：${kcCh} を入力 ／ 長押し：${modBitsToJa(mod)} として動作します`;
+    return t('タップ：{0} を入力 ／ 長押し：{1} として動作します', kcCh, modBitsToJa(mod));
   }
   // Layer-Tap
   if (code >= 0x4000 && code <= 0x4FFF) {
     const layer = (code >> 8) & 0xF;
     const kc    = code & 0xFF;
     const kcCh = (J && JIS_CHAR_MAP[kc] !== undefined) ? JIS_CHAR_MAP[kc] : (codeMap.get(kc)?.label ?? '');
-    return `タップ：${kcCh} を入力 ／ 長押し：レイヤー${layer} に切り替えます`;
+    return t('タップ：{0} を入力 ／ 長押し：レイヤー{1} に切り替えます', kcCh, layer);
   }
   // レイヤー操作（MO/TO/TG/DF/OSL/TT）
-  if (code >= 0x5220 && code <= 0x523F) return `押している間だけレイヤー${code & 0x1F}に切り替えます（MO）`;
-  if (code >= 0x5200 && code <= 0x521F) return `レイヤー${code & 0x1F}のみ有効にします（他のレイヤーを解除・TO）`;
-  if (code >= 0x5260 && code <= 0x527F) return `レイヤー${code & 0x1F}のオン/オフを切り替えます（TG）`;
-  if (code >= 0x5240 && code <= 0x525F) return `標準（ベース）レイヤーをレイヤー${code & 0x1F}に変更します（DF）`;
-  if (code >= 0x5280 && code <= 0x529F) return `次の1キーだけレイヤー${code & 0x1F}を使います（OSL）`;
-  if (code >= 0x52A0 && code <= 0x52BF) return `次の1キーだけ効く修飾キーです（ワンショット）`;
-  if (code >= 0x52C0 && code <= 0x52DF) return `タップでレイヤー切替、${code & 0x1F}回連打で固定します（TT）`;
+  if (code >= 0x5220 && code <= 0x523F) return t('押している間だけレイヤー{0}に切り替えます（MO）', code & 0x1F);
+  if (code >= 0x5200 && code <= 0x521F) return t('レイヤー{0}のみ有効にします（他のレイヤーを解除・TO）', code & 0x1F);
+  if (code >= 0x5260 && code <= 0x527F) return t('レイヤー{0}のオン/オフを切り替えます（TG）', code & 0x1F);
+  if (code >= 0x5240 && code <= 0x525F) return t('標準（ベース）レイヤーをレイヤー{0}に変更します（DF）', code & 0x1F);
+  if (code >= 0x5280 && code <= 0x529F) return t('次の1キーだけレイヤー{0}を使います（OSL）', code & 0x1F);
+  if (code >= 0x52A0 && code <= 0x52BF) return t('次の1キーだけ効く修飾キーです（ワンショット）');
+  if (code >= 0x52C0 && code <= 0x52DF) return t('タップでレイヤー切替、{0}回連打で固定します（TT）', code & 0x1F);
 
   return disp;
 }

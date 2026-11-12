@@ -24,6 +24,7 @@ import { reorderKeymap, isIdentityOrder } from './lib/layerReorder';
 import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
+import { t, errText, useLang, setLang } from './lib/i18n';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing' | 'feedback';
@@ -91,12 +92,12 @@ function getBallFunctionLabel(layer: number, state: {
   precision: { layer: number } | null;
 }): string {
   const tags: string[] = [];
-  if (state.kbSettings.scrollLayer === layer) tags.push('スクロール');
-  if (state.precision?.layer === layer) tags.push('精密');
+  if (state.kbSettings.scrollLayer === layer) tags.push(t('スクロール'));
+  if (state.precision?.layer === layer) tags.push(t('精密'));
   const modeIdx = state.gestureModes?.findIndex(m => m.layer === layer) ?? -1;
   if (modeIdx >= 0) tags.push(gestureLabel(modeIdx, state.gestureNames));
-  else if (state.gesture?.layer === layer) tags.push('ジェスチャー');
-  return tags.length ? tags.join('・') : 'カーソル';
+  else if (state.gesture?.layer === layer) tags.push(t('ジェスチャー'));
+  return tags.length ? tags.join(t('・')) : t('カーソル');
 }
 
 interface Toast {
@@ -105,6 +106,8 @@ interface Toast {
 }
 
 export default function App() {
+  // 言語が変わったら画面全体を描き直す
+  const lang = useLang();
   const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerName, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   // キー配列のジェスチャーキーを、付けた名前で表示する（描画の前に毎回入れ直す）
   setGestureDisplayNames(state.gestureNames);
@@ -150,7 +153,7 @@ export default function App() {
       ballOffset: ballSide === 'right' ? BALL_OFFSET_RIGHT[state.model ?? ''] : undefined,
       ballMirror,
       ballLabel: label,
-      ballTitle: `トラックボール（レイヤー${layer}）: ${label}（クリックで設定）`,
+      ballTitle: t('トラックボール（レイヤー{0}）: {1}（クリックで設定）', layer, label),
       onBallClick: () => { setSelectedKeyIndex(null); setBallSelected(true); },
     };
   };
@@ -255,7 +258,7 @@ export default function App() {
     if (state.connectionState === 'disconnected') everAssignedRef.current = false;
   }, [state.connectionState]);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => setTheme(cur => cur === 'dark' ? 'light' : 'dark');
 
   // チュートリアルの「次へ」（全ステップでスキップ可能）
   const advanceGuide = () => {
@@ -315,9 +318,9 @@ export default function App() {
       setRedoStack([]);
       setCurrentLayer(0);
       setHasUnsaved(true);
-      showToast('レイヤーの並べ替えを保存しました', 'success');
+      showToast(t('レイヤーの並べ替えを保存しました'), 'success');
     } catch (e) {
-      showToast(`保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('保存に失敗しました: {0}', errText(e)));
     } finally {
       setSavingReorder(false);
     }
@@ -345,7 +348,7 @@ export default function App() {
   );
 
   const handleKeyClick = (index: number) => {
-    if (pendingOrder) { showToast('並べ替え中はキー編集できません。保存または取り消してください。'); return; }
+    if (pendingOrder) { showToast(t('並べ替え中はキー編集できません。保存または取り消してください。')); return; }
     setSelectedKeyIndex(index);
     setBallSelected(false);
     setGuideStep(prev => prev === 'click' ? 'assign' : prev);
@@ -366,7 +369,7 @@ export default function App() {
         setGuideStep(prev => prev === 'assign' ? 'mods' : prev);
       }
     } catch (e) {
-      showToast(`キーコード書き込み失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('キーコード書き込み失敗: {0}', errText(e)));
     }
   };
 
@@ -380,7 +383,7 @@ export default function App() {
       setHasUnsaved(true);
       if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
     } catch (e) {
-      showToast(`元に戻す操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('元に戻す操作に失敗: {0}', errText(e)));
     }
   };
 
@@ -394,7 +397,7 @@ export default function App() {
       setHasUnsaved(true);
       if (op.layer !== state.currentLayer) setCurrentLayer(op.layer);
     } catch (e) {
-      showToast(`やり直し操作に失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('やり直し操作に失敗: {0}', errText(e)));
     }
   };
 
@@ -426,107 +429,107 @@ export default function App() {
   const handleTrackballChange = async (cfg: typeof state.trackball) => {
     if (!cfg) return;
     try { await setTrackball(cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`トラックボール設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('トラックボール設定失敗: {0}', errText(e))); }
   };
 
   const handleLedChange = async (cfg: typeof state.led) => {
     if (!cfg) return;
     try { await setLed(cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`LED設定失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('LED設定失敗: {0}', errText(e))); }
   };
 
   const handleKbSettingsChange = async (s: KbSettings) => {
     try { await setKbSettings(s); setHasUnsaved(true); }
-    catch (e) { showToast(`詳細設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('詳細設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureChange = async (g: GestureConfig) => {
     try { await setGesture(g); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャー設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャー設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureModeChange = async (mode: number, g: GestureModeConfig) => {
     try { await setGestureMode(mode, g); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーモード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャーモード設定の保存失敗: {0}', errText(e))); }
   };
 
-  const handleGestureThresholdChange = async (t: GestureThreshold) => {
-    try { await setGestureThreshold(t); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャー感度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+  const handleGestureThresholdChange = async (th: GestureThreshold) => {
+    try { await setGestureThreshold(th); setHasUnsaved(true); }
+    catch (e) { showToast(t('ジェスチャー感度の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureWaveSpeedChange = async (mode: number, speed: number) => {
     try { await setGestureWaveSpeed(mode, speed); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブ速度の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャーウェーブ速度の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureWaveEnableChange = async (v: boolean) => {
     try { await setGestureWaveEnable(v); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブ有効/無効の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャーウェーブ有効/無効の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureWaveStyleChange = async (mode: number, style: number) => {
     try { await setGestureWaveStyle(mode, style); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブの見た目の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャーウェーブの見た目の保存失敗: {0}', errText(e))); }
   };
 
   const handleGestureWaveColorChange = async (mode: number, c: GestureWaveColor) => {
     try { await setGestureWaveColor(mode, c); setHasUnsaved(true); }
-    catch (e) { showToast(`ジェスチャーウェーブの色の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ジェスチャーウェーブの色の保存失敗: {0}', errText(e))); }
   };
 
   const handleShakeChange = async (s: ShakeConfig) => {
     try { await setShake(s); setHasUnsaved(true); }
-    catch (e) { showToast(`シェイク設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('シェイク設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleDFlickChange = async (d: DFlickConfig) => {
     try { await setDFlick(d); setHasUnsaved(true); }
-    catch (e) { showToast(`ダブルフリック設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('ダブルフリック設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleComboSlotChange = async (idx: number, slot: ComboSlot) => {
     try { await setComboSlot(idx, slot); setHasUnsaved(true); }
-    catch (e) { showToast(`コンボ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('コンボ設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleDpiCurveChange = async (c: DpiCurveConfig) => {
     try { await setDpiCurve(c); setHasUnsaved(true); }
-    catch (e) { showToast(`DPIカーブ設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('DPIカーブ設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleTdSlotChange = async (idx: number, slot: TdSlot) => {
     try { await setTdSlot(idx, slot); setHasUnsaved(true); }
-    catch (e) { showToast(`タップダンス設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('タップダンス設定の保存失敗: {0}', errText(e))); }
   };
 
   const handlePrecisionChange = async (p: PrecisionConfig) => {
     try { await setPrecisionConfig(p); setHasUnsaved(true); }
-    catch (e) { showToast(`精密モード設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('精密モード設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleScrollInertiaChange = async (c: ScrollInertiaConfig) => {
     try { await setScrollInertiaConfig(c); setHasUnsaved(true); }
-    catch (e) { showToast(`慣性スクロール設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('慣性スクロール設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleLayerLedEnableChange = async (v: boolean) => {
     try { await setLayerLedEnable(v); setHasUnsaved(true); }
-    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('レイヤー連動LED設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleLayerLedChange = async (layer: number, cfg: LayerLedConfig) => {
     try { await setLayerLed(layer, cfg); setHasUnsaved(true); }
-    catch (e) { showToast(`レイヤー連動LED設定の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+    catch (e) { showToast(t('レイヤー連動LED設定の保存失敗: {0}', errText(e))); }
   };
 
   const handleMacroSave = async (idx: number, slot: MacroSlot) => {
     try {
       await setMacroSlot(idx, slot, state.macroSlots);
       setHasUnsaved(true);
-      showToast(`Macro ${idx} を保存しました`, 'success');
+      showToast(t('Macro {0} を保存しました', idx), 'success');
     } catch (e) {
-      showToast(`マクロ保存失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('マクロ保存失敗: {0}', errText(e)));
     }
   };
 
@@ -573,7 +576,7 @@ export default function App() {
     a.download = `keyball_${state.model ?? 'keymap'}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('JSONをエクスポートしました', 'success');
+    showToast(t('JSONをエクスポートしました'), 'success');
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -583,11 +586,11 @@ export default function App() {
     reader.onload = async ev => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        if (!data.keymap || !Array.isArray(data.keymap)) throw new Error('keymap が見つかりません');
+        if (!data.keymap || !Array.isArray(data.keymap)) throw new Error(t('keymap が見つかりません'));
         if (data.model && state.model && data.model !== state.model) {
-          if (!confirm(`このファイルは ${data.model} 用です。接続中の ${state.model} に読み込むとキー配置が崩れる可能性があります。続行しますか？`)) return;
+          if (!confirm(t('このファイルは {0} 用です。接続中の {1} に読み込むとキー配置が崩れる可能性があります。続行しますか？', data.model, state.model ?? ''))) return;
         }
-        if (!confirm('キーマップ（と各種設定）をインポートします。現在の設定は上書きされます。よろしいですか？')) return;
+        if (!confirm(t('キーマップ（と各種設定）をインポートします。現在の設定は上書きされます。よろしいですか？'))) return;
         const { info } = state;
         if (!info || !layout) return;
         let count = 0;
@@ -703,9 +706,9 @@ export default function App() {
         }
         if (Array.isArray(data.tapDances)) {
           for (let i = 0; i < data.tapDances.length; i++) {
-            const t = data.tapDances[i];
-            if (!t || !isKc(t.tap) || !isKc(t.hold) || !isKc(t.dtap) || typeof t.flags !== 'number') continue;
-            try { await setTdSlot(i, { tap: t.tap, hold: t.hold, dtap: t.dtap, flags: t.flags & 0xFF }); } catch { /* 非対応FW・スロット数超過 */ }
+            const td = data.tapDances[i];
+            if (!td || !isKc(td.tap) || !isKc(td.hold) || !isKc(td.dtap) || typeof td.flags !== 'number') continue;
+            try { await setTdSlot(i, { tap: td.tap, hold: td.hold, dtap: td.dtap, flags: td.flags & 0xFF }); } catch { /* 非対応FW・スロット数超過 */ }
           }
         }
         if (data.dpiCurve && typeof data.dpiCurve.enable === 'boolean' && Array.isArray(data.dpiCurve.points)) {
@@ -735,9 +738,9 @@ export default function App() {
         }
         setHasUnsaved(false);
         await save();
-        showToast(`インポート完了（${count}キー書き込み）`, 'success');
+        showToast(t('インポート完了（{0}キー書き込み）', count), 'success');
       } catch (err) {
-        showToast(`インポート失敗: ${err instanceof Error ? err.message : String(err)}`);
+        showToast(t('インポート失敗: {0}', errText(err)));
       }
     };
     reader.readAsText(file);
@@ -745,12 +748,12 @@ export default function App() {
   };
 
   const handleResetKeymap = async () => {
-    if (!confirm('キーマップをファームウェアのデフォルトに戻します。よろしいですか？')) return;
+    if (!confirm(t('キーマップをファームウェアのデフォルトに戻します。よろしいですか？'))) return;
     try {
       await resetKeymap();
-      showToast('キーマップをリセットしました', 'success');
+      showToast(t('キーマップをリセットしました'), 'success');
     } catch (e) {
-      showToast(`リセット失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('リセット失敗: {0}', errText(e)));
     }
   };
 
@@ -759,15 +762,15 @@ export default function App() {
 
   const handleLoadAvrPreset = async () => {
     if (!avrPreset) return;
-    if (!confirm(`キーマップを「${avrPreset.name}」に置き換えます。現在のキー配置は上書きされます。よろしいですか？`)) return;
+    if (!confirm(t('キーマップを「{0}」に置き換えます。現在のキー配置は上書きされます。よろしいですか？', t(avrPreset.name)))) return;
     setLoadingPreset(true);
     try {
       await loadPreset(avrPreset);
       setHasUnsaved(false);
       await save();
-      showToast(`「${avrPreset.name}」を読み込みました`, 'success');
+      showToast(t('「{0}」を読み込みました', t(avrPreset.name)), 'success');
     } catch (err) {
-      showToast(`読み込み失敗: ${err instanceof Error ? err.message : String(err)}`);
+      showToast(t('読み込み失敗: {0}', errText(err)));
     } finally {
       setLoadingPreset(false);
     }
@@ -778,9 +781,9 @@ export default function App() {
       await save();
       setHasUnsaved(false);
       setGuideStep(prev => prev === 'save' ? 'trackball' : prev);
-      showToast('EEPROMに保存しました', 'success');
+      showToast(t('EEPROMに保存しました'), 'success');
     } catch (e) {
-      showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`);
+      showToast(t('保存失敗: {0}', errText(e)));
     }
   };
 
@@ -871,8 +874,12 @@ export default function App() {
             />
           <span className="app-brand__sub">WEB CONFIGURATOR<span className="app-brand__cursor" /></span>
         </div>
-        <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title="テーマ切替">
-          {theme === 'dark' ? '☀ ライト' : '☾ ダーク'}
+        <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title={t('テーマ切替')}>
+          {theme === 'dark' ? t('☀ ライト') : t('☾ ダーク')}
+        </button>
+        {/* 表示言語の切り替え（2026-11-12〜）。押すともう一方の言語になる */}
+        <button className="btn btn--ghost lang-toggle" onClick={() => setLang(lang === 'ja' ? 'en' : 'ja')} title={lang === 'ja' ? 'Switch to English' : '日本語に切り替え'}>
+          {lang === 'ja' ? 'English' : '日本語'}
         </button>
         <div className="accent-picker">
           {ACCENT_SWATCHES.map(a => (
@@ -880,7 +887,7 @@ export default function App() {
               key={a.key}
               className={`accent-picker__dot ${accentTheme === a.key ? 'accent-picker__dot--active' : ''}`}
               style={{ background: theme === 'dark' ? a.dark : a.light }}
-              title={`アクセントカラー: ${a.key}`}
+              title={t('アクセントカラー: {0}', a.key)}
               onClick={() => setAccentTheme(a.key)}
             />
           ))}
@@ -889,10 +896,10 @@ export default function App() {
           {isConnected ? (
             <>
               <span className="status status--connected"><span className="status__dot" />{state.deviceName}</span>
-              <button className="btn btn--ghost" onClick={disconnect}>切断</button>
+              <button className="btn btn--ghost" onClick={disconnect}>{t('切断')}</button>
               <div className="import-menu-wrap">
                 <button className="btn btn--ghost" onClick={() => setShowResetMenu(v => !v)} disabled={loadingPreset}>
-                  初期化 {loadingPreset ? '…' : '▾'}
+                  {t('初期化')} {loadingPreset ? '…' : '▾'}
                 </button>
                 {showResetMenu && (
                   <div className="import-menu" onMouseLeave={() => setShowResetMenu(false)}>
@@ -900,17 +907,17 @@ export default function App() {
                       className="import-menu__item"
                       onClick={() => { setShowResetMenu(false); handleResetKeymap(); }}
                     >
-                      すべての設定を初期化する
-                      <span className="import-menu__desc">キーマップ・トラックボール（CPI/スクロール等）など全ての設定をKeyball Linkの初期状態に戻します</span>
+                      {t('すべての設定を初期化する')}
+                      <span className="import-menu__desc">{t('キーマップ・トラックボール（CPI/スクロール等）など全ての設定をKeyball Linkの初期状態に戻します')}</span>
                     </button>
                     <button
                       className="import-menu__item"
                       onClick={() => { setShowResetMenu(false); handleLoadAvrPreset(); }}
                       disabled={!avrPreset}
                     >
-                      キーマップをRemap版の初期設定にする
+                      {t('キーマップをRemap版の初期設定にする')}
                       <span className="import-menu__desc">
-                        {avrPreset ? 'キーマップだけを置き換えます（トラックボールなど他の設定はそのまま）' : 'このモデルには未対応です'}
+                        {avrPreset ? t('キーマップだけを置き換えます（トラックボールなど他の設定はそのまま）') : t('このモデルには未対応です')}
                       </span>
                     </button>
                   </div>
@@ -920,41 +927,41 @@ export default function App() {
                 className="btn btn--ghost"
                 onClick={handleUndo}
                 disabled={undoStack.length === 0 || pendingOrder !== null}
-                title={undoStack.length === 0 ? '元に戻す操作がありません' : '直前のキー変更を元に戻す (Cmd/Ctrl+Z)'}
+                title={undoStack.length === 0 ? t('元に戻す操作がありません') : t('直前のキー変更を元に戻す (Cmd/Ctrl+Z)')}
               >
-                ↩ 元に戻す
+                {t('↩ 元に戻す')}
               </button>
               <button
                 className="btn btn--ghost"
                 onClick={handleRedo}
                 disabled={redoStack.length === 0 || pendingOrder !== null}
-                title={redoStack.length === 0 ? 'やり直す操作がありません' : '元に戻した変更をやり直す (Cmd/Ctrl+Shift+Z)'}
+                title={redoStack.length === 0 ? t('やり直す操作がありません') : t('元に戻した変更をやり直す (Cmd/Ctrl+Shift+Z)')}
               >
-                ↪ やり直し
+                {t('↪ やり直し')}
               </button>
-              <button className="btn btn--ghost" onClick={handleExportJSON} title="キーマップ・マクロ・コンボ・タップダンス・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存">エクスポート</button>
-              <label className="btn btn--ghost" title="JSONファイルからキーマップ・マクロ・各種設定を読み込む" style={{ cursor: 'pointer' }}>
-                インポート
+              <button className="btn btn--ghost" onClick={handleExportJSON} title={t('キーマップ・マクロ・コンボ・タップダンス・ジェスチャー・精密モード・レイヤー連動LED・トラックボール設定などをJSONファイルに保存')}>{t('エクスポート')}</button>
+              <label className="btn btn--ghost" title={t('JSONファイルからキーマップ・マクロ・各種設定を読み込む')} style={{ cursor: 'pointer' }}>
+                {t('インポート')}
                 <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJSON} />
               </label>
               <button
                 className={`btn btn--primary ${hasUnsaved ? 'btn--unsaved' : ''}`}
                 data-guide="save-btn"
                 onClick={handleSave}
-                title={hasUnsaved ? '未保存の変更があります' : '設定をキーボードに保存'}
+                title={hasUnsaved ? t('未保存の変更があります') : t('設定をキーボードに保存')}
               >
                 {/* 未保存の有無で文字が変わってもボタンの幅を変えない（左に並ぶボタンが動かないように。
                     2026-10-23、本人希望）。長い方の文字を見えない形で重ねて、幅を確保している */}
                 <span className="btn-fixed-label">
-                  <span className="btn-fixed-label__sizer" aria-hidden="true">● 保存する</span>
-                  <span>{hasUnsaved ? '● 保存する' : '保存'}</span>
+                  <span className="btn-fixed-label__sizer" aria-hidden="true">{t('● 保存する')}</span>
+                  <span>{hasUnsaved ? t('● 保存する') : t('保存')}</span>
                 </span>
               </button>
             </>
           ) : (
             <>
               {!state.isWebHIDSupported && (
-                <span className="status status--error">WebHID非対応ブラウザです (Chrome推奨)</span>
+                <span className="status status--error">{t('WebHID非対応ブラウザです (Chrome推奨)')}</span>
               )}
               {state.connectionState === 'error' && (
                 <span className="status status--error">{state.errorMessage}</span>
@@ -968,7 +975,7 @@ export default function App() {
                   onClick={connect}
                   disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                 >
-                  {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
+                  {state.connectionState === 'connecting' ? t('接続中...') : t('キーボードに接続')}
                 </button>
               )}
             </>
@@ -993,27 +1000,27 @@ export default function App() {
       <main className="app-main">
         {state.isLoading ? (
           <div className="placeholder">
-            <p className="placeholder-text">キーマップを読み込んでいます…</p>
-            <p className="placeholder-note">しばらくお待ちください（数秒かかる場合があります）</p>
+            <p className="placeholder-text">{t('キーマップを読み込んでいます…')}</p>
+            <p className="placeholder-note">{t('しばらくお待ちください（数秒かかる場合があります）')}</p>
           </div>
         ) : (
           <>
             <div className="tabs">
-              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>キーマップ</button>
-              <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>トラックボール設定</button>
-              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>マクロ拡張</button>
-              <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>詳細設定</button>
-              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>ファームウェア</button>
+              <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>{t('キーマップ')}</button>
+              <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>{t('トラックボール設定')}</button>
+              <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>{t('マクロ拡張')}</button>
+              <button className={`tab ${activeTab === 'settings' ? 'tab--active' : ''}`} onClick={() => setActiveTab('settings')}>{t('詳細設定')}</button>
+              <button className={`tab ${activeTab === 'firmware' ? 'tab--active' : ''}`} data-guide="firmware-tab" onClick={() => setActiveTab('firmware')}>{t('ファームウェア')}</button>
               {/* タイピングゲームはまだ開発だけで公開する（本番では隠す。2026-10-28、本人希望） */}
-              {isDevHost && <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>タイピングゲーム</button>}
-              <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>ご意見・要望</button>
+              {isDevHost && <button className={`tab ${activeTab === 'typing' ? 'tab--active' : ''}`} onClick={() => setActiveTab('typing')}>{t('タイピングゲーム')}</button>}
+              <button className={`tab ${activeTab === 'feedback' ? 'tab--active' : ''}`} onClick={() => setActiveTab('feedback')}>{t('ご意見・要望')}</button>
             </div>
 
             {activeTab === 'keymap' && !isConnected && (
               <>
                 <div className="placeholder">
-                  <p className="placeholder-text">キーボードを USB で接続して「キーボードに接続」を押してください。</p>
-                  <p className="placeholder-note">※ Chrome / Edge などの WebHID 対応ブラウザが必要です。</p>
+                  <p className="placeholder-text">{t('キーボードを USB で接続して「キーボードに接続」を押してください。')}</p>
+                  <p className="placeholder-note">{t('※ Chrome / Edge などの WebHID 対応ブラウザが必要です。')}</p>
                   <div className="placeholder-actions">
                     <button
                       className="btn btn--primary placeholder-connect"
@@ -1021,14 +1028,14 @@ export default function App() {
                       onClick={connect}
                       disabled={!state.isWebHIDSupported || state.connectionState === 'connecting'}
                     >
-                      {state.connectionState === 'connecting' ? '接続中...' : 'キーボードに接続'}
+                      {state.connectionState === 'connecting' ? t('接続中...') : t('キーボードに接続')}
                     </button>
                     {!showGuide && (
                       <button
                         className="placeholder-guide-link"
                         onClick={() => { setShowGuide(true); setGuideStep('flash'); }}
                       >
-                        初めての方はこちら →
+                        {t('初めての方はこちら →')}
                       </button>
                     )}
                   </div>
@@ -1038,8 +1045,8 @@ export default function App() {
 
             {activeTab === 'keymap' && isConnected && !layout && (
               <div className="placeholder">
-                <p className="placeholder-text">モデルID {state.info?.model} は未対応です</p>
-                <p className="placeholder-note">keyball39 / 44 / 61 のみサポートしています</p>
+                <p className="placeholder-text">{t('モデルID {0} は未対応です', state.info?.model ?? '')}</p>
+                <p className="placeholder-note">{t('keyball39 / 44 / 61 のみサポートしています')}</p>
               </div>
             )}
 
@@ -1047,12 +1054,12 @@ export default function App() {
               <div className="keymap-view" ref={keymapViewRef}>
                 {pendingOrder && (
                   <div className="reorder-bar">
-                    <span>🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。</span>
+                    <span>{t('🔀 並べ替えをプレビュー中です。「保存」で確定します（レイヤー切替キーの番号も自動で調整されます）。')}</span>
                     <button className="btn btn--primary btn--small" disabled={savingReorder} onClick={handleSaveReorder} style={{ marginLeft: 'auto' }}>
-                      {savingReorder ? '保存中…' : '保存'}
+                      {savingReorder ? t('保存中…') : t('保存')}
                     </button>
                     <button className="btn btn--ghost btn--small" disabled={savingReorder} onClick={() => { setPendingOrder(null); setSelectedKeyIndex(null); }}>
-                      取り消し
+                      {t('取り消し')}
                     </button>
                   </div>
                 )}
@@ -1064,7 +1071,7 @@ export default function App() {
                       <div className="layer-tabs">
                         {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
                           const src = pendingOrder ? pendingOrder[i] : i;
-                          const dragTitle = pendingOrder && src !== i ? `元レイヤー${src}（ドラッグで並べ替え）` : 'ドラッグで並べ替えできます';
+                          const dragTitle = pendingOrder && src !== i ? t('元レイヤー{0}（ドラッグで並べ替え）', src) : t('ドラッグで並べ替えできます');
                           return (
                             <button
                               key={i}
@@ -1085,32 +1092,32 @@ export default function App() {
                         <button
                           className={`layer-tab ${showAllLayers ? 'layer-tab--active' : ''}`}
                           onClick={() => { setShowAllLayers(true); setSelectedKeyIndex(null); }}
-                          title="すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）"
+                          title={t('すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）')}
                         >
-                          全レイヤー
+                          {t('全レイヤー')}
                         </button>
                       </div>
                       {/* 選んでいるレイヤーの名前（RP2040版v0.6.0〜、2026-11-04） */}
                       {state.layerNames && !showAllLayers && !pendingOrder && (
                         <label className="layer-toolbar__name">
-                          名前
+                          {t('名前')}
                           <NameInput key={`${state.currentLayer}:${state.layerNames[state.currentLayer] ?? ''}`}
-                            value={state.layerNames[state.currentLayer] ?? ''} placeholder={`レイヤー${state.currentLayer}`}
+                            value={state.layerNames[state.currentLayer] ?? ''} placeholder={t('レイヤー{0}', state.currentLayer)}
                             onSave={async name => {
                               try { await setLayerName(state.currentLayer, name); setHasUnsaved(true); }
-                              catch (e) { showToast(`名前の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                              catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
                             }} />
                         </label>
                       )}
                       {/* 選んでいるレイヤーがオートマウスのレイヤーなら、タブの横に示す（設定はトラックボール設定タブ）（2026-10-27、本人希望） */}
                       {!showAllLayers && state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === state.currentLayer && (
-                        <span className="layer-toolbar__aml">オートマウス</span>
+                        <span className="layer-toolbar__aml">{t('オートマウス')}</span>
                       )}
                       <div className="ball-toggle">
-                        <span className="ball-toggle__label">{ballSideAuto ? 'ボール（自動）' : 'ボール'}</span>
-                        <div className="ball-toggle__group" title={ballSideAuto ? 'キーボードから読み取ったボールの位置を表示しています' : undefined}>
-                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('left')}>左</button>
-                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('right')}>右</button>
+                        <span className="ball-toggle__label">{ballSideAuto ? t('ボール（自動）') : t('ボール')}</span>
+                        <div className="ball-toggle__group" title={ballSideAuto ? t('キーボードから読み取ったボールの位置を表示しています') : undefined}>
+                          <button className={`ball-toggle__btn ${ballSide === 'left' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('left')}>{t('左')}</button>
+                          <button className={`ball-toggle__btn ${ballSide === 'right' ? 'ball-toggle__btn--active' : ''}`} disabled={ballSideAuto} onClick={() => handleBallSide('right')}>{t('右')}</button>
                         </div>
                       </div>
                     </div>
@@ -1142,7 +1149,7 @@ export default function App() {
                           );
                         })}
                         <p style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
-                          キーをクリックすると、そのレイヤーに移動して編集できます
+                          {t('キーをクリックすると、そのレイヤーに移動して編集できます')}
                         </p>
                       </div>
                     ) : (
@@ -1195,7 +1202,7 @@ export default function App() {
 
                   <div className="keymap-right-panel" style={keymapLeftHeight ? { height: keymapLeftHeight, maxHeight: keymapLeftHeight } : undefined}>
                     {pendingOrder ? (
-                      <div className="key-config-panel__empty">並べ替え中はキー編集できません</div>
+                      <div className="key-config-panel__empty">{t('並べ替え中はキー編集できません')}</div>
                     ) : ballSelected ? (
                       <div className="key-config-panel ball-panel-wrap">
                         <BallPanel
@@ -1229,12 +1236,12 @@ export default function App() {
                           gestureNames={state.gestureNames}
                           onGestureNameChange={async (i, name) => {
                             try { await setGestureName(i, name); setHasUnsaved(true); }
-                            catch (e) { showToast(`名前の保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                            catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
                           }}
                           gestureOsAdapt={state.gestureOsAdapt}
                           onGestureOsAdaptChange={async v => {
                             try { await setGestureOsAdapt(v); setHasUnsaved(true); }
-                            catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                            catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
                           }}
                           keyLayout={keyLayout}
                           avail={fwAvail}
@@ -1259,18 +1266,18 @@ export default function App() {
                   <span>Keyball Link v{__APP_VERSION__}</span>
                   {isConnected && (
                     <span>
-                      {' '}・ ファームウェア:{' '}
+                      {' '}{t('・ ファームウェア:')}{' '}
                       {state.firmwareVersion ? (
                         <>
                           {formatVersion(state.firmwareVersion)}
                           {state.model && isOlderVersion(state.firmwareVersion, latestFwVersion(state.model, chip)) && (
                             <span className="app-footer__warn">
-                              （最新版 {formatVersion(latestFwVersion(state.model, chip))} があります。「ファームウェア」タブから更新できます）
+                              {t('（最新版 {0} があります。「ファームウェア」タブから更新できます）', formatVersion(latestFwVersion(state.model, chip)))}
                             </span>
                           )}
                         </>
                       ) : (
-                        <span className="app-footer__warn">バージョン情報なし（古い版の可能性があります。更新をおすすめします）</span>
+                        <span className="app-footer__warn">{t('バージョン情報なし（古い版の可能性があります。更新をおすすめします）')}</span>
                       )}
                     </span>
                   )}
@@ -1327,11 +1334,11 @@ export default function App() {
                 bootAnimEnabled={state.bootAnimEnabled}
                 onBootAnimChange={async v => {
                   try { await setBootAnimEnabled(v); }
-                  catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                  catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
                 }}
                 onOledAnimChange={async v => {
                   try { await setOledAnimEnabled(v); }
-                  catch (e) { showToast(`保存失敗: ${e instanceof Error ? e.message : String(e)}`); }
+                  catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
                 }}
                 keyLayout={keyLayout}
                 onKeyLayoutChange={layout => {

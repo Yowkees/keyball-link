@@ -3223,6 +3223,10 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-card .gesture-grid { gap: 6px; margin: 6px 0; }
 .board-card .gesture-row { gap: 8px; }
 .board-card .gesture-dir { width: auto; min-width: 40px; font-size: 13px; }
+/* 向き（上↑・Up ↑など）と「名前」の見出しは幅をそろえ、右のキーの欄が左右にずれないようにする。
+   英語表示（Down ↓・Right →）でも収まる幅にしている（2026-11-12） */
+.gesture-grid .gesture-dir,
+.ball-panel__gesture .gesture-dir { width: 58px; min-width: 58px; flex-shrink: 0; }
 .board-card .gesture-key-btn { padding: 6px 10px; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-card .trackball-bar { border: none; background: none; padding: 0; border-radius: 0; gap: 10px 16px; }
 .board-card .trackball-bar__item { min-width: 0; flex-basis: 100%; }

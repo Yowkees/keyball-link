@@ -122,7 +122,7 @@ export function GestureCard({
         </div>
 
         <div className="card-sep">
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>{t('感度（4モード共通）')}</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>{t('感度（全モード共通）')}</p>
           <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>{t('左右方向')}</p>
           <SliderControl
             value={gestureThreshold.h} min={10} max={200} step={5}

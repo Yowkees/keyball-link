@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
-import { findKeycode, getKeyDisplayLabel, getShiftLabel } from '../../lib/keycodes';
+import { findKeycode, getKeyCapLabel, getShiftLabel } from '../../lib/keycodes';
 import type { KeyLayout } from '../../lib/keycodes';
 import { t, tk } from '../../lib/i18n';
 
@@ -38,7 +38,7 @@ export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, re
 
   const isBall     = layout.ball === ballSide;
   const entry      = findKeycode(keycode);
-  const label      = getKeyDisplayLabel(keycode, keyLayout);
+  const label      = getKeyCapLabel(keycode, keyLayout);
   const shiftLabel = getShiftLabel(keycode, keyLayout);
   const w = rect ? rect.width : (layout.w ?? 1) * KEY_SIZE + ((layout.w ?? 1) - 1) * GAP;
   const h = rect ? rect.height : KEY_SIZE;

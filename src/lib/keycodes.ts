@@ -457,6 +457,35 @@ export function getKeyDisplayLabel(code: number, layout: KeyLayout): string {
   return tl(findKeycode(code).label);
 }
 
+// キー配列のキーの中に書く文字。基本は getKeyDisplayLabel と同じで、
+// 修飾キー付き（MODS）だけはキーの中に収まるよう短くする（マクロの一覧などは従来どおり「Ctrl+Sft(A)」）
+export function getKeyCapLabel(code: number, layout: KeyLayout): string {
+  // MODS（修飾キー＋キー、例: Ctrl+Shift+A）: 上の段にキー、下の段に修飾キー。
+  // 「Ctrl+Sft(A)」のままだとキーの中に収まらず見切れるため（2026-11-12）。
+  // 修飾キーが2つ以上なら頭文字だけにする（例: C+S）。正式な名前はマウスを乗せると出る
+  // Shift付きの記号（JISの「`」など、決まった名前があるもの）はそのまま
+  const named = codeMap.has(code) || (layout === 'JIS' && JIS_CHAR_MAP[code] !== undefined);
+  if (code >= 0x0100 && code <= 0x1FFF && !named) {
+    const mod   = (code >> 8) & 0x1F;
+    const kc    = code & 0xFF;
+    const right = (mod & 0x10) !== 0;
+    const tapCh = (layout === 'JIS' && JIS_CHAR_MAP[kc] !== undefined)
+      ? JIS_CHAR_MAP[kc]
+      : (codeMap.get(kc)?.label ?? `0x${kc.toString(16)}`);
+    const bits = [[0x01, 'Ctrl', 'C'], [0x02, 'Sft', 'S'], [0x04, 'Alt', 'A'], [0x08, 'GUI', 'G']] as const;
+    const on = bits.filter(([b]) => mod & b);
+    // 3つ以上は2つずつ改行する（例: C+S / A+G）。右側の修飾キーは先頭に「R:」
+    const short = on.map(([, , s]) => s);
+    const rows: string[] = [];
+    for (let i = 0; i < short.length; i += 2) rows.push(short.slice(i, i + 2).join('+'));
+    const modStr = on.length === 1
+      ? (right ? 'R' : '') + on[0][1]
+      : (right ? 'R:' : '') + rows.join('\n');
+    return `${tl(tapCh)}\n${modStr}`;
+  }
+  return getKeyDisplayLabel(code, layout);
+}
+
 // JIS配列記号: macOS日本語キーボード設定で出力される文字 → 対応する基本キーコード
 // いずれも 0xFF 以下の有効な基本キーコードなので MT/LT のタップキーに使用可能
 export const JIS_TAP_KEYS: KeycodeEntry[] = [

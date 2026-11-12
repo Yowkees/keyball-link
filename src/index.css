@@ -2277,6 +2277,8 @@ body { background: var(--bg); overflow-x: hidden; }
   color: var(--accent);
 }
 .mod-bar__hint strong { color: var(--text); }
+/* 選んでいるキーに修飾キーを付けられない時の案内（2026-11-12） */
+.mod-bar__hint--dim { color: var(--text-dim); }
 
 /* 修飾と組み合わせ不可なキーを薄く */
 .picker-key--dim {

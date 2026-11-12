@@ -503,6 +503,7 @@ export const EN: Record<string, string> = {
   '{0} キー': '{0} keys',
   '（修飾キー未選択）': '(no modifier selected)',
   '（レイヤー未選択）': '(no layer selected)',
+  'このキーには修飾キーを付けられません': 'Modifiers cannot be added to this key',
   'レイヤー {0}': 'Layer {0}',
   'ホールド時の動作': 'Action when held',
   '修飾キー': 'Modifier',

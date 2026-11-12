@@ -228,6 +228,12 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
     }
   };
 
+  // 一覧で「今のキー」の印を付けるキー。Shift+A のように一覧に無い組み合わせなら、元のキー（A）に付ける
+  // （修飾キーを付けた時に印が消えると、キーが外れたように見えるため。2026-11-12）
+  const markCode = isMods && !baseKeys.some(k => k.code === currentCode) ? currentCode & 0xFF : currentCode;
+  // 選んでいるキーが修飾キーと組み合わせられない（レイヤー切替など）時は、修飾キーのボタンを押せなくする
+  const modsLocked = !!liveMods && liveBase === 0;
+
   // このファームで使えないキーと、修飾キーと組み合わせられないキーは選べない（薄く表示する）
   const isDimmed = (e: KeycodeEntry) => (modsActive && !isBasicKey(e.code)) || isKeycodeUnavailable(e, avail);
 
@@ -260,6 +266,8 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
               key={m.bit}
               className={`btn btn--small btn--layer ${mods & m.bit ? 'btn--layer-active' : ''}`}
               onClick={() => toggleMod(m.bit)}
+              disabled={modsLocked}
+              title={modsLocked ? t('このキーには修飾キーを付けられません') : undefined}
             >
               {(right ? 'R' : '') + m.label}
             </button>
@@ -267,11 +275,15 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
           <button
             className={`btn btn--small btn--layer ${right ? 'btn--layer-active' : ''}`}
             onClick={() => toggleMod(MOD_RIGHT_BIT)}
-            title={t('左右の修飾キーを切り替え')}
+            disabled={modsLocked}
+            title={modsLocked ? t('このキーには修飾キーを付けられません') : t('左右の修飾キーを切り替え')}
           >
             {t('右側')}
           </button>
         </div>
+        {modsLocked && (
+          <span className="mod-bar__hint mod-bar__hint--dim">{t('このキーには修飾キーを付けられません')}</span>
+        )}
         {modsActive && (
           <span className="mod-bar__hint">
             {t('選択中:')} <strong>{modLabel}</strong> {t('＋ クリックしたキー')}
@@ -331,7 +343,7 @@ function NormalPanel({ currentCode, keyLayout, avail, allowedGroups, excludeCode
             <button
               key={`${e.group}-${e.code}`}
               data-nav-idx={i}
-              className={`picker-key ${e.code === currentCode ? 'picker-key--current' : ''} ${dimmed ? 'picker-key--dim' : ''} ${navCursor === i ? 'picker-key--cursor' : ''}`}
+              className={`picker-key ${e.code === markCode ? 'picker-key--current' : ''} ${dimmed ? 'picker-key--dim' : ''} ${navCursor === i ? 'picker-key--cursor' : ''}`}
               draggable={!fwUnavail}
               onDragStart={ev => { if (fwUnavail) { ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', String(modsActive && isBasicKey(e.code) ? makeModsKeycode(mods, e.code) : e.code)); }}
               onClick={() => { if (!fwUnavail) handleKey(e.code); }}

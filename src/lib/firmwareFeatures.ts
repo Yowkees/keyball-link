@@ -33,7 +33,7 @@ export const LATEST_FW_VERSION: Record<ModelKey, FirmwareVersion> = {
   keyball39: { major: 1, minor: 5, patch: 3 },
   keyball44: { major: 1, minor: 5, patch: 3 },
   keyball61: { major: 1, minor: 5, patch: 3 },
-  keyballplus: { major: 1, minor: 2, patch: 5 },
+  keyballplus: { major: 1, minor: 2, patch: 3 },
 };
 
 // RP2040版（keyball-rp2040-firmwareのkb_version.h）。全機種同じソースからビルドしているため共通。

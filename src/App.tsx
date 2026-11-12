@@ -13,8 +13,7 @@ import { MacroTab } from './components/MacroEditor/MacroTab';
 import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
-import { gestureLabel, layerLabel } from './lib/names';
-import { NameInput } from './components/NameInput/NameInput';
+import { gestureLabel } from './lib/names';
 import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
 import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
@@ -108,7 +107,7 @@ interface Toast {
 export default function App() {
   // 言語が変わったら画面全体を描き直す
   const lang = useLang();
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setLayerName, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   // キー配列のジェスチャーキーを、付けた名前で表示する（描画の前に毎回入れ直す）
   setGestureDisplayNames(state.gestureNames);
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
@@ -305,14 +304,6 @@ export default function App() {
     try {
       const reordered = reorderKeymap(state.keymap, pendingOrder);
       await writeFullKeymap(reordered);
-      // レイヤーの名前も中身と一緒に動かす
-      if (state.layerNames) {
-        const names = state.layerNames;
-        for (let i = 0; i < pendingOrder.length; i++) {
-          const n = names[pendingOrder[i]] ?? '';
-          if (n !== (names[i] ?? '')) await setLayerName(i, n);
-        }
-      }
       setPendingOrder(null);
       setUndoStack([]);   // 並べ替え後はキー単位の取り消し履歴が合わなくなるためクリア
       setRedoStack([]);
@@ -565,7 +556,6 @@ export default function App() {
       oledAnimEnabled: state.oledAnimEnabled,
       bootAnimEnabled: state.bootAnimEnabled,
       // 2026-11-04に追加: レイヤー・ジェスチャーの名前、画面切り替えをOSに合わせる（RP2040版v0.6.0〜）
-      layerNames: state.layerNames,
       gestureNames: state.gestureNames,
       gestureOsAdapt: state.gestureOsAdapt,
     };
@@ -721,12 +711,6 @@ export default function App() {
           try { await setBootAnimEnabled(data.bootAnimEnabled); } catch { /* 非対応FW */ }
         }
         // 2026-11-04に追加: 名前と、画面切り替えをOSに合わせる。非対応ファームでは送らない
-        if (state.layerNames && Array.isArray(data.layerNames)) {
-          for (let i = 0; i < Math.min(data.layerNames.length, state.layerNames.length); i++) {
-            if (typeof data.layerNames[i] !== 'string') continue;
-            try { await setLayerName(i, data.layerNames[i]); } catch { /* 非対応FW */ }
-          }
-        }
         if (state.gestureNames && Array.isArray(data.gestureNames)) {
           for (let i = 0; i < Math.min(data.gestureNames.length, state.gestureNames.length); i++) {
             if (typeof data.gestureNames[i] !== 'string') continue;
@@ -853,6 +837,11 @@ export default function App() {
           onPrecisionChange={handlePrecisionChange}
           scrollInertia={state.scrollInertia}
           onScrollInertiaChange={handleScrollInertiaChange}
+          gestureNames={state.gestureNames}
+          onGestureNameChange={async (i, name) => {
+            try { await setGestureName(i, name); setHasUnsaved(true); }
+            catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
+          }}
           keyLayout={keyLayout}
     />
   );
@@ -1086,7 +1075,7 @@ export default function App() {
                               title={dragTitle}
                             >
                               <span className="layer-tab__dot" style={{ background: getLayerDotColor(i, state) }} />
-                              {layerLabel(src, state.layerNames)}{pendingOrder && src !== i ? ` ←${src}` : ''}
+                              L{i}{pendingOrder && src !== i ? ` ←${src}` : ''}
                             </button>
                           );
                         })}
@@ -1098,18 +1087,6 @@ export default function App() {
                           {t('全レイヤー')}
                         </button>
                       </div>
-                      {/* 選んでいるレイヤーの名前（RP2040版v0.6.0〜、2026-11-04） */}
-                      {state.layerNames && !showAllLayers && !pendingOrder && (
-                        <label className="layer-toolbar__name">
-                          {t('名前')}
-                          <NameInput key={`${state.currentLayer}:${state.layerNames[state.currentLayer] ?? ''}`}
-                            value={state.layerNames[state.currentLayer] ?? ''} placeholder={t('レイヤー{0}', state.currentLayer)}
-                            onSave={async name => {
-                              try { await setLayerName(state.currentLayer, name); setHasUnsaved(true); }
-                              catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
-                            }} />
-                        </label>
-                      )}
                       {/* 選んでいるレイヤーがオートマウスのレイヤーなら、タブの横に示す（設定はトラックボール設定タブ）（2026-10-27、本人希望） */}
                       {!showAllLayers && state.kbSettings.autoMouseEnable && state.kbSettings.autoMouseLayer === state.currentLayer && (
                         <span className="layer-toolbar__aml">{t('オートマウス')}</span>
@@ -1239,11 +1216,6 @@ export default function App() {
                             try { await setGestureName(i, name); setHasUnsaved(true); }
                             catch (e) { showToast(t('名前の保存失敗: {0}', errText(e))); }
                           }}
-                          gestureOsAdapt={state.gestureOsAdapt}
-                          onGestureOsAdaptChange={async v => {
-                            try { await setGestureOsAdapt(v); setHasUnsaved(true); }
-                            catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
-                          }}
                           keyLayout={keyLayout}
                           avail={fwAvail}
                         />
@@ -1335,6 +1307,11 @@ export default function App() {
                 bootAnimEnabled={state.bootAnimEnabled}
                 onBootAnimChange={async v => {
                   try { await setBootAnimEnabled(v); }
+                  catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
+                }}
+                gestureOsAdapt={state.gestureOsAdapt}
+                onGestureOsAdaptChange={async v => {
+                  try { await setGestureOsAdapt(v); setHasUnsaved(true); }
                   catch (e) { showToast(t('保存失敗: {0}', errText(e))); }
                 }}
                 onOledAnimChange={async v => {

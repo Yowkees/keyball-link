@@ -56,8 +56,6 @@ interface BallPanelProps {
   onOpenTab: () => void;
   gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム）
   onGestureNameChange: (mode: number, name: string) => Promise<void>;
-  gestureOsAdapt: boolean | null;  // 画面切り替えをOSに合わせる（null = 非対応ファーム）
-  onGestureOsAdaptChange: (v: boolean) => Promise<void>;
   keyLayout: KeyLayout;
   avail: FirmwareAvail;
 }
@@ -240,11 +238,6 @@ export function BallPanel(p: BallPanelProps) {
               </div>
             );
           })()}
-          {isGesture && p.gestureOsAdapt !== null && (
-            <ToggleRow label={t('画面切り替えをOSに合わせる')}
-              desc={t('Windowsにつないだ時、Ctrl+矢印（Macの画面切り替え）をWin+Ctrl+←/→・Win+Tab・Win+Dに置き換えます')}
-              checked={p.gestureOsAdapt} disabled={disabled} onChange={v => run(() => p.onGestureOsAdaptChange(v))} />
-          )}
           {p.gestureThreshold && isGesture && (
             <>
               <span className="ball-panel__label">{t('感度（横）')}</span>

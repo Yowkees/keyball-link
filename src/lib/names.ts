@@ -38,4 +38,3 @@ export function decodeName(bytes: ArrayLike<number>): string {
 export const displayName = (name: string) => (DEFAULT_GESTURE_NAMES.includes(name) ? t(name) : name);
 const DEFAULT_GESTURE_NAMES: string[] = [tk('画面切り替え'), tk('音量・明るさ'), tk('矢印キー'), tk('文字入力'), tk('ブラウザ'), tk('音楽・動画')];
 export const gestureLabel = (i: number, names?: string[] | null) => (names?.[i] ? displayName(names[i]) : t('ジェスチャー{0}', i + 1));
-export const layerLabel = (i: number, names?: string[] | null) => (names?.[i] ? `L${i} ${names[i]}` : `L${i}`);

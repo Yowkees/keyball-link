@@ -51,6 +51,8 @@ interface TrackballSettingsTabProps {
   onPrecisionChange: (p: PrecisionConfig) => Promise<void>;
   scrollInertia: ScrollInertiaConfig | null;
   onScrollInertiaChange: (c: ScrollInertiaConfig) => Promise<void>;
+  gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム。RP2040版v0.6.0〜）
+  onGestureNameChange: (mode: number, name: string) => Promise<void>;
   keyLayout: KeyLayout;
 }
 
@@ -63,7 +65,7 @@ export function TrackballSettingsTab({
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   shake, onShakeChange, dflick, onDFlickChange,
-  precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, keyLayout,
+  precision, onPrecisionChange, scrollInertia, onScrollInertiaChange, gestureNames, onGestureNameChange, keyLayout,
 }: TrackballSettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const disabled = !isConnected || saving;
@@ -138,6 +140,7 @@ export function TrackballSettingsTab({
           gestureWaveEnable={gestureWaveEnable} onGestureWaveEnableChange={onGestureWaveEnableChange}
           gestureWaveStyle={gestureWaveStyle} onGestureWaveStyleChange={onGestureWaveStyleChange}
           gestureWaveColor={gestureWaveColor} onGestureWaveColorChange={onGestureWaveColorChange}
+          gestureNames={gestureNames} onGestureNameChange={onGestureNameChange}
           disabled={disabled} keyLayout={keyLayout} avail={avail} layersInclBase={layersInclBase} layerWarn={layerWarn}
           changeGestureLayer={v => changeLayer('gesture', v, () => onGestureChange({ ...gesture!, layer: v }))}
           changeGestureModeLayer={(mode, v) => changeLayer('gestureMode', v, () => onGestureModeChange(mode, { ...gestureModes![mode], layer: v }), mode)}

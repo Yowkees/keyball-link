@@ -20,6 +20,8 @@ interface SettingsTabProps {
   onOledAnimChange: (v: boolean) => Promise<void>;
   bootAnimEnabled: boolean | null;  // 起動アニメーションのON/OFF。null = 非対応ファーム（項目を出さない）
   onBootAnimChange: (v: boolean) => Promise<void>;
+  gestureOsAdapt: boolean | null;  // 画面切り替えのジェスチャーをOSに合わせる（null = 非対応ファーム。RP2040版v0.6.0〜）
+  onGestureOsAdaptChange: (v: boolean) => Promise<void>;
   keyLayout: KeyLayout;
   onKeyLayoutChange: (layout: KeyLayout) => void;
   model: ModelKey | null;
@@ -31,7 +33,7 @@ interface SettingsTabProps {
 
 export function SettingsTab({
   settings, isConnected, onChange, detectedOs, oledAnimEnabled, onOledAnimChange, bootAnimEnabled, onBootAnimChange,
-  keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
+  gestureOsAdapt, onGestureOsAdaptChange, keyLayout, onKeyLayoutChange, model, productId, onTestLed, ledCount = 46, children,
 }: SettingsTabProps) {
   const [saving, setSaving] = useState(false);
   const [testLedIndex, setTestLedIndex] = useState<number | null>(null);  // LED実測中のインデックス（null=未実施）
@@ -102,6 +104,15 @@ export function SettingsTab({
               checked={settings.osAutoSwap} disabled={disabled}
               onChange={v => apply({ osAutoSwap: v })}
             />
+            {/* 2026-11-12: トラックボールのパネルから移動（本人希望。OSに関わる設定をここにまとめる） */}
+            {gestureOsAdapt !== null && (
+              <ToggleRow
+                label={t('画面切り替えのジェスチャーをOSに合わせる')}
+                desc="" tip={TIPS.osGestureAdapt}
+                checked={gestureOsAdapt} disabled={disabled}
+                onChange={v => { void onGestureOsAdaptChange(v); }}
+              />
+            )}
           </div>
           {saving && <p className="td-saving" style={{ marginTop: 8 }}>{t('保存中…')}</p>}
         </>

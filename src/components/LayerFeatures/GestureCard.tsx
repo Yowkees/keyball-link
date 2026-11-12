@@ -9,6 +9,8 @@ import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
 import { TIPS } from '../../lib/tips';
 import { t } from '../../lib/i18n';
+import { gestureLabel } from '../../lib/names';
+import { NameInput } from '../NameInput/NameInput';
 
 interface GestureCardProps {
   gesture: GestureConfig | null;
@@ -34,6 +36,8 @@ interface GestureCardProps {
   layerWarn: LayerWarn | null;
   changeGestureLayer: (v: number) => void;
   changeGestureModeLayer: (mode: number, v: number) => void;
+  gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム。RP2040版v0.6.0〜）
+  onGestureNameChange: (mode: number, name: string) => Promise<void>;
 }
 
 export function GestureCard({
@@ -41,6 +45,7 @@ export function GestureCard({
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
+  gestureNames, onGestureNameChange,
 }: GestureCardProps) {
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
@@ -70,7 +75,8 @@ export function GestureCard({
               className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}
               onClick={() => setGestureModeTab(m)}
             >
-              {t('ジェスチャー{0}', m + 1)}
+              {/* 名前が付いていれば名前で出す（2026-11-12、本人希望） */}
+              {gestureLabel(m, gestureNames)}
             </button>
           ))}
         </div>
@@ -79,6 +85,15 @@ export function GestureCard({
         <div className="gesture-card__col">
         <div className="card-sep">
           <div className="gesture-grid">
+            {/* ジェスチャーの名前（2026-11-12、本人希望。キーマップのトラックボールのパネルと同じ名前を編集する） */}
+            {gestureNames && (
+              <div className="gesture-row">
+                <span className="gesture-dir">{t('名前')}</span>
+                <NameInput key={`${gestureModeTab}:${gestureNames[gestureModeTab] ?? ''}`} value={gestureNames[gestureModeTab] ?? ''}
+                  placeholder={t('ジェスチャー{0}', gestureModeTab + 1)} disabled={disabled}
+                  onSave={name => { void onGestureNameChange(gestureModeTab, name); }} />
+              </div>
+            )}
             {dirs.map(([dir, label, contKey]) => (
               <div key={dir} className="gesture-row">
                 <span className="gesture-dir" data-tip={TIPS.gestureKeys}>{label}</span>

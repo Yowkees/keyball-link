@@ -56,7 +56,6 @@ export const EN: Record<string, string> = {
   'すべてのレイヤーを並べて表示します（同じ位置のキーを見比べられます）': 'Show all layers together so you can compare keys in the same position',
   '全レイヤー': 'All layers',
   '名前': 'Name',
-  'レイヤー{0}': 'Layer {0}',
   'オートマウス': 'Auto mouse',
   'ボール（自動）': 'Ball (auto)',
   'ボール': 'Ball',
@@ -611,8 +610,6 @@ export const EN: Record<string, string> = {
   '右 →': 'Right →',
   '未設定': 'Not set',
   '連続入力': 'Repeat',
-  '画面切り替えをOSに合わせる': 'Match screen switching to the OS',
-  'Windowsにつないだ時、Ctrl+矢印（Macの画面切り替え）をWin+Ctrl+←/→・Win+Tab・Win+Dに置き換えます': 'When connected to Windows, replaces Ctrl+arrow (screen switching on Mac) with Win+Ctrl+←/→, Win+Tab and Win+D',
   '感度（横）': 'Sensitivity (horizontal)',
   '感度（縦）': 'Sensitivity (vertical)',
   'ジェスチャーウェーブ': 'Gesture wave',
@@ -862,4 +859,7 @@ export const EN: Record<string, string> = {
   'Remap対応の標準ファームウェアの初期キーマップを再現したもの（EEPROM全消去キーは安全のため未搭載）': 'Recreates the default keymap of the standard firmware for Remap (the EEPROM clear key is left out for safety)',
 
   'オートマウスレイヤー': 'Auto mouse layer',
+
+  '画面切り替えのジェスチャーをOSに合わせる': 'Match screen-switching gestures to the OS',
+  'Windowsにつないだ時、ジェスチャーで送るCtrl+矢印（Macの画面切り替え）を、Windowsの同じ操作に置き換えます。Ctrl+←/→はWin+Ctrl+←/→（デスクトップの切り替え）、Ctrl+↑はWin+Tab（タスクビュー）、Ctrl+↓はWin+D（デスクトップを表示）になります。どのジェスチャーに設定していても置き換わります。Macではそのままです。': 'When connected to Windows, replaces the Ctrl+arrow keys sent by gestures (screen switching on Mac) with the matching Windows shortcuts: Ctrl+←/→ becomes Win+Ctrl+←/→ (switch desktops), Ctrl+↑ becomes Win+Tab (Task View) and Ctrl+↓ becomes Win+D (show desktop). This applies to any gesture. Nothing changes on a Mac.',
 };

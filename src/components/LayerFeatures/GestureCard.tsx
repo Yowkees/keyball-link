@@ -3,11 +3,14 @@ import { buildHueGradient } from '../../lib/hueGradient';
 import type { GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor } from '../../lib/protocol';
 import { LAYER_NONE } from '../../lib/protocol';
 import type { KeyLayout, FirmwareAvail } from '../../lib/keycodes';
-import { getKeyDisplayLabel, isGestureExcludedKeycode } from '../../lib/keycodes';
+import { getKeyDisplayLabel, isGestureExcludedKeycode, gestureKeyForOs } from '../../lib/keycodes';
 import type { LayerWarn } from '../../hooks/useLayerConflict';
 import { SliderControl, ToggleRow } from '../SettingsControls/SettingsControls';
 import { KeyConfigModal, TapKeyPicker } from '../KeyConfigModal/KeyConfigModal';
 import { TIPS } from '../../lib/tips';
+import { t } from '../../lib/i18n';
+import { gestureLabel } from '../../lib/names';
+import { NameInput } from '../NameInput/NameInput';
 
 interface GestureCardProps {
   gesture: GestureConfig | null;
@@ -33,6 +36,9 @@ interface GestureCardProps {
   layerWarn: LayerWarn | null;
   changeGestureLayer: (v: number) => void;
   changeGestureModeLayer: (mode: number, v: number) => void;
+  gestureNames: string[] | null;  // ジェスチャーの名前（null = 非対応ファーム。RP2040版v0.6.0〜）
+  onGestureNameChange: (mode: number, name: string) => Promise<void>;
+  gestureOsAdaptActive: boolean;  // Windowsにつないでいて「画面切り替えのジェスチャーをOSに合わせる」がON（表示を置き換え後のキーにする）
 }
 
 export function GestureCard({
@@ -40,6 +46,7 @@ export function GestureCard({
   gestureWaveSpeed, onGestureWaveSpeedChange, gestureWaveEnable, onGestureWaveEnableChange,
   gestureWaveStyle, onGestureWaveStyleChange, gestureWaveColor, onGestureWaveColorChange,
   disabled, keyLayout, avail, layersInclBase, layerWarn, changeGestureLayer, changeGestureModeLayer,
+  gestureNames, onGestureNameChange, gestureOsAdaptActive,
 }: GestureCardProps) {
   const [gestureModeTab, setGestureModeTab] = useState(0);  // 複数ジェスチャーモードUIで編集中のモード(0-3)。ウェーブの速さ・見た目・色もこのタブに連動する
   const [editModeDir, setEditModeDir] = useState<{ mode: number; dir: 'up' | 'down' | 'left' | 'right' } | null>(null);
@@ -53,10 +60,10 @@ export function GestureCard({
   if (gestureModes && gestureThreshold) {
     const mode = gestureModes[gestureModeTab];
     const dirs = [
-      ['up', '上 ↑', 'continuousUp'],
-      ['down', '下 ↓', 'continuousDown'],
-      ['left', '左 ←', 'continuousLeft'],
-      ['right', '右 →', 'continuousRight'],
+      ['up', t('上 ↑'), 'continuousUp'],
+      ['down', t('下 ↓'), 'continuousDown'],
+      ['left', t('左 ←'), 'continuousLeft'],
+      ['right', t('右 →'), 'continuousRight'],
     ] as const;
     // 2026-10-06〜: 説明文は外し（本人希望）、モード切替の下を左右2列にする
     // （左=割り当てキー・連動レイヤー・感度、右=ジェスチャーウェーブ。画面が狭い時は縦1列。index.css参照）
@@ -69,7 +76,8 @@ export function GestureCard({
               className={`btn btn--small btn--layer ${gestureModeTab === m ? 'btn--layer-active' : ''}`}
               onClick={() => setGestureModeTab(m)}
             >
-              ジェスチャー{m + 1}
+              {/* 名前が付いていれば名前で出す（2026-11-12、本人希望） */}
+              {gestureLabel(m, gestureNames)}
             </button>
           ))}
         </div>
@@ -78,11 +86,20 @@ export function GestureCard({
         <div className="gesture-card__col">
         <div className="card-sep">
           <div className="gesture-grid">
+            {/* ジェスチャーの名前（2026-11-12、本人希望。キーマップのトラックボールのパネルと同じ名前を編集する） */}
+            {gestureNames && (
+              <div className="gesture-row">
+                <span className="gesture-dir">{t('名前')}</span>
+                <NameInput key={`${gestureModeTab}:${gestureNames[gestureModeTab] ?? ''}`} value={gestureNames[gestureModeTab] ?? ''}
+                  placeholder={t('ジェスチャー{0}', gestureModeTab + 1)} disabled={disabled}
+                  onSave={name => { void onGestureNameChange(gestureModeTab, name); }} />
+              </div>
+            )}
             {dirs.map(([dir, label, contKey]) => (
               <div key={dir} className="gesture-row">
                 <span className="gesture-dir" data-tip={TIPS.gestureKeys}>{label}</span>
                 <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditModeDir({ mode: gestureModeTab, dir })}>
-                  {getKeyDisplayLabel(mode[dir], keyLayout) || '未設定'}
+                  {getKeyDisplayLabel(gestureKeyForOs(mode[dir], gestureOsAdaptActive), keyLayout) || t('未設定')}
                 </button>
                 <label className="setting-row__desc" data-tip={TIPS.gestureContinuous} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
                   <input
@@ -91,16 +108,20 @@ export function GestureCard({
                     checked={mode[contKey]}
                     onChange={e => onGestureModeChange(gestureModeTab, { ...mode, [contKey]: e.target.checked })}
                   />
-                  連続入力
+                  {t('連続入力')}
                 </label>
               </div>
             ))}
+            {/* 置き換えて表示している時だけ、その旨を書く（2026-11-12） */}
+            {dirs.some(([dir]) => gestureKeyForOs(mode[dir], gestureOsAdaptActive) !== mode[dir]) && (
+              <p className="settings-desc" style={{ marginTop: 6 }}>{t('Windowsにつないでいるため、Ctrl+矢印はWindowsの画面切り替えのキーに置き換えて表示しています（GUIはWindowsキー）。')}</p>
+            )}
           </div>
 
           <div className="card-sep">
             <div className="setting-row">
               <div className="setting-row__text">
-                <span className="setting-row__label" data-tip={TIPS.gestureLayer}>連動レイヤー</span>
+                <span className="setting-row__label" data-tip={TIPS.gestureLayer}>{t('連動レイヤー')}</span>
               </div>
               <select
                 className="trackball-bar__select"
@@ -108,7 +129,7 @@ export function GestureCard({
                 disabled={disabled}
                 onChange={e => changeGestureModeLayer(gestureModeTab, Number(e.target.value))}
               >
-                <option value={LAYER_NONE}>なし</option>
+                <option value={LAYER_NONE}>{t('なし')}</option>
                 {layersInclBase.map(l => (
                   <option key={l} value={l}>Layer {l}</option>
                 ))}
@@ -121,14 +142,14 @@ export function GestureCard({
         </div>
 
         <div className="card-sep">
-          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>感度（4モード共通）</p>
-          <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
+          <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>{t('感度（全モード共通）')}</p>
+          <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>{t('左右方向')}</p>
           <SliderControl
             value={gestureThreshold.h} min={10} max={200} step={5}
             disabled={disabled} unit="" invert
             onCommit={v => onGestureThresholdChange({ ...gestureThreshold, h: v })}
           />
-          <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
+          <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>{t('上下方向')}</p>
           <SliderControl
             value={gestureThreshold.v} min={10} max={200} step={5}
             disabled={disabled} unit="" invert
@@ -141,7 +162,7 @@ export function GestureCard({
         {gestureWaveSpeed !== null && gestureWaveEnable !== null && (
           <div className="card-sep">
             <ToggleRow
-              label="ジェスチャーウェーブ"
+              label={t('ジェスチャーウェーブ')}
               tip={TIPS.gestureWave}
               desc=""
               checked={gestureWaveEnable}
@@ -157,8 +178,8 @@ export function GestureCard({
                   disabled={disabled || !gestureWaveEnable}
                   onChange={e => onGestureWaveStyleChange(gestureModeTab, Number(e.target.value))}
                 >
-                  <option value={0}>シャープ（瞬間的に光る）</option>
-                  <option value={1}>ブリージング（柔らかく呼吸するように流れる）</option>
+                  <option value={0}>{t('シャープ（瞬間的に光る）')}</option>
+                  <option value={1}>{t('ブリージング（柔らかく呼吸するように流れる）')}</option>
                 </select>
               </>
             )}
@@ -167,7 +188,7 @@ export function GestureCard({
               const barColor = liveColor ?? color;
               return (
                 <>
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureHue}>色相</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureHue}>{t('色相')}</p>
                   {/* 虹色バーそのものをドラッグして色相を選ぶ（2026-10-06、本人希望で下の数値バーを廃止）。
                       バーの上に透明なスライダーを重ね、白い目印を動かす。右に数値を表示 */}
                   <div className="tapping-term-row hue-bar-row">
@@ -177,7 +198,7 @@ export function GestureCard({
                       <input
                         type="range" min={0} max={255} step={1}
                         className="hue-bar__input"
-                        aria-label="色相"
+                        aria-label={t('色相')}
                         value={barColor.hue}
                         disabled={disabled || !gestureWaveEnable}
                         onChange={e => setLiveColor({ ...barColor, hue: Number(e.target.value) })}
@@ -187,14 +208,14 @@ export function GestureCard({
                     </div>
                     <span className="tapping-term-value">{barColor.hue}</span>
                   </div>
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSat}>彩度</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSat}>{t('彩度')}</p>
                   <SliderControl
                     value={color.sat} min={0} max={255} step={1}
                     disabled={disabled || !gestureWaveEnable} unit=""
                     onChange={v => setLiveColor({ ...barColor, sat: v })}
                     onCommit={v => onGestureWaveColorChange(gestureModeTab, { ...color, sat: v })}
                   />
-                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureVal}>明るさ</p>
+                  <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureVal}>{t('明るさ')}</p>
                   <SliderControl
                     value={color.val} min={0} max={255} step={1}
                     disabled={disabled || !gestureWaveEnable} unit=""
@@ -204,7 +225,7 @@ export function GestureCard({
                 </>
               );
             })()}
-            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSpeed}>速さ</p>
+            <p className="settings-desc" style={{ marginTop: 12, fontWeight: 600 }} data-tip={TIPS.gestureSpeed}>{t('速さ')}</p>
             <SliderControl
               value={gestureWaveSpeed[gestureModeTab]} min={1} max={255} step={1}
               disabled={disabled || !gestureWaveEnable} unit=""
@@ -236,17 +257,17 @@ export function GestureCard({
   }
 
   if (gesture === null) {
-    return <p className="settings-desc">このファームは非対応です。</p>;
+    return <p className="settings-desc">{t('このファームは非対応です。')}</p>;
   }
 
   return (
     <>
       <div className="gesture-grid">
-        {([['up', '上 ↑'], ['down', '下 ↓'], ['left', '左 ←'], ['right', '右 →']] as const).map(([dir, label]) => (
+        {([['up', t('上 ↑')], ['down', t('下 ↓')], ['left', t('左 ←')], ['right', t('右 →')]] as const).map(([dir, label]) => (
           <div key={dir} className="gesture-row">
             <span className="gesture-dir">{label}</span>
             <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditDir(dir)}>
-              {getKeyDisplayLabel(gesture[dir], keyLayout) || '未設定'}
+              {getKeyDisplayLabel(gesture[dir], keyLayout) || t('未設定')}
             </button>
           </div>
         ))}
@@ -254,9 +275,9 @@ export function GestureCard({
 
       <div className="card-sep">
         <div className="gesture-row">
-          <span className="gesture-dir">タップ</span>
+          <span className="gesture-dir">{t('タップ')}</span>
           <button className="gesture-key-btn" disabled={disabled} onClick={() => setEditTap(true)}>
-            {gesture.tap ? getKeyDisplayLabel(gesture.tap, keyLayout) : 'なし（長押し専用）'}
+            {gesture.tap ? getKeyDisplayLabel(gesture.tap, keyLayout) : t('なし（長押し専用）')}
           </button>
         </div>
       </div>
@@ -264,7 +285,7 @@ export function GestureCard({
       <div className="card-sep">
         <div className="setting-row">
           <div className="setting-row__text">
-            <span className="setting-row__label" data-tip={TIPS.gestureLayer}>ジェスチャーレイヤー</span>
+            <span className="setting-row__label" data-tip={TIPS.gestureLayer}>{t('ジェスチャーレイヤー')}</span>
           </div>
           <select
             className="trackball-bar__select"
@@ -272,7 +293,7 @@ export function GestureCard({
             disabled={disabled}
             onChange={e => changeGestureLayer(Number(e.target.value))}
           >
-            <option value={LAYER_NONE}>なし</option>
+            <option value={LAYER_NONE}>{t('なし')}</option>
             {layersInclBase.map(l => (
               <option key={l} value={l}>Layer {l}</option>
             ))}
@@ -284,14 +305,14 @@ export function GestureCard({
       </div>
 
       <div className="card-sep">
-        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>感度</p>
-        <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>左右方向</p>
+        <p className="settings-desc" style={{ fontWeight: 600 }} data-tip={TIPS.gestureSens}>{t('感度')}</p>
+        <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>{t('左右方向')}</p>
         <SliderControl
           value={gesture.thresholdH} min={10} max={200} step={5}
           disabled={disabled} unit="" invert
           onCommit={v => onGestureChange({ ...gesture, thresholdH: v })}
         />
-        <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>上下方向</p>
+        <p className="settings-desc" style={{ marginTop: 8, fontWeight: 600 }}>{t('上下方向')}</p>
         <SliderControl
           value={gesture.thresholdV} min={10} max={200} step={5}
           disabled={disabled} unit="" invert
@@ -317,7 +338,7 @@ export function GestureCard({
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setEditTap(false); }}>
           <div className="modal-dialog">
             <div className="modal-header">
-              <span className="modal-title">ジェスチャーキーをタップした時のキー</span>
+              <span className="modal-title">{t('ジェスチャーキーをタップした時のキー')}</span>
               <button className="modal-close" onClick={() => setEditTap(false)}>✕</button>
             </div>
             <div className="modal-body">

@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { t, tk } from '../../lib/i18n';
 
 export type GuideStep =
   | 'flash' | 'connect' | 'click' | 'assign'
@@ -26,67 +27,67 @@ interface StepDef {
 // タブの①②手順化など）に合わせて文言と指す場所を更新（本人依頼）。
 const STEP_DEFS: Partial<Record<GuideStep, StepDef>> = {
   flash: {
-    title: 'ファームウェアを書き込む（初回のみ）',
-    desc: 'Keyball Linkを使うには、専用のファームウェアが必要です。購入時のファームウェア（Remap用）のままでは接続できません。「ファームウェア」タブを開き、①で機種・チップ（AVR/RP2040）・内蔵ファームウェアを選んで、②「書き込む」を押します（左右それぞれ）。もう書き込み済みなら「次へ」を押してください。',
+    title: tk('ファームウェアを書き込む（初回のみ）'),
+    desc: tk('Keyball Linkを使うには、専用のファームウェアが必要です。購入時のファームウェア（Remap用）のままでは接続できません。「ファームウェア」タブを開き、①で機種・チップ（AVR/RP2040）・内蔵ファームウェアを選んで、②「書き込む」を押します（左右それぞれ）。もう書き込み済みなら「次へ」を押してください。'),
     // ファームウェアタブを開いている時は書き込みの手順のカード、それ以外はタブ見出しを指す
     targets: ['[data-guide="firmware-panel"] [data-card="flash"]', '[data-guide="firmware-tab"]'],
     manual: true,
   },
   connect: {
-    title: 'キーボードに接続',
-    desc: 'キーボードをUSBでつないでから、このボタンを押し、一覧から Keyball を選んで「接続」を押してください。',
+    title: tk('キーボードに接続'),
+    desc: tk('キーボードをUSBでつないでから、このボタンを押し、一覧から Keyball を選んで「接続」を押してください。'),
     targets: ['[data-guide="connect-btn"]'],
   },
   click: {
-    title: 'キーをクリック',
-    desc: '変更したいキーをクリックしてください。右側のキー設定パネルに、割り当てられるキーの一覧が出ます。',
+    title: tk('キーをクリック'),
+    desc: tk('変更したいキーをクリックしてください。右側のキー設定パネルに、割り当てられるキーの一覧が出ます。'),
     targets: ['[data-guide="keyboard"]'],
     side: 'right',  // キー配列は大きいので、右（キー設定パネルの上）から指す
   },
   assign: {
-    title: '新しいキーを選ぶ',
-    desc: '右側の一覧から割り当てたいキーをクリックすると、選んだキーにすぐ設定されます。',
+    title: tk('新しいキーを選ぶ'),
+    desc: tk('右側の一覧から割り当てたいキーをクリックすると、選んだキーにすぐ設定されます。'),
     targets: ['[data-guide="key-picker"]', '[data-guide="keyboard"]'],
     side: 'left',   // キー設定パネルは縦長なので、左（キー配列側）から指す
   },
   mods: {
-    title: '修飾キーとホールド',
-    desc: '右側のキー設定パネルの「ホールド」タブでは、タップ＝通常キー／長押し＝Shift・Ctrl やレイヤー切替、という1キー2役の設定ができます。',
+    title: tk('修飾キーとホールド'),
+    desc: tk('右側のキー設定パネルの「ホールド」タブでは、タップ＝通常キー／長押し＝Shift・Ctrl やレイヤー切替、という1キー2役の設定ができます。'),
     targets: ['[data-guide="hold-tab"]', '[data-guide="keyboard"]'],
     manual: true,
   },
   layers: {
-    title: 'レイヤー',
-    desc: 'レイヤーはキー配列の切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。ここで編集するレイヤーを選べます。「全レイヤー」で全部を並べて見比べたり、ドラッグで並べ替えたりもできます。',
+    title: tk('レイヤー'),
+    desc: tk('レイヤーはキー配列の切り替えページです。MO(1) などの切替キーを押している間だけ別の配列になります。ここで編集するレイヤーを選べます。「全レイヤー」で全部を並べて見比べたり、ドラッグで並べ替えたりもできます。'),
     targets: ['[data-guide="layer-tabs"]'],
     manual: true,
   },
   led: {
     title: 'LED',
-    desc: 'キー配列の下のLEDパネルで、LEDの光り方（エフェクト）・色・明るさ・速さを変えられます。レイヤーごとに光り方を変える「レイヤー連動LED」も設定できます。（LEDなしのファームウェアでは灰色で表示されます）',
+    desc: tk('キー配列の下のLEDパネルで、LEDの光り方（エフェクト）・色・明るさ・速さを変えられます。レイヤーごとに光り方を変える「レイヤー連動LED」も設定できます。（LEDなしのファームウェアでは灰色で表示されます）'),
     targets: ['[data-guide="led-panel"]'],
     manual: true,
   },
   save: {
-    title: '保存する',
-    desc: 'このボタンを押して、設定をキーボード本体に保存しましょう。保存しないと、電源を抜いた時に元に戻ります。',
+    title: tk('保存する'),
+    desc: tk('このボタンを押して、設定をキーボード本体に保存しましょう。保存しないと、電源を抜いた時に元に戻ります。'),
     targets: ['[data-guide="save-btn"]'],
   },
   trackball: {
-    title: 'トラックボール設定',
-    desc: '「トラックボール設定」タブでは、左の一覧から項目を選んで調整します。ボール動作（カーソルの速さ・精密モード）、スクロール、ジェスチャー、オートマウスレイヤー、シェイク・ダブルフリックが設定できます。',
+    title: tk('トラックボール設定'),
+    desc: tk('「トラックボール設定」タブでは、左の一覧から項目を選んで調整します。ボール動作（カーソルの速さ・精密モード）、スクロール、ジェスチャー、オートマウスレイヤー、シェイク・ダブルフリックが設定できます。'),
     targets: ['[data-guide="trackball-tab"]'],
     manual: true,
   },
   others: {
-    title: 'その他の設定',
-    desc: '「マクロ拡張」ではマクロ・タップダンス・コンボ、「詳細設定」ではキー動作（長押しの判定時間など）・OS自動判別・キー表示の配列（JIS/US）などを設定できます。項目にマウスを乗せると説明が出ます。以上で基本の使い方は終わりです！',
+    title: tk('その他の設定'),
+    desc: tk('「マクロ拡張」ではマクロ・タップダンス・コンボ、「詳細設定」ではキー動作（長押しの判定時間など）・OS自動判別・キー表示の配列（JIS/US）などを設定できます。項目にマウスを乗せると説明が出ます。以上で基本の使い方は終わりです！'),
     targets: ['[data-guide="macro-tab"]'],
     manual: true,
   },
   backToKeymap: {
-    title: 'キーマップに戻る',
-    desc: '「キーマップ」タブをクリックして、続きの設定に進みましょう。',
+    title: tk('キーマップに戻る'),
+    desc: tk('「キーマップ」タブをクリックして、続きの設定に進みましょう。'),
     targets: ['[data-guide="keymap-tab"]'],
   },
 };
@@ -140,7 +141,7 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
   }, [step, onDismiss]);
 
   if (step === 'done') {
-    return <div className="guide-done">設定完了！お疲れ様でした</div>;
+    return <div className="guide-done">{t('設定完了！お疲れ様でした')}</div>;
   }
   if (!def) return null;
 
@@ -190,16 +191,16 @@ export function WelcomeGuide({ step, onDismiss, onNext }: WelcomeGuideProps) {
       <div className={`guide-tooltip ${arrow ? '' : 'guide-tooltip--floating'}`} style={bubbleStyle}>
         <div className="guide-tooltip__head">
           <span className="guide-tooltip__step">
-            {idx >= 0 ? `ステップ ${idx + 1} / ${STEP_ORDER.length - 1}` : 'チュートリアル'}
+            {idx >= 0 ? t('ステップ {0} / {1}', idx + 1, STEP_ORDER.length - 1) : t('チュートリアル')}
           </span>
-          <button className="guide-tooltip__close" onClick={onDismiss}>✕ 閉じる</button>
+          <button className="guide-tooltip__close" onClick={onDismiss}>{t('✕ 閉じる')}</button>
         </div>
-        <div className="guide-tooltip__title">{def.title}</div>
-        <div className="guide-tooltip__desc">{def.desc}</div>
+        <div className="guide-tooltip__title">{t(def.title)}</div>
+        <div className="guide-tooltip__desc">{t(def.desc)}</div>
         {onNext && (
           <div className="guide-tooltip__actions">
             <button className="btn btn--primary btn--small" onClick={onNext}>
-              {step === 'others' ? '完了' : '次へ'}
+              {step === 'others' ? t('完了') : t('次へ')}
             </button>
           </div>
         )}

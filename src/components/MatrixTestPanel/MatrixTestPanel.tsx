@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { KeyLayout } from '../../layouts/types';
+import { t } from '../../lib/i18n';
 
 const KEY_SIZE = 38;
 const GAP = 3;
@@ -80,7 +81,7 @@ export function MatrixTestPanel({ layout, ballSide, onGetMatrix, splitGapPx = SP
   return (
     <div className="led-test-panel led-test-panel--embedded">
       <div className="led-test-controls">
-        <span className="led-test-index" style={{ color: 'var(--accent)' }}>● テスト中（キーを押すと反応します）</span>
+        <span className="led-test-index" style={{ color: 'var(--accent)' }}>{t('● テスト中（キーを押すと反応します）')}</span>
       </div>
 
       {/* wrapRef でコンテナ幅を計測し、内側を transform: scale で拡大 */}

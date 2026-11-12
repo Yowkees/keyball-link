@@ -1,6 +1,7 @@
 // ファームウェアの kb_hid.h と対応するプロトコル定義
 
 import type { ModelKey } from '../layouts';
+import { t, tk } from './i18n';
 
 export const KEYBALL_VID = 0x5957;
 export const KEYBALL_USAGE_PAGE = 0xFF60;
@@ -37,6 +38,10 @@ export const CMD = {
   SET_OLED_ANIM: 0x37,
   GET_BOOT_ANIM: 0x38,  // 起動アニメーションのON/OFF（RP2040版v0.5.7〜）
   SET_BOOT_ANIM: 0x39,
+  GET_NAME: 0x3A,  // レイヤー・ジェスチャーの名前（RP2040版v0.6.0〜）
+  SET_NAME: 0x3B,
+  GET_GESTURE_OS_ADAPT: 0x3C,  // 画面切り替えのジェスチャーをOSに合わせるか（RP2040版v0.6.0〜）
+  SET_GESTURE_OS_ADAPT: 0x3D,
   GET_PRECISION: 0x18,
   SET_PRECISION: 0x19,
   GET_LAYER_LED_ENABLE: 0x1A,
@@ -69,7 +74,7 @@ export const CMD = {
 } as const;
 
 // OS自動判別の種別（ファームウェア os_variant_t と一致させる）
-export const OS_VARIANT_NAMES = ['判別中…', 'Linux', 'Windows', 'macOS', 'iOS'] as const;
+export const OS_VARIANT_NAMES = [tk('判別中…'), 'Linux', 'Windows', 'macOS', 'iOS'] as const;
 
 // DPIカーブ（Photoshopのトーンカーブのように、トラックボールの「動きの速さ」を
 // 好きな形の折れ線で「実際に送る速さ」に変換する機能。RP2040版限定）。
@@ -246,7 +251,7 @@ export function encodeMacroBuffer(slots: MacroSlot[], bufferSize: number = MACRO
   }
   // 超過分を黙って切り捨てるとEEPROM上のデータが壊れるためエラーにする
   if (bytes.length > bufferSize) {
-    throw new Error(`マクロの合計サイズ（${bytes.length}バイト）がバッファ容量（${bufferSize}バイト）を超えています。ステップを減らしてください。`);
+    throw new Error(t('マクロの合計サイズ（{0}バイト）がバッファ容量（{1}バイト）を超えています。ステップを減らしてください。', bytes.length, bufferSize));
   }
   // バッファ末尾をゼロパディング
   while (bytes.length < bufferSize) bytes.push(0);
@@ -333,20 +338,20 @@ export interface LedConfig {
 // 本人希望でどちらのスタイルも選べるようにした）。速度は共通でgestureWaveSpeed
 // （GET/SET_GESTURE_WAVE_SPEED）で設定する。
 export const LED_EFFECTS = [
-  { id: 0,  label: 'オフ' },
-  { id: 1,  label: 'ソリッド' },
-  { id: 2,  label: 'ブリージング' },
-  { id: 14, label: 'リアクティブ' },
-  { id: 17, label: 'リップル' },
-  { id: 15, label: 'タイピングヒートマップ' },
-  { id: 16, label: 'トラックボールリアクティブ' },
-  { id: 8,  label: 'グラデーション' },
-  { id: 3,  label: 'レインボー' },
-  { id: 4,  label: 'スワール' },
-  { id: 9,  label: 'トゥインクル' },
-  { id: 7,  label: 'クリスマス' },
-  { id: 11, label: 'ハロウィン' },
-  { id: 13, label: 'イースター' },
+  { id: 0,  label: tk('オフ') },
+  { id: 1,  label: tk('ソリッド') },
+  { id: 2,  label: tk('ブリージング') },
+  { id: 14, label: tk('リアクティブ') },
+  { id: 17, label: tk('リップル') },
+  { id: 15, label: tk('タイピングヒートマップ') },
+  { id: 16, label: tk('トラックボールリアクティブ') },
+  { id: 8,  label: tk('グラデーション') },
+  { id: 3,  label: tk('レインボー') },
+  { id: 4,  label: tk('スワール') },
+  { id: 9,  label: tk('トゥインクル') },
+  { id: 7,  label: tk('クリスマス') },
+  { id: 11, label: tk('ハロウィン') },
+  { id: 13, label: tk('イースター') },
 ] as const;
 
 // AVR版（RGBLIGHT版）ファームが実際に対応しているエフェクトID。
@@ -449,7 +454,7 @@ export function makeLtKeycode(layer: number, kc: number): number {
 // レイヤー数は機種・ファームウェアにより異なる（AVR版は4、RP2040版は8など）ため、
 // 接続中の実際のレイヤー数を渡して選択肢を生成する。未接続時などは4件を既定値とする。
 export function getLayerTapLayers(layerCount: number = 4) {
-  return Array.from({ length: layerCount }, (_, i) => ({ value: i, label: `レイヤー ${i}` }));
+  return Array.from({ length: layerCount }, (_, i) => ({ value: i, label: t('レイヤー {0}', i) }));
 }
 
 // Mod-Tap キーコード: 0x2000 | (mod << 8) | kc
@@ -459,14 +464,14 @@ export function makeModTapKeycode(mod: number, kc: number): number {
 
 // 利用可能な Mod-Tap 修飾キー一覧
 export const MOD_TAP_MODS = [
-  { value: 0x02, label: 'Shift (左)' },
-  { value: 0x01, label: 'Ctrl (左)' },
-  { value: 0x04, label: 'Alt (左)' },
-  { value: 0x08, label: 'GUI (左)' },
-  { value: 0x12, label: 'Shift (右)' },
-  { value: 0x11, label: 'Ctrl (右)' },
-  { value: 0x14, label: 'Alt (右)' },
-  { value: 0x18, label: 'GUI (右)' },
+  { value: 0x02, label: tk('Shift (左)') },
+  { value: 0x01, label: tk('Ctrl (左)') },
+  { value: 0x04, label: tk('Alt (左)') },
+  { value: 0x08, label: tk('GUI (左)') },
+  { value: 0x12, label: tk('Shift (右)') },
+  { value: 0x11, label: tk('Ctrl (右)') },
+  { value: 0x14, label: tk('Alt (右)') },
+  { value: 0x18, label: tk('GUI (右)') },
 ] as const;
 
 // MODS（修飾＋キー同時送信）キーコード: 0x0100 | (mod5 << 8) | kc

@@ -6,6 +6,7 @@ import { ComboSection } from './ComboSection';
 import { SettingsSidebarBoard, type BoardCard } from '../SettingsBoard/SettingsBoard';
 import { HeaderToggle } from '../SettingsControls/SettingsControls';
 import { TIPS } from '../../lib/tips';
+import { t } from '../../lib/i18n';
 
 interface MacroTabProps {
   macroAvailable: boolean;   // マクロ機能自体が使えるファームか（LED版はメディアキーと引き換えに廃止）
@@ -33,24 +34,24 @@ export function MacroTab({
 }: MacroTabProps) {
   const cards: BoardCard[] = [
     {
-      key: 'macro', title: 'マクロ', tip: TIPS.macro,
+      key: 'macro', title: t('マクロ'), tip: TIPS.macro,
       render: () => (
         macroAvailable ? (
           <MacroEditor slots={macroSlots} keyLayout={keyLayout} isConnected={isConnected} onSave={onMacroSave} bufferSize={macroBufferSize} />
         ) : (
           <p className="settings-desc" style={{ color: 'var(--red)' }}>
-            ⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。<br />
-            通常版のファームを書き込むとマクロが使えます。「ファームウェア」タブから書き込めます。
+            {t('⚠ この版（LED版）ではマクロは使用できません（v1.1.0でメディアキーと引き換えに廃止されました）。')}<br />
+            {t('通常版のファームを書き込むとマクロが使えます。「ファームウェア」タブから書き込めます。')}
           </p>
         )
       ),
     },
     ...(tapDanceAvailable ? [{
-      key: 'td', title: 'タップダンス', tip: TIPS.tapdance,
+      key: 'td', title: t('タップダンス'), tip: TIPS.tapdance,
       render: () => <TapDanceSection tdSlots={tdSlots} onTdSlotChange={onTdSlotChange} keyLayout={keyLayout} disabled={!isConnected} />,
     }] : []),
     ...(comboAvailable ? [{
-      key: 'combo', title: 'コンボ', tip: TIPS.combo,
+      key: 'combo', title: t('コンボ'), tip: TIPS.combo,
       headerRight: <HeaderToggle checked={comboEnabled} disabled={!isConnected} onChange={onComboEnabledChange} />,
       render: () => (
         <ComboSection

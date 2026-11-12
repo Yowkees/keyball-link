@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { KbSettings, GestureConfig, GestureModeConfig, PrecisionConfig } from '../lib/protocol';
 import { LAYER_NONE } from '../lib/protocol';
+import { t } from '../lib/i18n';
 
 export type LayerLinkTarget = 'aml' | 'scroll' | 'gesture' | 'gestureMode' | 'precision';
 
@@ -32,20 +33,20 @@ export function useLayerConflict(
     const isGestureFamily = target === 'gesture' || target === 'gestureMode';
     if (target !== 'precision') {
       if (target !== 'aml' && settings.autoMouseEnable)
-        others.push(['オートマウスレイヤー', settings.autoMouseLayer]);
+        others.push([t('オートマウスレイヤー'), settings.autoMouseLayer]);
       if (target !== 'scroll' && settings.scrollLayer !== LAYER_NONE)
-        others.push(['スクロールレイヤー', settings.scrollLayer]);
+        others.push([t('スクロールレイヤー'), settings.scrollLayer]);
     }
     if (target !== 'gesture' && gesture && gesture.layer !== LAYER_NONE)
-      others.push(['ジェスチャーレイヤー', gesture.layer]);
+      others.push([t('ジェスチャーレイヤー'), gesture.layer]);
     if (gestureModes) {
       gestureModes.forEach((m, i) => {
         if (target === 'gestureMode' && i === excludeMode) return;
-        if (m.layer !== LAYER_NONE) others.push([`ジェスチャー${i + 1}`, m.layer]);
+        if (m.layer !== LAYER_NONE) others.push([t('ジェスチャー{0}', i + 1), m.layer]);
       });
     }
     if (isGestureFamily && precision && precision.layer !== LAYER_NONE)
-      others.push(['精密モードレイヤー', precision.layer]);
+      others.push([t('精密モードレイヤー'), precision.layer]);
     const hit = others.find(([, l]) => l === val);
     return hit ? hit[0] : null;
   };
@@ -55,7 +56,7 @@ export function useLayerConflict(
   const changeLayer = (target: LayerLinkTarget, val: number, save: () => void, excludeMode?: number) => {
     const c = conflictName(target, val, excludeMode);
     if (c) {
-      setLayerWarn({ target, msg: `${c}と同じレイヤーのため保存できません。別のレイヤーを選んでください。`, mode: excludeMode });
+      setLayerWarn({ target, msg: t('{0}と同じレイヤーのため保存できません。別のレイヤーを選んでください。', c), mode: excludeMode });
     } else {
       setLayerWarn(null);
       save();

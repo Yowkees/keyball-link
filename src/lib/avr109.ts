@@ -2,6 +2,8 @@
 // Remap (github.com/remap-keys/remap) の WebSerial 実装を参考に作成。
 // ライターを毎回取得・解放する方式で DTR リセット後の復帰に対応。
 
+import { t } from './i18n';
+
 const PAGE_SIZE = 128;
 
 export class AVR109 {
@@ -100,11 +102,11 @@ export class AVR109 {
     }
 
     throw new Error(
-      'ブートローダーと同期できませんでした。\n\n' +
-      '【確認事項】\n' +
-      '・ポート選択ダイアログで「ProMicro 5V」を選びましたか？\n' +
-      '・ダイアログを開いてからリセットを2回押しましたか？\n\n' +
-      '繰り返し失敗する場合は QMK Toolbox をお試しください。\n' +
+      t('ブートローダーと同期できませんでした。') + '\n\n' +
+      t('【確認事項】') + '\n' +
+      t('・ポート選択ダイアログで「ProMicro 5V」を選びましたか？') + '\n' +
+      t('・ダイアログを開いてからリセットを2回押しましたか？') + '\n\n' +
+      t('繰り返し失敗する場合は QMK Toolbox をお試しください。') + '\n' +
       'https://github.com/qmk/qmk_toolbox/releases'
     );
   }
@@ -118,19 +120,19 @@ export class AVR109 {
   async enterProgramMode(): Promise<void> {
     await this.send([0x50]);
     const b = await this.readBytes(1);
-    if (b[0] !== 0x0D) throw new Error(`プログラムモード開始失敗 (0x${b[0].toString(16)})`);
+    if (b[0] !== 0x0D) throw new Error(t('プログラムモード開始失敗 (0x{0})', b[0].toString(16)));
   }
 
   async chipErase(): Promise<void> {
     await this.send([0x65]);
     const b = await this.readBytes(1, 10000);
-    if (b[0] !== 0x0D) throw new Error(`チップ消去失敗 (0x${b[0].toString(16)})`);
+    if (b[0] !== 0x0D) throw new Error(t('チップ消去失敗 (0x{0})', b[0].toString(16)));
   }
 
   async setAddress(wordAddr: number): Promise<void> {
     await this.send([0x41, (wordAddr >> 8) & 0xFF, wordAddr & 0xFF]);
     const b = await this.readBytes(1);
-    if (b[0] !== 0x0D) throw new Error('アドレス設定失敗');
+    if (b[0] !== 0x0D) throw new Error(t('アドレス設定失敗'));
   }
 
   async writeBlock(data: Uint8Array): Promise<void> {
@@ -138,13 +140,13 @@ export class AVR109 {
     await this.send(new Uint8Array([0x42, (len >> 8) & 0xFF, len & 0xFF, 0x46]));
     await this.send(data);
     const b = await this.readBytes(1, 3000);
-    if (b[0] !== 0x0D) throw new Error(`ブロック書き込み失敗 (0x${b[0].toString(16)})`);
+    if (b[0] !== 0x0D) throw new Error(t('ブロック書き込み失敗 (0x{0})', b[0].toString(16)));
   }
 
   async leaveProgramMode(): Promise<void> {
     await this.send([0x4C]);
     const b = await this.readBytes(1);
-    if (b[0] !== 0x0D) throw new Error('プログラムモード終了失敗');
+    if (b[0] !== 0x0D) throw new Error(t('プログラムモード終了失敗'));
   }
 
   async exitBootloader(): Promise<void> {
@@ -154,10 +156,10 @@ export class AVR109 {
   }
 
   async flash(firmware: Uint8Array, onProgress: (pct: number, msg: string) => void): Promise<void> {
-    onProgress(0, 'ブートローダー確認中…');
+    onProgress(0, t('ブートローダー確認中…'));
     await this.sync(10);
 
-    onProgress(0, 'プログラムモードへ…');
+    onProgress(0, t('プログラムモードへ…'));
     await this.enterProgramMode();
 
     const pages = Math.ceil(firmware.length / PAGE_SIZE);
@@ -171,7 +173,7 @@ export class AVR109 {
       await this.writeBlock(padded);
 
       const pct = Math.round(((page + 1) / pages) * 100);
-      onProgress(pct, `書き込み中… ${pct}%`);
+      onProgress(pct, t('書き込み中… {0}%', pct));
     }
 
     await this.leaveProgramMode();

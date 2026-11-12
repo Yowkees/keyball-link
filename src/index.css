@@ -274,6 +274,13 @@ body { background: var(--bg); overflow-x: hidden; }
   flex-shrink: 0;
 }
 
+/* 表示言語の切り替えボタン（2026-11-12〜）。テーマ切替の隣に同じ大きさで置く */
+.lang-toggle {
+  font-size: 12px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+
 .connection-bar {
   display: flex;
   align-items: center;
@@ -495,6 +502,11 @@ body { background: var(--bg); overflow-x: hidden; }
   background: transparent;
   color: var(--text-dim);
 }
+/* レイヤー・ジェスチャーの名前の入力欄（2026-11-04〜） */
+.layer-toolbar__name { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+.name-input { width: 10em; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--key-bg); color: var(--text); font-size: 13px; }
+.name-input:focus { outline: 2px solid var(--accent); }
+.name-input--long { border-color: var(--red); }
 .layer-tab:hover { border-color: var(--accent); }
 .layer-tab--active {
   border-color: var(--accent);
@@ -3211,6 +3223,10 @@ body { background: var(--bg); overflow-x: hidden; }
 .board-card .gesture-grid { gap: 6px; margin: 6px 0; }
 .board-card .gesture-row { gap: 8px; }
 .board-card .gesture-dir { width: auto; min-width: 40px; font-size: 13px; }
+/* 向き（上↑・Up ↑など）と「名前」の見出しは幅をそろえ、右のキーの欄が左右にずれないようにする。
+   英語表示（Down ↓・Right →）でも収まる幅にしている（2026-11-12） */
+.gesture-grid .gesture-dir,
+.ball-panel__gesture .gesture-dir { width: 58px; min-width: 58px; flex-shrink: 0; }
 .board-card .gesture-key-btn { padding: 6px 10px; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-card .trackball-bar { border: none; background: none; padding: 0; border-radius: 0; gap: 10px 16px; }
 .board-card .trackball-bar__item { min-width: 0; flex-basis: 100%; }
@@ -3458,7 +3474,7 @@ body { background: var(--bg); overflow-x: hidden; }
 
 /* ホバーで詳細説明を出す項目（lib/tips.ts）。点線の下線で「説明あり」と分かるようにする */
 [data-tip] { position: relative; text-decoration: underline dotted var(--text-dim); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-/* すぐには出さず、0.6秒ほどマウスを乗せたままにした時だけ表示する（2026-10-06、本人希望） */
+/* すぐには出さず、0.6秒ほどマウスを止めた時だけ表示する（2026-10-06、本人希望。待つ時間はlib/tipHover.ts） */
 [data-tip]::after {
   content: attr(data-tip);
   position: absolute;
@@ -3486,7 +3502,14 @@ body { background: var(--bg); overflow-x: hidden; }
 [data-tip]:hover::after {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.15s 0.6s, visibility 0s linear 0.6s;
+  transition: opacity 0.15s, visibility 0s;
+}
+/* マウスが動いている間は隠す（すぐに消す）。止まって0.6秒たつとlib/tipHover.tsがtip-movingを外して出す
+   （2026-11-12、本人希望。以前はCSSの0.6秒の遅れだけで、出た後は動かしても消えなかった） */
+html.tip-moving [data-tip]:hover::after {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
 }
 p[data-tip] { width: fit-content; }
 /* ジェスチャー1〜4の切り替え部分は下線を付けない（ボタンなので） */
@@ -3733,3 +3756,127 @@ p[data-tip] { width: fit-content; }
 
 /* ファームの種類ごとの書き込み回数（FirmwareFlasher.tsx） */
 .fw-flash-count { font-size: 11px; color: var(--text-dim); margin-left: 6px; }
+
+/* ===== タイピング: 記号・数字の練習（2026-10-29〜） ===== */
+.typing-tab { display: flex; flex-direction: column; gap: 12px; max-width: 1100px; margin: 0 auto; width: 100%; }
+/* 神の試練（2026-10-30〜） */
+.trial-god { display: flex; align-items: flex-start; gap: 16px; }
+.trial-god__face {
+  width: 96px; height: 96px; flex: none; border-radius: 50%; object-fit: cover; object-position: 50% 22%;
+  border: 2px solid color-mix(in srgb, #e8b44a 70%, var(--border)); box-shadow: 0 2px 10px rgba(0, 0, 0, .25); background: #fff;
+}
+.trial-god__bubble {
+  position: relative; flex: 1; min-height: 72px; padding: 12px 16px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--bg2);
+}
+.trial-god__bubble::before {
+  content: ''; position: absolute; left: -8px; top: 28px; width: 14px; height: 14px; transform: rotate(45deg);
+  background: var(--bg2); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.trial-god__name { font-size: 11.5px; font-weight: 700; color: #c9a92c; letter-spacing: .05em; }
+.trial-god__line { margin: 4px 0 0; font-size: 14.5px; line-height: 1.75; color: var(--text); animation: trial-line-in .4s ease-out; }
+@keyframes trial-line-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+.trial-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 720px) { .trial-map { grid-template-columns: 1fr; } }
+.trial-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 12px 14px; text-align: left;
+  border-radius: 12px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.trial-card:hover:not(:disabled) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.trial-card__no { font-size: 11.5px; color: var(--text-dim); }
+.trial-card__name { font-size: 16px; }
+.trial-card__desc { font-size: 12.5px; color: var(--text-dim); }
+.trial-card__state { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+.trial-card--cleared { border-color: color-mix(in srgb, #e8b44a 60%, var(--border)); }
+.trial-card--cleared .trial-card__state { color: #c9a92c; }
+.trial-card--locked { opacity: .45; cursor: not-allowed; }
+.trial-card--locked .trial-card__state { color: var(--text-dim); font-weight: 500; }
+.trial-free { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.trial-free__title { font-size: 13px; color: var(--text-dim); margin-right: 4px; }
+.trial-back { align-self: flex-start; }
+.trial-verdict { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: .2em; }
+.trial-verdict--pass { color: #c9a92c; }
+.trial-verdict--fail { color: var(--red); }
+
+.sym-practice { display: flex; flex-direction: column; gap: 10px; }
+.sym-practice__field { height: 300px; }
+.sym-practice__item { display: flex; gap: 4px; font-family: var(--font-mono); font-size: 40px; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+.sym-practice__ja { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sym-practice__ja b { font-size: 34px; font-weight: 700; }
+.sym-practice__ja span { font-size: 15px; color: var(--text-dim); }
+.sym-practice__item--romaji { font-size: 28px; gap: 2px; }
+.sym-ch { position: relative; min-width: .75em; padding: 2px 4px; border-radius: 8px; color: var(--text-dim); text-align: center; }
+.sym-ch--done { color: var(--accent); }
+.sym-ch--now {
+  color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.sym-ch--miss { background: color-mix(in srgb, var(--red) 16%, transparent); box-shadow: inset 0 -3px 0 var(--red); animation: typing-shake .3s; }
+.sym-ch__shake { position: absolute; inset: 0; border-radius: 8px; pointer-events: none; animation: typing-flash-miss .45s ease-out forwards; }
+.sym-practice__how { margin: 0; font-size: 15px; color: var(--text); min-height: 1.6em; }
+.sym-practice__how--wait { color: var(--text-dim); font-size: 13.5px; }
+.sym-practice__opt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
+.sym-practice__board { border: 1px solid var(--border); border-radius: 14px; background: var(--bg2); padding: 10px 0 6px; }
+.sym-practice__layer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 0 16px; font-size: 12.5px; color: var(--text-dim); }
+.sym-practice__legend { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.sym-practice__board .keyboard-layout-scale-box { margin: 10px auto; }
+.sym-practice__board .key { cursor: default; }
+.sym-practice__all { justify-content: center; }
+.sym-practice__missing { width: 100%; text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+.sym-chips { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; color: var(--text-dim); }
+.sym-chip {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: 6px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; border: 1px solid var(--border);
+  color: var(--text-dim); background: var(--key-bg);
+}
+.sym-practice__legend .sym-chip { font-family: inherit; font-weight: 600; font-size: 11.5px; height: 20px; }
+.sym-chip--learning { border-color: #e8964a; color: #e8964a; }
+.sym-chip--almost { border-color: #d6b941; color: #c9a92c; }
+.sym-chip--done { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--key-bg)); }
+
+/* キー配列の目印（押すキー=緑、押したまま=青、Shift=紫、間違えて押したキー=赤） */
+.key--mark-target, .key--mark-hold, .key--mark-shift, .key--mark-wrong { z-index: 2; }
+.key--mark-target {
+  border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 30%, var(--key-bg)) !important;
+  animation: sym-key-pulse 1.1s ease-in-out infinite;
+}
+.key--mark-hold { border: 2px solid #4a8fe8 !important; background: color-mix(in srgb, #4a8fe8 26%, var(--key-bg)) !important; }
+.key--mark-shift { border: 2px solid #a26be0 !important; background: color-mix(in srgb, #a26be0 26%, var(--key-bg)) !important; }
+.key--mark-wrong { border: 2px solid var(--red) !important; background: color-mix(in srgb, var(--red) 28%, var(--key-bg)) !important; }
+.key[data-note]::after {
+  content: attr(data-note); position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%);
+  white-space: nowrap; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; color: #fff; pointer-events: none;
+}
+.key--mark-hold[data-note]::after { background: #4a8fe8; }
+.key--mark-shift[data-note]::after { background: #a26be0; }
+.key--mark-wrong[data-note]::after { background: var(--red); }
+/* 第二の試練（親指）: 押す順の手順と入力欄 */
+.thumb-steps { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 6px; }
+.thumb-step { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); min-width: 44px; }
+.thumb-step b { font-size: 24px; font-weight: 700; color: var(--text); }
+.thumb-step small { font-size: 12px; }
+.thumb-step--key { font-size: 14px; font-weight: 700; border-style: dashed; }
+.thumb-step--now { border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
+.thumb-step--done { opacity: .45; }
+.thumb-romaji { font-family: var(--font-mono); font-size: 16px !important; letter-spacing: 1px; }
+.thumb-typed { color: var(--accent); }
+.thumb-input { width: min(100%, 520px); font-size: 22px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--key-bg); color: var(--text); text-align: center; }
+.thumb-input:focus { outline: 2px solid var(--accent); }
+/* 間違えやすいキーのヒートマップ（黄→赤の4段階） */
+.key--heat-1 { --heat: #e8c547; }
+.key--heat-2 { --heat: #e8964a; }
+.key--heat-3 { --heat: #e0663f; }
+.key--heat-4 { --heat: var(--red); }
+.key--heat { border-color: var(--heat) !important; background: color-mix(in srgb, var(--heat) 32%, var(--key-bg)) !important; }
+.key--heat-4 { background: color-mix(in srgb, var(--heat) 48%, var(--key-bg)) !important; }
+.key--heat[data-note]::after { background: var(--heat); }
+.sym-heat { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sym-heat--1 { background: #e8c547; } .sym-heat--2 { background: #e8964a; }
+.sym-heat--3 { background: #e0663f; } .sym-heat--4 { background: var(--red); }
+@keyframes sym-key-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+}

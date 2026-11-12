@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { KEYCODES, KEYCODE_GROUPS, findKeycode } from '../../lib/keycodes';
 import type { KeycodeEntry } from '../../lib/keycodes';
 import { makeModTapKeycode, MOD_TAP_MODS, makeLtKeycode, getLayerTapLayers } from '../../lib/protocol';
+import { t } from '../../lib/i18n';
 
 interface KeyPickerProps {
   currentCode: number;
@@ -58,39 +59,39 @@ function ModTapPanel({ currentCode, onSelect }: KeyPickerProps) {
 
   const preview = makeModTapKeycode(mod, baseKc);
   const tapLabel  = findKeycode(baseKc).short || '—';
-  const modLabel  = MOD_TAP_MODS.find(m => m.value === mod)?.label ?? `Mod(${mod})`;
+  const modLabel  = t(MOD_TAP_MODS.find(m => m.value === mod)?.label ?? `Mod(${mod})`);
 
   return (
     <div className="mt-builder">
       <p className="mt-builder__desc">
-        タップ → 通常キー / ホールド → 修飾キー として動作します。
+        {t('タップ → 通常キー / ホールド → 修飾キー として動作します。')}
       </p>
       <div className="mt-builder__row">
-        <label>ホールド時の修飾キー</label>
+        <label>{t('ホールド時の修飾キー')}</label>
         <select value={mod} onChange={e => setMod(Number(e.target.value))}>
           {MOD_TAP_MODS.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
+            <option key={m.value} value={m.value}>{t(m.label)}</option>
           ))}
         </select>
       </div>
       <div className="mt-builder__row">
-        <label>タップ時のキー</label>
+        <label>{t('タップ時のキー')}</label>
         <select value={baseKc} onChange={e => setBaseKc(Number(e.target.value))}>
-          <option value={0}>（なし）</option>
+          <option value={0}>{t('（なし）')}</option>
           {TAP_KEYS.map(k => (
             <option key={k.code} value={k.code}>{k.short}</option>
           ))}
         </select>
       </div>
       <div className="mt-builder__preview">
-        <span>プレビュー: タップ={tapLabel} / ホールド={modLabel}</span>
+        <span>{t('プレビュー: タップ={0} / ホールド={1}', tapLabel, modLabel)}</span>
       </div>
       <button
         className="btn btn--primary mt-builder__set"
         disabled={baseKc === 0}
         onClick={() => onSelect(preview)}
       >
-        このMod-Tapを設定
+        {t('このMod-Tapを設定')}
       </button>
     </div>
   );
@@ -105,15 +106,15 @@ function LayerTapPanel({ currentCode, onSelect, layerCount }: KeyPickerProps) {
 
   const preview = makeLtKeycode(layer, baseKc);
   const tapLabel   = findKeycode(baseKc).short || '—';
-  const layerLabel = layerTapLayers.find(l => l.value === layer)?.label ?? `レイヤー ${layer}`;
+  const layerLabel = layerTapLayers.find(l => l.value === layer)?.label ?? t('レイヤー {0}', layer);
 
   return (
     <div className="mt-builder">
       <p className="mt-builder__desc">
-        タップ → 通常キー / ホールド → レイヤー有効化 として動作します。
+        {t('タップ → 通常キー / ホールド → レイヤー有効化 として動作します。')}
       </p>
       <div className="mt-builder__row">
-        <label>ホールド時のレイヤー</label>
+        <label>{t('ホールド時のレイヤー')}</label>
         <select value={layer} onChange={e => setLayer(Number(e.target.value))}>
           {layerTapLayers.map(l => (
             <option key={l.value} value={l.value}>{l.label}</option>
@@ -121,23 +122,23 @@ function LayerTapPanel({ currentCode, onSelect, layerCount }: KeyPickerProps) {
         </select>
       </div>
       <div className="mt-builder__row">
-        <label>タップ時のキー</label>
+        <label>{t('タップ時のキー')}</label>
         <select value={baseKc} onChange={e => setBaseKc(Number(e.target.value))}>
-          <option value={0}>（なし）</option>
+          <option value={0}>{t('（なし）')}</option>
           {TAP_KEYS.map(k => (
             <option key={k.code} value={k.code}>{k.short}</option>
           ))}
         </select>
       </div>
       <div className="mt-builder__preview">
-        <span>プレビュー: タップ={tapLabel} / ホールド={layerLabel}</span>
+        <span>{t('プレビュー: タップ={0} / ホールド={1}', tapLabel, layerLabel)}</span>
       </div>
       <button
         className="btn btn--primary mt-builder__set"
         disabled={baseKc === 0}
         onClick={() => onSelect(preview)}
       >
-        このLayer-Tapを設定
+        {t('このLayer-Tapを設定')}
       </button>
     </div>
   );
@@ -157,13 +158,13 @@ export function KeyPicker({ currentCode, onSelect, layerCount }: KeyPickerProps)
   return (
     <div className="keypicker-panel">
       <div className="keypicker-panel__type-tabs">
-        {(['通常', 'Mod-Tap', 'Layer-Tap'] as KeyType[]).map(t => (
+        {(['通常', 'Mod-Tap', 'Layer-Tap'] as KeyType[]).map(k => (
           <button
-            key={t}
-            className={`tab ${keyType === t ? 'tab--active' : ''}`}
-            onClick={() => setKeyType(t)}
+            key={k}
+            className={`tab ${keyType === k ? 'tab--active' : ''}`}
+            onClick={() => setKeyType(k)}
           >
-            {t}
+            {t(k)}
           </button>
         ))}
       </div>

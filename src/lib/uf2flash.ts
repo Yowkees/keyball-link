@@ -5,6 +5,8 @@
 
 // TSの標準DOM libにはFileSystemDirectoryHandle等のハンドル型はあるが、
 // window.showDirectoryPicker()自体の型定義が無いため最小限を自前で補う。
+import { t } from './i18n';
+
 declare global {
   interface Window {
     showDirectoryPicker?(options?: { id?: string; mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>;
@@ -22,11 +24,10 @@ export async function verifyUf2Drive(dirHandle: FileSystemDirectoryHandle): Prom
     await dirHandle.getFileHandle('INFO_UF2.TXT');
   } catch {
     throw new Error(
-      '「RPI-RP2」という名前のドライブが見つかりません。\n\n' +
-      '・フォルダ選択ダイアログで「RPI-RP2」を選びましたか？\n' +
-      '・すでにKeyball Linkのファームウェアが入っている場合は、リセットボタンを' +
-      '素早く2回押すとブートローダーモードになります。\n' +
-      '・初めて書き込む場合は、BOOTSELボタンを押しながらUSBケーブルを挿し直してください。'
+      t('「RPI-RP2」という名前のドライブが見つかりません。') + '\n\n' +
+      t('・フォルダ選択ダイアログで「RPI-RP2」を選びましたか？') + '\n' +
+      t('・すでにKeyball Linkのファームウェアが入っている場合は、リセットボタンを素早く2回押すとブートローダーモードになります。') + '\n' +
+      t('・初めて書き込む場合は、BOOTSELボタンを押しながらUSBケーブルを挿し直してください。')
     );
   }
 }
@@ -40,10 +41,10 @@ export async function flashUf2(
   onProgress: (pct: number, msg: string) => void,
   fileName = 'firmware.uf2'
 ): Promise<void> {
-  onProgress(0, 'ドライブを確認中…');
+  onProgress(0, t('ドライブを確認中…'));
   await verifyUf2Drive(dirHandle);
 
-  onProgress(0, '書き込み準備中…');
+  onProgress(0, t('書き込み準備中…'));
   const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
   const writable = await fileHandle.createWritable();
 
@@ -56,10 +57,10 @@ export async function flashUf2(
       await writable.write(chunk as Uint8Array<ArrayBuffer>);
       written += chunk.length;
       const pct = Math.round((written / firmware.length) * 100);
-      onProgress(pct, `書き込み中… ${pct}%`);
+      onProgress(pct, t('書き込み中… {0}%', pct));
     }
     allSent = true;
-    onProgress(100, '書き込み完了処理中…');
+    onProgress(100, t('書き込み完了処理中…'));
     // closeした瞬間にRP2040のブートローダーが完全なUF2ファイルを検知し、
     // 自動的にフラッシュへ書き込んで再起動する。
     await writable.close();
@@ -76,7 +77,7 @@ export async function flashUf2(
     // 成功している。本人確認済み）。データを全部送り終えた後のエラーで、ドライブが
     // 消えていれば（＝再起動した）成功とみなす。ドライブが残っていれば本当の失敗。
     if (allSent && (await driveDisappeared(dirHandle))) {
-      onProgress(100, '書き込み完了');
+      onProgress(100, t('書き込み完了'));
       return;
     }
     throw e;

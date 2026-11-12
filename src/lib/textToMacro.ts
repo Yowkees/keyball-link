@@ -127,6 +127,12 @@ export function textToMacro(text: string, layout: KeyLayout): TextToMacroResult 
   return { steps, romaji, unsupported, hasJapanese };
 }
 
+// 1文字 → その配列でその文字になるキーコード（Shift付きは0x0200を足したもの）。無ければnull
+// （タイピング練習で「この文字はどのキーか」を調べるため。2026-10-29〜）
+export function charToKeycode(ch: string, layout: KeyLayout): number | null {
+  return baseKey(ch) ?? (layout === 'JIS' ? JIS_SYMBOLS : US_SYMBOLS)[ch] ?? null;
+}
+
 // ── 逆変換（マクロのステップ → 文。後から文として編集するため。2026-10-06〜）──
 // キーコードからその配列で入力される1文字を返す。文字にならないキー（Ctrl+Aなど）はnull。
 export function keycodeToChar(kc: number, layout: KeyLayout): string | null {

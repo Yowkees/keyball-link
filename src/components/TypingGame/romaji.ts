@@ -23,7 +23,7 @@ const BASE: Record<string, string[]> = {
   ぱ: ['pa'], ぴ: ['pi'], ぷ: ['pu'], ぺ: ['pe'], ぽ: ['po'],
   ぁ: ['xa', 'la'], ぃ: ['xi', 'li'], ぅ: ['xu', 'lu'], ぇ: ['xe', 'le'], ぉ: ['xo', 'lo'],
   ゃ: ['xya', 'lya'], ゅ: ['xyu', 'lyu'], ょ: ['xyo', 'lyo'], っ: ['xtu', 'ltu', 'xtsu', 'ltsu'],
-  ー: ['-'], '、': [','], '。': ['.'], ' ': [' '],
+  ー: ['-'], '、': [','], '。': ['.'], ' ': [' '], '「': ['['], '」': [']'],
 };
 
 // 「きゃ」のように2文字で1つの音になるもの
@@ -44,7 +44,7 @@ const COMBO: Record<string, string[]> = {
 };
 
 // 文字の区切りごとの打ち方の候補。2文字の音は、1文字ずつ打つ方法（き＋ゃ＝kixya）も候補に入れる
-function unitsOf(kana: string): string[][] {
+function unitsOf(kana: string, keepCase: boolean): string[][] {
   const units: string[][] = [];
   for (let i = 0; i < kana.length; i++) {
     const pair = kana.slice(i, i + 2);
@@ -54,8 +54,8 @@ function unitsOf(kana: string): string[][] {
       i++;
     } else {
       const c = kana[i];
-      // 英字・数字・記号はそのまま打つ
-      units.push(BASE[c] ?? [c.toLowerCase()]);
+      // 英字・数字・記号はそのまま打つ（keepCase の時は大文字も区別する。記号・数字の練習でShiftも練習するため）
+      units.push(BASE[c] ?? [keepCase ? c : c.toLowerCase()]);
     }
   }
   // 「っ」は次の音の最初の子音を重ねる打ち方（kka など）も候補にし、次の音とまとめて1つにする
@@ -79,8 +79,8 @@ export interface RomajiState {
   done: string;     // 打ち終わった区切りのローマ字
 }
 
-export function newRomaji(kana: string): RomajiState {
-  return { units: unitsOf(kana), idx: 0, buf: '', done: '' };
+export function newRomaji(kana: string, keepCase = false): RomajiState {
+  return { units: unitsOf(kana, keepCase), idx: 0, buf: '', done: '' };
 }
 
 export const isFinished = (s: RomajiState) => s.idx >= s.units.length;
@@ -106,6 +106,11 @@ export function typeKey(s: RomajiState, key: string): RomajiState | null {
   return null;
 }
 
+// その打ち方で、かな1文字（または「きゃ」などの2文字の音）が出来上がるか（日本語入力で
+// 間違えた時、Backspace 1回で消えるのが「かな」か「打ちかけのローマ字1文字」かを見分けるため）
+export const completesKana = (s: string) =>
+  Object.values(BASE).some(v => v.includes(s)) || Object.values(COMBO).some(v => v.includes(s));
+
 // 画面に出すお手本: [打ち終わった部分, まだの部分]
 export function guide(s: RomajiState): [string, string] {
   const typed = s.done + s.buf;
@@ -117,4 +122,13 @@ export function guide(s: RomajiState): [string, string] {
     return u[0] === 'nn' && nx && !'aiueoyn'.includes(nx[0]) ? 'n' : u[0];
   }).join('');
   return [typed, cur.slice(s.buf.length) + rest];
+}
+
+// お手本: [打ち終わった部分, この先]。「ん」を n 1つ打った後に子音が続く時は、
+// もう次の音を打ってよいので、お手本から余分な n を外して次の文字を案内する
+export function aheadOf(s: RomajiState): [string, string] {
+  const [typed, rest] = guide(s);
+  const nx = s.units[s.idx + 1]?.[0];
+  if (s.buf === 'n' && s.units[s.idx]?.includes('nn') && nx && !'aiueoyn'.includes(nx[0])) return [typed, rest.slice(1)];
+  return [typed, rest];
 }

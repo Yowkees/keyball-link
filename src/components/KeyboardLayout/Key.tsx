@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { KeyLayout as LayoutDef } from '../../layouts/types';
 import { findKeycode, getKeyDisplayLabel, getShiftLabel } from '../../lib/keycodes';
 import type { KeyLayout } from '../../lib/keycodes';
+import { t, tk } from '../../lib/i18n';
 
 const KEY_SIZE = 52;
 const GAP = 4;
@@ -19,11 +20,20 @@ interface KeyProps {
   onDrop: (keycode: number) => void;
   onHover?: () => void;
   onHoverEnd?: () => void;
+  mark?: KeyMark;
+  heat?: KeyHeat;
 }
+
+// タイピング練習の目印。target=押すキー / hold=押したままにするキー / shift=一緒に押すShift / wrong=間違えて押したキー
+export type KeyMark = 'target' | 'hold' | 'shift' | 'wrong';
+const MARK_NOTE: Record<KeyMark, string> = { target: '', hold: tk('押したまま'), shift: 'Shift', wrong: tk('押したキー') };
+
+// 間違えやすさのヒートマップ。level=色の濃さ（1〜4）、note=キーの下に出す文字（間違えた文字と回数）
+export interface KeyHeat { level: 1 | 2 | 3 | 4; note: string }
 
 export interface KeyRect { left: number; top: number; width: number; height: number; rotate: number; originX: number; originY: number }
 
-export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, rect, onClick, onDrop, onHover, onHoverEnd }: KeyProps) {
+export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, rect, onClick, onDrop, onHover, onHoverEnd, mark, heat }: KeyProps) {
   const [dragOver, setDragOver] = useState(false);
 
   const isBall     = layout.ball === ballSide;
@@ -46,7 +56,8 @@ export function Key({ layout, keycode, selected, ballSide, keyLayout, xExtra, re
       onMouseEnter={onHover}
       onMouseLeave={onHoverEnd}
       style={{ position: 'absolute', left: x, top: y, width: w, height: h, ...rot }}
-      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''}`}
+      className={`key ${selected ? 'key--selected' : ''} ${keycode === 0 ? 'key--none' : ''} ${dragOver ? 'key--dragover' : ''} ${shiftLabel ? 'key--dual' : ''} ${mark ? `key--mark-${mark}` : heat ? `key--heat key--heat-${heat.level}` : ''}`}
+      data-note={mark ? (MARK_NOTE[mark] ? t(MARK_NOTE[mark]) : undefined) : heat?.note}
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={e => {

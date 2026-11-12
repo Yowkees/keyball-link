@@ -1,4 +1,5 @@
 import type { ModelKey } from '../layouts';
+import { t } from './i18n';
 
 // FirmwareFlasher.tsx の BUILTIN_FIRMWARE_AVR / BUILTIN_FIRMWARE_AVR_LED /
 // BUILTIN_FIRMWARE_RP2040 と対応するキー。
@@ -11,7 +12,7 @@ export function flashCountKey(model: ModelKey, ledVersion: boolean, chip: 'avr' 
 // 全ファームウェアの書き込み回数（全ユーザー合計）を取得する
 export async function fetchFlashCounts(): Promise<Record<string, number>> {
   const res = await fetch('/api/flash-count');
-  if (!res.ok) throw new Error(`書き込み回数の取得に失敗: ${res.status}`);
+  if (!res.ok) throw new Error(t('書き込み回数の取得に失敗: {0}', res.status));
   return res.json();
 }
 
@@ -23,5 +24,5 @@ export async function reportFlash(key: string): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key }),
   });
-  if (!res.ok) throw new Error(`書き込み回数の加算に失敗: ${res.status}`);
+  if (!res.ok) throw new Error(t('書き込み回数の加算に失敗: {0}', res.status));
 }

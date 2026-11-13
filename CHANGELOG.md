@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+### Fixed
+- RP2040版v0.6.5: 親側のOLEDの情報画面で、1行目の「Key」が「50y」に見え、一番下の「Layer」の行が右にずれて先頭に「.」が付き、右端が見切れていたのを直した（慣性スクロールの確認用に一時的に出していた表示が残っていて、行の幅からはみ出していた）
 
 ## [1.11.0] - 2026-11-12
 ### Added

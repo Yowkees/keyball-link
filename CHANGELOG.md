@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+
+## [1.11.2] - 2026-11-13
 ### Added
 - キー配列の表示がJISの時、キー選択の「記号」に「=」（Shift+-）を出すようにした。これまではShiftを付けて「-」を選ぶ必要があった。「=」で検索しても出る
 

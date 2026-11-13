@@ -162,6 +162,8 @@ export const KEYCODES: KeycodeEntry[] = [
   K(0x0226, '(',  'LPRN', 'Shift記号'),
   K(0x0227, ')',  'RPRN', 'Shift記号'),
   KL(0x0287, '_', 'S_INT1', 'Shift記号', 'JIS'),  // JIS: Shift+ろ
+  // JIS: Shift+-（ほ）で「=」。US表示の名前（_）を優先するため、同じコードのUS用より前に置く
+  KL(0x022D, '=', 'S(MINS)', 'Shift記号', 'JIS'),
   KL(0x022D, '_', 'UNDS',  'Shift記号', 'US'),   // US: Shift+-
   K(0x022E, '+',  'PLUS', 'Shift記号'),
   K(0x022F, '{',  'LCBR', 'Shift記号'),

@@ -10,8 +10,10 @@ interface TapDanceSettingsProps {
   onAssignToKey?: (keycode: number) => void;
 }
 
-const BASIC_KEYS = KEYCODES.filter(k =>
-  ['文字', '数字', '基本', '矢印', 'F', '修飾', '記号', 'Shift記号', '日本語'].includes(k.group)
+// 同じキーコードが配列別（JIS用・US用）に2つある時は、後ろ（US用の名前）だけを残す
+const BASIC_KEYS = KEYCODES.filter((k, i, all) =>
+  ['文字', '数字', '基本', '矢印', 'F', '修飾', '記号', 'Shift記号', '日本語'].includes(k.group) &&
+  all.map(x => x.code).lastIndexOf(k.code) === i
 );
 
 const LAYER_KEYS = KEYCODES.filter(k => k.group === 'レイヤー');

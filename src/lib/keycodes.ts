@@ -646,7 +646,8 @@ export function getKeyDescription(code: number, layout: KeyLayout): string {
   if (code === 0x0056) return t('テンキーの −（引き算）を入力します');
   if (code === 0x0057) return t('テンキーの +（足し算）を入力します');
   if (code === 0x0058) return t('テンキーの Enter を入力します');
-  if (code >= 0x0059 && code <= 0x0062) return t('テンキーの {0} を入力します', code - 0x0059);
+  // 並びは KP1(0x59)〜KP9(0x61)、最後が KP0(0x62)。0x59 を 1 として数え、10 番目（KP0）は 0 にする
+  if (code >= 0x0059 && code <= 0x0062) return t('テンキーの {0} を入力します', (code - 0x0059 + 1) % 10);
   if (code === 0x0063) return t('テンキーの .(小数点) を入力します');
 
   // RGB / LED

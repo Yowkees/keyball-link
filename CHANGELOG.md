@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+
+## [1.11.3] - 2026-11-18
 ### Fixed
 - テンキーの数字キー（KP1〜KP0）の説明が1つずれていた（KP1に「テンキーの0」と出ていた）のを直した
 

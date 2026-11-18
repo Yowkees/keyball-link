@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+### Changed
+- ファームの初期設定を変更（RP2040版v0.6.6・AVR版v1.5.6・Keyball+ v1.2.6）。LEDは呼吸から単色（ソリッド）に。RP2040版はOLEDのアニメーションもOFFに。新しく使い始めた時・設定を初期化した時の値で、LEDはすでに設定している人の設定はそのまま。OLEDのアニメーションは、RP2040版でONのまま使っていた人も更新後はいったんOFFになる（以前の作りでは「ONを選んだ」と「未設定」を区別できないため）
 
 ## [1.11.3] - 2026-11-18
 ### Fixed

@@ -50,68 +50,117 @@ export function XmasSnow() {
   );
 }
 
-// ---- ヘッダーの電飾 ----
-// ヘッダーの下の縁に、細い電線と暖かい白の小さな灯りをぶら下げる（大人っぽく一色にしている）。灯りはゆっくりまたたく
-const BULB_COUNT = 28;
+// ---- 見本画像（2026-11-19 本人提供）に合わせた飾り ----
+// ・各パネルの上に雪が積もる（CSSの ::after で描く。index.css 参照）
+// ・タブの列の後ろに、雪の丘・木・灯りのともる小屋・トナカイのシルエット
+// ・キー配列のパネルの中の下に、森のシルエットと積もった雪、灯りのついたツリー
+// ・画面のいちばん下に積もった雪、左に木、右下にヒイラギ
+// 色はくすんだ緑のシルエットに、暖かい灯りの黄色を差すだけにして簡素にする
 
-
-export function XmasGarland() {
-  // 電線: 電球と電球の間を1区間とし、区間ごとに下へたるむ曲線を描く（横幅に合わせて伸び縮みする）
-  const segW = 40;
-  let d = 'M0 2';
-  for (let i = 0; i < BULB_COUNT; i++) {
-    const x0 = i * segW;
-    d += ` Q${x0 + segW / 2} 18 ${x0 + segW} 2`;
+// 尖った針葉樹のシルエット（段々のギザギザ）
+function pine(cx: number, base: number, h: number, w: number) {
+  const tiers = 4;
+  let d = `M${cx} ${base - h}`;
+  // 右側を上から下へ
+  for (let i = 1; i <= tiers; i++) {
+    const y = base - h + (h * 0.85 * i) / tiers;
+    const half = (w / 2) * (i / tiers);
+    d += ` L${cx + half} ${y} L${cx + half * 0.55} ${y}`;
   }
+  d += ` L${cx + w * 0.06} ${base - h * 0.15} L${cx + w * 0.06} ${base} L${cx - w * 0.06} ${base} L${cx - w * 0.06} ${base - h * 0.15}`;
+  // 左側を下から上へ
+  for (let i = tiers; i >= 1; i--) {
+    const y = base - h + (h * 0.85 * i) / tiers;
+    const half = (w / 2) * (i / tiers);
+    d += ` L${cx - half * 0.55} ${y} L${cx - half} ${y}`;
+  }
+  return d + ' Z';
+}
+
+// 木の上の灯り（またたく小さな点）。描画のたびに変わらないよう固定の並び
+function treeLights(cx: number, base: number, h: number, w: number, n: number) {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    // 決まった並びの「ばらばらな数」（毎回同じ値になる）で、灯りを木全体に散らす
+    const r1 = Math.abs(Math.sin(i * 12.9898 + 1) * 43758.5453) % 1;
+    const r2 = Math.abs(Math.sin(i * 78.233 + 2) * 12543.1234) % 1;
+    const t = 0.15 + r1 * 0.8;                          // 上からの位置（0〜1）
+    const side = (r2 - 0.5) * 1.6;                      // 左右の位置（-0.8〜0.8）
+    pts.push([cx + side * (w / 2) * t * 0.9, base - h + h * 0.85 * t]);
+  }
+  return pts;
+}
+
+// トナカイのシルエット（左向き）
+function Reindeer({ x, y, s }: { x: number; y: number; s: number }) {
   return (
-    <div className="xmas-garland" aria-hidden="true">
-      <svg className="xmas-garland__wire" viewBox={`0 0 ${BULB_COUNT * segW} 20`} preserveAspectRatio="none">
-        <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {Array.from({ length: BULB_COUNT }, (_, i) => (
-        <span
-          key={i}
-          className="xmas-garland__bulb"
-          style={{
-            left: `${((i + 0.5) / BULB_COUNT) * 100}%`,
-            animationDelay: `${((i * 7) % 11) * 0.37}s`,  // 規則的に見えないよう、ばらばらにまたたかせる
-          }}
-        />
-      ))}
-    </div>
+    <g transform={`translate(${x} ${y}) scale(${s})`} fill="var(--xmas-sil-near)" stroke="var(--xmas-sil-near)" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 22 C18 16 36 16 42 20 C44 22 44 26 42 28 L16 28 C13 27 12 24 14 22 Z" />
+      <path d="M17 21 L11 9 L6 8 L6 5 L12 5 L14 8 L19 19 Z" />
+      <path d="M17 28 L16 40 M22 28 L23 40 M36 28 L35 40 M40 27 L42 40" strokeWidth="2.4" fill="none" />
+      <path d="M42 21 L46 18" strokeWidth="2" fill="none" />
+      <path d="M10 6 L8 0 M9 2 L5 0 M12 5 L14 -1 M13 1 L17 -1" strokeWidth="1.4" fill="none" />
+    </g>
   );
 }
 
-// ---- 画面の飾り（フラットなイラスト） ----
-// 2026-11-19 本人要望で「立体感の少ない、フラットでおしゃれなイラスト」に描き直した。
-// グラデーションや陰影は使わず、少ない色の面で描く（木は左右で2色に塗り分けるだけ）。
-// 画面のいちばん奥に置くので、パネルがある所では隠れ、空いている所から見える
-
-// 色（イラスト全体でこの色だけ使う）
-const C = {
-  green: '#2f7a52', greenDark: '#245f40', greenLight: '#4c9a6c', greenDeep: '#1d4a34',
-  red: '#c9434d', redDark: '#9e2f39', gold: '#e3b75c', cream: '#f4ead2', brown: '#6b4a35', roof: '#3a2a26',
-  window: '#ffd77a',
-};
-
-// 2色に塗り分けた三角の木（左が明るい色・右が暗い色）
-function FlatTier({ cx, top, bottom, half, light, dark }: { cx: number; top: number; bottom: number; half: number; light: string; dark: string }) {
+// タブの列の後ろの景色
+export function XmasTabsScene() {
   return (
-    <>
-      <path d={`M${cx} ${top} L${cx + half} ${bottom} L${cx - half} ${bottom} Z`} fill={light} />
-      <path d={`M${cx} ${top} L${cx + half} ${bottom} L${cx} ${bottom} Z`} fill={dark} />
-    </>
+    <svg className="xmas-tabs-scene" viewBox="0 0 1440 90" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+      {/* 遠くの木々 */}
+      <g fill="var(--xmas-sil-far)">
+        {[[620, 40, 22], [660, 30, 18], [760, 46, 24], [880, 34, 18], [930, 52, 26], [1010, 38, 20], [1390, 50, 24], [1420, 36, 18]].map(([x, h, w], i) => (
+          <path key={i} d={pine(x, 74, h, w)} />
+        ))}
+      </g>
+      {/* 雪の丘 */}
+      <path d="M0 80 C200 70 420 78 640 72 C860 66 1000 60 1180 62 C1300 64 1380 70 1440 66 L1440 90 L0 90 Z" fill="var(--xmas-snow)" stroke="var(--xmas-snow-edge)" strokeWidth="1.5" />
+      {/* 小屋（窓に灯り） */}
+      <g transform="translate(1250 30)">
+        <rect x="0" y="16" width="56" height="20" fill="var(--xmas-sil-near)" />
+        <path d="M-6 18 L28 0 L62 18 Z" fill="var(--xmas-sil-near)" />
+        <path d="M-7 18 L28 -1 L63 18 L59 19 L28 3 L-3 19 Z" fill="var(--xmas-snow)" />
+        <rect x="40" y="2" width="6" height="10" fill="var(--xmas-sil-near)" />
+        <g className="xmas-window" fill="var(--xmas-light)">
+          <rect x="8" y="22" width="7" height="7" /><rect x="18" y="22" width="7" height="7" />
+          <rect x="31" y="22" width="7" height="7" /><rect x="41" y="22" width="7" height="7" />
+        </g>
+      </g>
+      <Reindeer x={1130} y={34} s={0.95} />
+      <Reindeer x={1180} y={40} s={0.8} />
+      {/* 近くの木 */}
+      <g fill="var(--xmas-sil-near)">
+        <path d={pine(1340, 70, 58, 30)} />
+        <path d={pine(1080, 72, 44, 24)} />
+      </g>
+    </svg>
   );
 }
 
-// 丸みのある円すいの木
-function RoundTree({ cx, top, base, half, light, dark }: { cx: number; top: number; base: number; half: number; light: string; dark: string }) {
-  const mid = top + (base - top) * 0.45;
+// キー配列のパネルの中の景色（パネルの文字やキーより奥に置く）
+export function XmasCardScene() {
+  const bigTree = { cx: 90, base: 196, h: 150, w: 92 };
   return (
-    <>
-      <path d={`M${cx} ${top} C${cx + half * 0.55} ${mid} ${cx + half} ${base - 20} ${cx + half} ${base} L${cx - half} ${base} C${cx - half} ${base - 20} ${cx - half * 0.55} ${mid} ${cx} ${top} Z`} fill={light} />
-      <path d={`M${cx} ${top} C${cx + half * 0.55} ${mid} ${cx + half} ${base - 20} ${cx + half} ${base} L${cx} ${base} Z`} fill={dark} />
-    </>
+    <svg className="xmas-card-scene" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      {/* 奥の森 */}
+      <g fill="var(--xmas-sil-far)">
+        {[[200, 70, 34], [250, 96, 40], [300, 60, 28], [420, 80, 34], [470, 56, 26], [700, 66, 28], [760, 92, 38], [820, 60, 26],
+          [930, 84, 34], [980, 110, 44], [1040, 70, 30], [1120, 90, 36], [1170, 62, 28]].map(([x, h, w], i) => (
+          <path key={i} d={pine(x, 186, h, w)} />
+        ))}
+      </g>
+      {/* 灯りのついたツリー（左） */}
+      <path d={pine(bigTree.cx, bigTree.base, bigTree.h, bigTree.w)} fill="var(--xmas-sil-near)" />
+      <path d={pine(160, 194, 70, 44)} fill="var(--xmas-sil-near)" />
+      <g className="xmas-twinkle" fill="var(--xmas-light)">
+        {treeLights(bigTree.cx, bigTree.base, bigTree.h, bigTree.w, 22).map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.7" />)}
+        {treeLights(160, 194, 70, 44, 9).map(([x, y], i) => <circle key={`s${i}`} cx={x} cy={y} r="1.4" />)}
+      </g>
+      <polygon points={star(bigTree.cx, bigTree.base - bigTree.h - 2, 6)} fill="var(--xmas-light)" />
+      {/* 積もった雪 */}
+      <path d="M0 184 C140 174 300 188 480 180 C660 172 820 190 1000 180 C1100 175 1160 182 1200 178 L1200 200 L0 200 Z" fill="var(--xmas-snow)" stroke="var(--xmas-snow-edge)" strokeWidth="1.5" />
+    </svg>
   );
 }
 
@@ -126,115 +175,23 @@ function star(cx: number, cy: number, r: number) {
   return pts.join(' ');
 }
 
-// リボンを掛けたプレゼント
-function Gift({ x, y, w, h, box, ribbon }: { x: number; y: number; w: number; h: number; box: string; ribbon: string }) {
-  const cx = x + w / 2;
-  return (
-    <>
-      <rect x={x} y={y} width={w} height={h} fill={box} />
-      <rect x={x - 2} y={y} width={w + 4} height={h * 0.22} fill={box} />
-      <rect x={cx - 3} y={y} width={6} height={h} fill={ribbon} />
-      <path d={`M${cx} ${y} L${cx - 10} ${y - 8} L${cx - 10} ${y + 2} Z M${cx} ${y} L${cx + 10} ${y - 8} L${cx + 10} ${y + 2} Z`} fill={ribbon} />
-    </>
-  );
-}
-
+// 画面のいちばん下（パネルの外。いちばん奥）
 export function XmasScene() {
   return (
     <div className="xmas-scene" aria-hidden="true">
-      {/* 奥の丘（2段） */}
-      <svg className="xmas-scene__hills" viewBox="0 0 1440 140" preserveAspectRatio="none">
-        <path d="M0 70 C200 30 360 60 520 50 C700 38 820 80 1000 60 C1180 40 1300 60 1440 44 L1440 140 L0 140 Z" fill="var(--xmas-hill1)" />
-        <path d="M0 100 C180 80 340 104 560 92 C760 80 900 108 1100 94 C1250 84 1360 96 1440 90 L1440 140 L0 140 Z" fill="var(--xmas-hill2)" />
+      <svg className="xmas-scene__bottom" viewBox="0 0 1440 90" preserveAspectRatio="none">
+        <path d="M0 40 C160 24 300 46 480 38 C680 28 820 50 1000 40 C1180 30 1320 44 1440 34 L1440 90 L0 90 Z" fill="var(--xmas-snow)" stroke="var(--xmas-snow-edge)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
       </svg>
-
-      {/* 左下: 飾りつけたツリーとプレゼント */}
-      <svg className="xmas-scene__left" viewBox="0 0 360 240">
-        <path d="M20 140 L38 228 L2 228 Z" fill={C.greenDeep} />
-        <RoundTree cx={290} top={112} base={228} half={32} light={C.greenLight} dark={C.green} />
-        <rect x={103} y={204} width={14} height={24} fill={C.brown} />
-        <FlatTier cx={110} top={108} bottom={208} half={78} light={C.green} dark={C.greenDark} />
-        <FlatTier cx={110} top={70} bottom={150} half={60} light={C.green} dark={C.greenDark} />
-        <FlatTier cx={110} top={40} bottom={102} half={42} light={C.green} dark={C.greenDark} />
-        {/* ツリーの飾り（丸い玉と、ななめの帯） */}
-        <path d="M74 120 L134 96" stroke={C.cream} strokeWidth="3" strokeLinecap="round" />
-        <path d="M58 178 L158 140" stroke={C.cream} strokeWidth="3" strokeLinecap="round" />
-        <g className="xmas-twinkle">
-          <circle cx={98} cy={84} r={4} fill={C.red} />
-          <circle cx={124} cy={124} r={4.5} fill={C.gold} />
-          <circle cx={88} cy={136} r={4.5} fill={C.red} />
-          <circle cx={140} cy={176} r={5} fill={C.red} />
-          <circle cx={80} cy={190} r={5} fill={C.gold} />
-          <circle cx={112} cy={164} r={4.5} fill={C.cream} />
-        </g>
-        <polygon className="xmas-star" points={star(110, 34, 13)} fill={C.gold} />
-        {/* プレゼント */}
-        <Gift x={180} y={192} w={40} h={36} box={C.red} ribbon={C.cream} />
-        <Gift x={228} y={204} w={30} h={24} box={C.gold} ribbon={C.redDark} />
-        <Gift x={190} y={170} w={24} h={20} box={C.cream} ribbon={C.green} />
+      <svg className="xmas-scene__left" viewBox="0 0 120 90">
+        <path d={pine(30, 66, 56, 30)} fill="var(--xmas-sil-near)" />
+        <path d={pine(62, 70, 40, 22)} fill="var(--xmas-sil-near)" />
       </svg>
-
-      {/* 右下: 灯りのともる小屋と木々 */}
-      <svg className="xmas-scene__right" viewBox="0 0 380 240">
-        <RoundTree cx={70} top={92} base={228} half={36} light={C.green} dark={C.greenDark} />
-        <path d="M30 150 L46 228 L14 228 Z" fill={C.greenDeep} />
-        {/* 煙突と煙 */}
-        <rect x={214} y={118} width={16} height={36} fill={C.roof} />
-        <g className="xmas-smoke" fill="var(--xmas-smoke)">
-          <circle cx={224} cy={104} r={6} />
-          <circle cx={233} cy={90} r={8} />
-          <circle cx={246} cy={72} r={10} />
-        </g>
-        {/* 小屋 */}
-        <rect x={130} y={160} width={110} height={68} fill={C.red} />
-        <rect x={185} y={160} width={55} height={68} fill={C.redDark} opacity=".35" />
-        <polygon points="114,166 185,114 256,166" fill={C.roof} />
-        <polygon points="110,166 185,108 260,166 252,169 185,120 118,169" fill="var(--xmas-snow)" />
-        <rect x={150} y={192} width={22} height={36} fill={C.redDark} />
-        <circle cx={161} cy={186} r={7} fill="none" stroke={C.green} strokeWidth="3" />
-        <circle cx={161} cy={192} r={2} fill={C.gold} />
-        <rect className="xmas-window" x={194} y={180} width={30} height={24} fill={C.window} />
-        <path d="M209 180 V204 M194 192 H224" stroke={C.redDark} strokeWidth="2.5" />
-        {/* 右の木 */}
-        <FlatTier cx={310} top={128} bottom={228} half={42} light={C.greenLight} dark={C.green} />
-        <FlatTier cx={310} top={104} bottom={172} half={32} light={C.greenLight} dark={C.green} />
-        <path d="M360 150 L376 228 L344 228 Z" fill={C.greenDeep} />
-      </svg>
-
-      {/* 手前の積もった雪（木や小屋の根元にかぶせる） */}
-      <svg className="xmas-scene__snow" viewBox="0 0 1440 40" preserveAspectRatio="none">
-        <path d="M0 14 C120 4 260 18 420 10 C600 2 740 18 900 12 C1060 6 1200 18 1440 8 L1440 40 L0 40 Z" fill="var(--xmas-snow)" />
-      </svg>
-
-      {/* 右上: 吊るしたオーナメント（フラット。ゆっくり揺れる） */}
-      <svg className="xmas-scene__ornaments" viewBox="0 0 200 260">
-        {/* 赤い玉（クリーム色のジグザグの帯） */}
-        <g className="xmas-orn" style={{ transformOrigin: '40px 0px', animationDuration: '5s' }}>
-          <line x1="40" y1="0" x2="40" y2="70" stroke="var(--xmas-gold)" strokeWidth="1" />
-          <rect x="35" y="68" width="10" height="7" fill={C.gold} />
-          <circle cx="40" cy="93" r="18" fill={C.red} />
-          <path d="M22 93 L28 87 L34 93 L40 87 L46 93 L52 87 L58 93" fill="none" stroke={C.cream} strokeWidth="3" strokeLinejoin="round" />
-        </g>
-        {/* 金の玉（しま模様） */}
-        <g className="xmas-orn" style={{ transformOrigin: '100px 0px', animationDuration: '6.2s', animationDelay: '-1.4s' }}>
-          <line x1="100" y1="0" x2="100" y2="128" stroke="var(--xmas-gold)" strokeWidth="1" />
-          <rect x="94" y="126" width="12" height="8" fill={C.gold} />
-          <circle cx="100" cy="156" r="22" fill={C.gold} />
-          <rect x="78" y="146" width="44" height="5" fill={C.cream} />
-          <rect x="78" y="161" width="44" height="5" fill={C.cream} />
-        </g>
-        {/* 緑のしずく形 */}
-        <g className="xmas-orn" style={{ transformOrigin: '160px 0px', animationDuration: '5.6s', animationDelay: '-2.6s' }}>
-          <line x1="160" y1="0" x2="160" y2="46" stroke="var(--xmas-gold)" strokeWidth="1" />
-          <rect x="156" y="44" width="8" height="6" fill={C.gold} />
-          <path d="M160 50 C172 64 176 78 176 86 C176 96 169 102 160 102 C151 102 144 96 144 86 C144 78 148 64 160 50 Z" fill={C.green} />
-          <circle cx="160" cy="86" r="4" fill={C.cream} />
-        </g>
-        {/* 金の星 */}
-        <g className="xmas-orn" style={{ transformOrigin: '70px 0px', animationDuration: '6.8s', animationDelay: '-3.1s' }}>
-          <line x1="70" y1="0" x2="70" y2="168" stroke="var(--xmas-gold)" strokeWidth="1" />
-          <polygon points={star(70, 186, 16)} fill="var(--xmas-star)" />
-        </g>
+      {/* 右下のヒイラギ（葉3枚と赤い実） */}
+      <svg className="xmas-scene__holly" viewBox="0 0 120 70">
+        <path d="M60 40 C46 26 26 22 8 30 C16 32 18 38 14 42 C22 40 26 46 24 50 C36 46 50 46 60 40 Z" fill="#2f6b4a" />
+        <path d="M60 40 C74 26 94 22 112 30 C104 32 102 38 106 42 C98 40 94 46 96 50 C84 46 70 46 60 40 Z" fill="#245a3d" />
+        <path d="M60 40 C58 26 62 12 72 4 C72 12 78 14 82 12 C78 18 82 24 86 24 C76 30 66 34 60 40 Z" fill="#3a7d57" />
+        <circle cx="56" cy="44" r="6" fill="#c9343f" /><circle cx="66" cy="46" r="6" fill="#b12a35" /><circle cx="61" cy="36" r="6" fill="#d8434e" />
       </svg>
     </div>
   );

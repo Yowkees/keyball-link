@@ -3939,10 +3939,18 @@ p[data-tip] { width: fit-content; }
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
-/* ===== クリスマステーマの飾り（XmasDecor.tsx）（2026-11-19〜） ===== */
-/* 金・暖かい白・深い緑の落ち着いた色だけで飾る */
-:root { --xmas-flake: #ffffff; --xmas-wire: #3c5a49; --xmas-gold: #d9b36c; --xmas-light: #ffe8b0; --xmas-hill1: #12261b; --xmas-hill2: #183224; --xmas-snow: #dfe7e9; --xmas-smoke: #8fa39a; --xmas-star: #f4ead2; }
-:root[data-theme="light"] { --xmas-flake: #9fbad0; --xmas-wire: #b9c4bc; --xmas-gold: #a8823a; --xmas-light: #c9973a; --xmas-hill1: #e1e9df; --xmas-hill2: #eaf0e8; --xmas-snow: #ffffff; --xmas-smoke: #c9d3cf; --xmas-star: #e3b75c; }
+/* ===== クリスマステーマの飾り（XmasDecor.tsx）（2026-11-19〜、本人の見本画像に合わせた） ===== */
+/* シルエットはくすんだ緑、灯りは暖かい黄色、雪は白 */
+:root {
+  --xmas-flake: #ffffff; --xmas-light: #ffd98a; --xmas-snow: #e6edf0;
+  --xmas-sil-far: #1b3025; --xmas-sil-near: #22392c; --xmas-snow-edge: transparent;
+  --xmas-snowcap: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16' preserveAspectRatio='none'%3E%3Cpath d='M0 9 C6 4 14 4 20 7 C26 2 38 2 44 6 C52 3 60 4 66 8 C72 3 84 2 90 6 C98 3 108 4 114 7 C117 8 119 9 120 9 L120 13 C80 16 40 16 0 13 Z' fill='%23e6edf0'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"] {
+  --xmas-flake: #9fbad0; --xmas-light: #e0a83a; --xmas-snow: #ffffff;
+  --xmas-sil-far: #e3eae1; --xmas-sil-near: #cfdccf; --xmas-snow-edge: #d7e0e3;
+  --xmas-snowcap: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16' preserveAspectRatio='none'%3E%3Cpath d='M0 9 C6 4 14 4 20 7 C26 2 38 2 44 6 C52 3 60 4 66 8 C72 3 84 2 90 6 C98 3 108 4 114 7 C117 8 119 9 120 9 L120 13 C80 16 40 16 0 13 Z' fill='%23ffffff'/%3E%3C/svg%3E");
+}
 
 /* 飾りは画面のいちばん奥、操作する画面(.app)はその手前に置く */
 :root[data-accent="xmas"] .app { position: relative; z-index: 1; }
@@ -3976,53 +3984,60 @@ p[data-tip] { width: fit-content; }
 @keyframes xmas-fall { from { transform: translateY(0); } to { transform: translateY(calc(100vh + 48px)); } }
 @keyframes xmas-sway { from { transform: translateX(-14px) rotate(-20deg); } to { transform: translateX(14px) rotate(20deg); } }
 
-/* ヘッダーの電飾 */
-:root[data-accent="xmas"] .app-header { position: relative; z-index: 2; }
-.xmas-garland {
-  position: absolute; left: 0; right: 0; bottom: -12px;
+/* 各パネル・タブの上に積もった雪（クリックは素通り） */
+:root[data-accent="xmas"] :is(.keymap-keyboard-card, .keymap-led-panel, .keymap-right-panel, .settings-card, .tab) { position: relative; }
+:root[data-accent="xmas"] :is(.keymap-keyboard-card, .keymap-led-panel, .settings-card, .tab)::after,
+:root[data-accent="xmas"] .keymap-right-panel::after {
+  content: '';
+  position: absolute;
+  left: 3px; right: 3px; top: -11px;
   height: 20px;
+  background: var(--xmas-snowcap) repeat-x;
+  background-size: 150px 20px;
   pointer-events: none;
-  color: var(--xmas-wire);
+  z-index: 2;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
 }
-.xmas-garland__wire { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.xmas-garland__bulb {
-  position: absolute; top: 9px;
-  width: 4px; height: 4px;
-  margin-left: -2px;
-  border-radius: 50%;
-  background: var(--xmas-light);
-  box-shadow: 0 0 6px 2px color-mix(in srgb, var(--xmas-light) 55%, transparent);
-  animation: xmas-blink 3.2s ease-in-out infinite;
+:root[data-theme="light"][data-accent="xmas"] :is(.keymap-keyboard-card, .keymap-led-panel, .keymap-right-panel, .settings-card, .tab)::after {
+  filter: drop-shadow(0 1px 1px rgba(80,110,130,.3));
 }
-@keyframes xmas-blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+/* 右のキー設定パネルは中身をはみ出させない作りなので、雪は内側の上端に載せる */
+:root[data-accent="xmas"] .keymap-right-panel::after { top: 0; left: 0; right: 0; border-radius: 14px 14px 0 0; }
+/* タブは小さいので雪も小さく */
+:root[data-accent="xmas"] .tab::after { top: -6px; height: 11px; background-size: 80px 11px; left: 6px; right: 6px; }
 
-/* 画面の飾り（いちばん奥） */
+/* タブの列の後ろの景色（小屋・トナカイ・木） */
+:root[data-accent="xmas"] .tabs { position: relative; isolation: isolate; }
+.xmas-tabs-scene {
+  position: absolute; z-index: -1;
+  left: -24px; right: -24px; bottom: -14px;
+  width: calc(100% + 48px); height: 90px;
+  pointer-events: none;
+}
+
+/* キー配列のパネルの中の景色（キーや文字より奥） */
+:root[data-accent="xmas"] .keymap-keyboard-card { isolation: isolate; }
+.xmas-card-scene {
+  position: absolute; z-index: -1;
+  left: 0; right: 0; bottom: 0;
+  width: 100%; height: 200px;
+  pointer-events: none;
+  border-radius: 0 0 14px 14px;
+}
+
+/* 画面のいちばん下 */
 .xmas-scene { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-.xmas-scene__hills { position: absolute; left: 0; right: 0; bottom: 18px; width: 100%; height: 140px; }
-.xmas-scene__left  { position: absolute; left: 0;  bottom: 12px; width: 360px; height: 240px; }
-.xmas-scene__right { position: absolute; right: 0; bottom: 12px; width: 380px; height: 240px; }
-.xmas-scene__snow  { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 40px; }
-:root[data-theme="light"] .xmas-scene__snow { filter: drop-shadow(0 -1px 0 #dde5e3); }
-.xmas-scene__ornaments { position: absolute; right: 40px; top: 58px; width: 170px; height: 220px; }
-.xmas-orn { animation: xmas-swing ease-in-out infinite alternate; }
-@keyframes xmas-swing { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+.xmas-scene__bottom { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 60px; }
+.xmas-scene__left  { position: absolute; left: 8px; bottom: 18px; width: 120px; height: 90px; }
+.xmas-scene__holly { position: absolute; right: 18px; bottom: 6px; width: 110px; height: 64px; }
+
 .xmas-twinkle circle { animation: xmas-blink 2.6s ease-in-out infinite; }
 .xmas-twinkle circle:nth-child(2n) { animation-delay: .9s; }
 .xmas-twinkle circle:nth-child(3n) { animation-delay: 1.7s; }
-.xmas-smoke circle { animation: xmas-smoke 4s ease-in-out infinite; }
-.xmas-smoke circle:nth-child(2) { animation-delay: .6s; }
-.xmas-smoke circle:nth-child(3) { animation-delay: 1.2s; }
-@keyframes xmas-smoke { 0%,100% { opacity: .75; } 50% { opacity: .35; } }
-
-/* 画面が狭い時は飾りを小さくする */
-@media (max-width: 900px) {
-  .xmas-scene__left  { width: 216px; height: 144px; }
-  .xmas-scene__right { width: 228px; height: 144px; }
-  .xmas-scene__ornaments { width: 110px; height: 142px; right: 16px; }
-}
+@keyframes xmas-blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
 /* 動きを減らす設定の時は、雪を降らせず点滅もしない */
 @media (prefers-reduced-motion: reduce) {
   .xmas-snow { display: none; }
-  .xmas-garland__bulb, .xmas-twinkle circle, .xmas-orn, .xmas-smoke circle { animation: none; }
+  .xmas-twinkle circle { animation: none; }
 }

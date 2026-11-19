@@ -24,7 +24,7 @@ import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
 import { t, errText, useLang, setLang } from './lib/i18n';
-import { XmasSnow, XmasGarland, XmasScene } from './components/XmasDecor/XmasDecor';
+import { XmasSnow, XmasScene, XmasTabsScene, XmasCardScene } from './components/XmasDecor/XmasDecor';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing' | 'feedback';
@@ -903,7 +903,6 @@ export default function App() {
       )}
 
       <header className="app-header">
-        {isXmas && <XmasGarland />}
         <div className="app-brand">
           <span className="app-brand__logo-wrap">
             <img
@@ -1047,6 +1046,7 @@ export default function App() {
         ) : (
           <>
             <div className="tabs">
+              {isXmas && <XmasTabsScene />}
               <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>{t('キーマップ')}</button>
               <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>{t('トラックボール設定')}</button>
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>{t('マクロ拡張')}</button>
@@ -1108,6 +1108,7 @@ export default function App() {
                 <div className="keymap-grid">
                   <div className="keymap-left-panel" ref={keymapLeftRef}>
                   <div className="keymap-keyboard-card">
+                    {isXmas && <XmasCardScene />}
                     <div className="layer-toolbar" data-guide="layer-tabs">
                       <div className="layer-tabs">
                         {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {

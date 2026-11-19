@@ -1014,6 +1014,9 @@ body { background: var(--bg); overflow-x: hidden; }
   position: absolute;
   inset: 0;
 }
+/* LED設定の色相バー：クリック・ドラッグで色相を変えられる時（2026-11-19） */
+.led-panel__bar--editable { cursor: pointer; touch-action: none; user-select: none; }
+.led-panel__bar--editable .led-panel__marker { pointer-events: none; }
 .led-panel__marker {
   position: absolute;
   top: 0;

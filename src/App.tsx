@@ -24,6 +24,7 @@ import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
 import { t, errText, useLang, setLang } from './lib/i18n';
+import { XmasSnow, XmasGarland, XmasScene, SantaHat } from './components/XmasDecor/XmasDecor';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing' | 'feedback';
@@ -123,6 +124,7 @@ export default function App() {
   const [accentTheme, setAccentTheme] = useState<AccentTheme>(() =>
     (localStorage.getItem('accentTheme') as AccentTheme) ?? 'mint'
   );
+  const isXmas = accentTheme === 'xmas';  // クリスマステーマの飾り（雪・電飾・サンタ帽・雪景色）を出すか
   // ボールの左右。ファームが答えられる時（RP2040版v0.5.1〜、片側だけにボール）はその値を使い、
   // それ以外は画面のボタンで選んだ値（ブラウザに保存）を使う。
   const [manualBallSide, setManualBallSide] = useState<BallSide>(() =>
@@ -889,7 +891,11 @@ export default function App() {
   );
 
   return (
+    <>
+    {/* クリスマステーマの雪景色は .app の外（いちばん奥）に置く */}
+    {isXmas && <XmasScene />}
     <div className="app">
+      {isXmas && <XmasSnow />}
       {toast && (
         <div className={`toast toast--${toast.type}`} onClick={() => setToast(null)}>
           {toast.message}
@@ -897,12 +903,16 @@ export default function App() {
       )}
 
       <header className="app-header">
+        {isXmas && <XmasGarland />}
         <div className="app-brand">
-          <img
+          <span className="app-brand__logo-wrap">
+            <img
               className="app-logo"
               src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
               alt="Keyball Link"
             />
+            {isXmas && <SantaHat />}
+          </span>
           <span className="app-brand__sub">WEB CONFIGURATOR<span className="app-brand__cursor" /></span>
         </div>
         <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title={t('テーマ切替')}>
@@ -1387,5 +1397,6 @@ export default function App() {
       </main>
 
     </div>
+    </>
   );
 }

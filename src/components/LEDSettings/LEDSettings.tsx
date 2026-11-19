@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import type { LedConfig } from '../../lib/protocol';
 import { LED_EFFECTS, LED_FIXED_HUE_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
 import { t } from '../../lib/i18n';
@@ -55,6 +55,8 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
     ? LED_EFFECTS.filter(e => allowedEffectIds.includes(e.id))
     : LED_EFFECTS;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);  // 色相バーをドラッグ中か
 
   // プリセット読み込みなど外部要因でconfigが変わった場合は表示に反映する
   useEffect(() => {
@@ -93,6 +95,33 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
   const isFixedHue = (LED_FIXED_HUE_EFFECT_IDS as readonly number[]).includes(view.effectId);
   const showColor = view.effectId !== 0;
   const showHue   = showColor && !isFixedHue;  // クリスマス・ハロウィン・イースターは色相固定
+  // 色相バーを直接クリック・ドラッグして色相を変えられる時（色相を使うエフェクトで、操作できる時だけ）
+  const hueEditable = showHue && !previewing;
+
+  // バー上の横位置（クリックした場所）を色相の値（0〜255）に変える
+  const hueAt = (clientX: number) => {
+    const r = barRef.current?.getBoundingClientRect();
+    if (!r || r.width === 0) return local.hue;
+    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    return Math.round(ratio * 255);
+  };
+
+  // 押した瞬間にその位置の色にし、押したまま動かすと追いかける。
+  // 送信は下の色相スライダーと同じく、止まってから150ms後に1回だけ（連続書き込みで固まるのを防ぐ）
+  const onBarPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (!hueEditable || e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);  // バーの外に出てもドラッグを続ける
+    draggingRef.current = true;
+    commitDebounced({ ...local, hue: hueAt(e.clientX) });
+  };
+  const onBarPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current || !hueEditable) return;
+    const hue = hueAt(e.clientX);
+    if (hue !== local.hue) commitDebounced({ ...local, hue });
+  };
+  const onBarPointerUp = () => { draggingRef.current = false; };
+
   const showSpeed = view.effectId >= 2 && !(LED_NO_SPEED_EFFECT_IDS as readonly number[]).includes(view.effectId);
 
   return (
@@ -125,7 +154,15 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
       {extraRow}
 
       <div className={`led-settings__body ${previewing ? 'led-settings__body--preview' : ''}`}>
-        <div className="led-panel__bar">
+        <div
+          ref={barRef}
+          className={`led-panel__bar ${hueEditable ? 'led-panel__bar--editable' : ''}`}
+          onPointerDown={onBarPointerDown}
+          onPointerMove={onBarPointerMove}
+          onPointerUp={onBarPointerUp}
+          onPointerCancel={onBarPointerUp}
+          title={hueEditable ? t('クリック・ドラッグで色相を変えられます') : undefined}
+        >
           <div className="led-panel__bar-fill" style={{ background: buildGradient(view) }} />
           {showHue && (
             <div className="led-panel__marker" style={{ left: `${(view.hue / 255 * 100).toFixed(1)}%` }} />

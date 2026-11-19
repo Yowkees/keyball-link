@@ -619,6 +619,7 @@ export const EN: Record<string, string> = {
   'ブリージング（柔らかく流れる）': 'Breathing (soft flow)',
   'ブリージング（柔らかく呼吸するように流れる）': 'Breathing (flows softly as if breathing)',
   '色相': 'Hue',
+  'クリック・ドラッグで色相を変えられます': 'Click or drag to change the hue',
   '彩度': 'Saturation',
   '明るさ': 'Brightness',
   'ウェーブの速さ': 'Wave speed',

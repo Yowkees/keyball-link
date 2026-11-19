@@ -740,7 +740,8 @@ export default function App() {
     : chipOf() === 'avr' && state.model !== 'keyballplus' ? 'avr'
     : 'keymap';
   function chipOf() {
-    return isConnected && state.productId != null ? chipForProductId(state.productId) : undefined;
+    // isConnected は後ろで定義されるため、ここでは接続状態を直接見る
+    return state.connectionState === 'connected' && state.productId != null ? chipForProductId(state.productId) : undefined;
   }
   const resetMenuLabel = resetKind === 'all' ? t('すべての設定を初期化する')
     : resetKind === 'avr' ? t('設定を初期化する')

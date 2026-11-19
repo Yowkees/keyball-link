@@ -42,6 +42,7 @@ export const CMD = {
   SET_NAME: 0x3B,
   GET_GESTURE_OS_ADAPT: 0x3C,  // 画面切り替えのジェスチャーをOSに合わせるか（RP2040版v0.6.0〜）
   SET_GESTURE_OS_ADAPT: 0x3D,
+  FACTORY_RESET: 0x3E,   // すべての設定を初期化（EEPROMを丸ごと消して再起動。RP2040版v0.6.7〜）
   GET_PRECISION: 0x18,
   SET_PRECISION: 0x19,
   GET_LAYER_LED_ENABLE: 0x1A,

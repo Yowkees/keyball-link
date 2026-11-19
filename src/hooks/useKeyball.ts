@@ -482,6 +482,13 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
+  // すべての設定を初期化する（RP2040版v0.6.7〜）。キーボードが再起動するので、切断した状態に戻す
+  const factoryReset = useCallback(async () => {
+    await hid.current.factoryReset();
+    await hid.current.disconnect().catch(() => {});
+    resetToDisconnected();
+  }, [resetToDisconnected]);
+
   const reboot = useCallback(async () => {
     await hid.current.reboot();
     await hid.current.disconnect();
@@ -552,5 +559,5 @@ export function useKeyball() {
     setPartial({ keymap });
   }, []);
 
-  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
+  return { state, connect, disconnect, setKeycode, setTrackball, setLed, setTdSlot, setMacroSlot, setAllMacroSlots, setKbSettings, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, factoryReset, setCurrentLayer, testLed, getMatrixState, loadPreset, writeFullKeymap };
 }

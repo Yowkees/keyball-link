@@ -167,6 +167,12 @@ export class KeyballHID {
     await this.sendCommand(makePacket(CMD.RESET_KEYMAP));
   }
 
+  // すべての設定を初期化する（RP2040版v0.6.7〜）。キーボードは応答を返してから
+  // EEPROMを丸ごと消して再起動するので、この後は接続が切れる
+  async factoryReset(): Promise<void> {
+    await this.sendCommand(makePacket(CMD.FACTORY_RESET));
+  }
+
   async getLed(): Promise<LedConfig> {
     const r = await this.sendCommand(makePacket(CMD.GET_LED));
     // LED非対応版（RGBLIGHT無効）は未対応コマンドとして 0xFF を返す → 例外にしてstate.led=nullにする

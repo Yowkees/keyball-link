@@ -15,7 +15,7 @@ import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
 import { gestureLabel } from './lib/names';
 import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
-import { latestFwVersion, firmwareFeaturesForChip } from './lib/firmwareFeatures';
+import { latestFwVersion, firmwareFeaturesForChip, firmwareSupportsFactoryReset } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { setGestureDisplayNames, OS_ID_WINDOWS } from './lib/keycodes';
@@ -107,7 +107,7 @@ interface Toast {
 export default function App() {
   // 言語が変わったら画面全体を描き直す
   const lang = useLang();
-  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
+  const { state, connect, disconnect, setKeycode, setTrackball, setLed, setMacroSlot, setAllMacroSlots, setKbSettings, setTdSlot, setGesture, setGestureMode, setGestureThreshold, setGestureWaveSpeed, setGestureWaveEnable, setGestureWaveStyle, setGestureWaveColor, setShake, setDFlick, setComboSlot, setPrecisionConfig, setDpiCurve, setScrollInertiaConfig, setOledAnimEnabled, setBootAnimEnabled, setGestureName, setGestureOsAdapt, setLayerLedEnable, setLayerLed, save, reboot, resetKeymap, factoryReset, setCurrentLayer, getMatrixState, writeFullKeymap, loadPreset, testLed } = useKeyball();
   // キー配列のジェスチャーキーを、付けた名前で表示する（描画の前に毎回入れ直す）
   setGestureDisplayNames(state.gestureNames);
   const [selectedKeyIndex, setSelectedKeyIndex] = useState<number | null>(null);
@@ -731,11 +731,46 @@ export default function App() {
     e.target.value = '';
   };
 
+  // 「初期化」メニューの1つ目。ファームによって戻せる範囲が違うので、名前と説明を出し分ける（2026-11-19、本人指示）。
+  // ・RP2040版v0.6.7〜: EEPROMを丸ごと消して、すべての設定を初期化（キーボードは再起動する）
+  // ・AVR版(39/44/61): キーマップと、トラックボール・オートマウス・ジェスチャー・タッピングなどの設定（LED・マクロ等はそのまま）
+  // ・Keyball+(AVR)・それより前のRP2040版: キーマップだけ
+  const resetKind: 'all' | 'avr' | 'keymap' =
+    firmwareSupportsFactoryReset(chipOf(), state.firmwareVersion) ? 'all'
+    : chipOf() === 'avr' && state.model !== 'keyballplus' ? 'avr'
+    : 'keymap';
+  function chipOf() {
+    return isConnected && state.productId != null ? chipForProductId(state.productId) : undefined;
+  }
+  const resetMenuLabel = resetKind === 'all' ? t('すべての設定を初期化する')
+    : resetKind === 'avr' ? t('設定を初期化する')
+    : t('キーマップを初期化する');
+  const resetMenuDesc = resetKind === 'all'
+    ? t('キーマップ・トラックボール・LED・ジェスチャーなど、キーボードに保存されている全ての設定を消して初期状態に戻します（キーボードは再起動します）')
+    : resetKind === 'avr'
+      ? t('キーマップ・トラックボール（CPI・スクロール・加速度）・オートマウス・ジェスチャー・タッピングなどの設定を初期状態に戻します（LED・マクロなど、それ以外の設定はそのまま）')
+      : chipOf() === 'rp2040'
+        ? t('キーマップだけを初期状態に戻します（トラックボール・LEDなどの設定はそのまま）。ファームを最新にすると、全ての設定を初期化できます')
+        : t('キーマップだけを初期状態に戻します（トラックボール・LEDなどの設定はそのまま）');
+
   const handleResetKeymap = async () => {
-    if (!confirm(t('キーマップをファームウェアのデフォルトに戻します。よろしいですか？'))) return;
+    if (resetKind === 'all') {
+      if (!confirm(t('キーボードに保存されている全ての設定を消して、初期状態に戻します。元には戻せません。よろしいですか？'))) return;
+      try {
+        await factoryReset();
+        showToast(t('全ての設定を初期化しました。キーボードが再起動したら、もう一度接続してください'), 'success');
+      } catch (e) {
+        showToast(t('リセット失敗: {0}', errText(e)));
+      }
+      return;
+    }
+    const msg = resetKind === 'avr'
+      ? t('キーマップ・トラックボールなどの設定を初期状態に戻します（LED・マクロなどはそのまま）。よろしいですか？')
+      : t('キーマップをファームウェアのデフォルトに戻します。よろしいですか？');
+    if (!confirm(msg)) return;
     try {
       await resetKeymap();
-      showToast(t('キーマップをリセットしました'), 'success');
+      showToast(resetKind === 'avr' ? t('設定を初期化しました') : t('キーマップをリセットしました'), 'success');
     } catch (e) {
       showToast(t('リセット失敗: {0}', errText(e)));
     }
@@ -901,8 +936,8 @@ export default function App() {
                       className="import-menu__item"
                       onClick={() => { setShowResetMenu(false); handleResetKeymap(); }}
                     >
-                      {t('すべての設定を初期化する')}
-                      <span className="import-menu__desc">{t('キーマップ・トラックボール（CPI/スクロール等）など全ての設定をKeyball Linkの初期状態に戻します')}</span>
+                      {resetMenuLabel}
+                      <span className="import-menu__desc">{resetMenuDesc}</span>
                     </button>
                     <button
                       className="import-menu__item"

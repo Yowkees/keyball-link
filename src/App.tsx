@@ -24,7 +24,7 @@ import { KLE_GEOMETRY } from './layouts/kleGeometry';
 import { BallPanel } from './components/BallPanel/BallPanel';
 import { PRESETS } from './lib/presets';
 import { t, errText, useLang, setLang } from './lib/i18n';
-import { XmasSnow, XmasScene, XmasTabsScene, XmasCardScene } from './components/XmasDecor/XmasDecor';
+import { XmasSnow } from './components/XmasDecor/XmasDecor';
 import './index.css';
 
 type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing' | 'feedback';
@@ -124,7 +124,7 @@ export default function App() {
   const [accentTheme, setAccentTheme] = useState<AccentTheme>(() =>
     (localStorage.getItem('accentTheme') as AccentTheme) ?? 'mint'
   );
-  const isXmas = accentTheme === 'xmas';  // クリスマステーマの飾り（雪・電飾・ツリーなど）を出すか
+  const isXmas = accentTheme === 'xmas';  // クリスマステーマの時だけ雪を降らせる
   // ボールの左右。ファームが答えられる時（RP2040版v0.5.1〜、片側だけにボール）はその値を使い、
   // それ以外は画面のボタンで選んだ値（ブラウザに保存）を使う。
   const [manualBallSide, setManualBallSide] = useState<BallSide>(() =>
@@ -891,9 +891,6 @@ export default function App() {
   );
 
   return (
-    <>
-    {/* クリスマステーマの雪景色は .app の外（いちばん奥）に置く */}
-    {isXmas && <XmasScene />}
     <div className="app">
       {isXmas && <XmasSnow />}
       {toast && (
@@ -904,13 +901,11 @@ export default function App() {
 
       <header className="app-header">
         <div className="app-brand">
-          <span className="app-brand__logo-wrap">
-            <img
+          <img
               className="app-logo"
               src={theme === 'dark' ? '/keyball_link_logo_white.svg' : '/keyball_link_logo_black.svg'}
               alt="Keyball Link"
             />
-          </span>
           <span className="app-brand__sub">WEB CONFIGURATOR<span className="app-brand__cursor" /></span>
         </div>
         <button className="btn btn--ghost theme-toggle" onClick={toggleTheme} title={t('テーマ切替')}>
@@ -1046,7 +1041,6 @@ export default function App() {
         ) : (
           <>
             <div className="tabs">
-              {isXmas && <XmasTabsScene />}
               <button className={`tab ${activeTab === 'keymap' ? 'tab--active' : ''}`} data-guide="keymap-tab" onClick={() => setActiveTab('keymap')}>{t('キーマップ')}</button>
               <button className={`tab ${activeTab === 'trackball' ? 'tab--active' : ''}`} data-guide="trackball-tab" onClick={() => setActiveTab('trackball')}>{t('トラックボール設定')}</button>
               <button className={`tab ${activeTab === 'macro' ? 'tab--active' : ''}`} data-guide="macro-tab" onClick={() => setActiveTab('macro')}>{t('マクロ拡張')}</button>
@@ -1108,7 +1102,6 @@ export default function App() {
                 <div className="keymap-grid">
                   <div className="keymap-left-panel" ref={keymapLeftRef}>
                   <div className="keymap-keyboard-card">
-                    {isXmas && <XmasCardScene />}
                     <div className="layer-toolbar" data-guide="layer-tabs">
                       <div className="layer-tabs">
                         {Array.from({ length: state.info?.layers ?? 4 }, (_, i) => {
@@ -1397,6 +1390,5 @@ export default function App() {
       </main>
 
     </div>
-    </>
   );
 }

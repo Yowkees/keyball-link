@@ -1,5 +1,5 @@
 /* ===== CSS変数（ダークテーマ・ミント配色がデフォルト） ===== */
-/* Keyball Link UIデザイン「Neo v2」に準拠。data-theme(dark/light) × data-accent(mint/amber/violet) の
+/* Keyball Link UIデザイン「Neo v2」に準拠。data-theme(dark/light) × data-accent(mint/amber/violet/xmas) の
    組み合わせで下の各ブロックが上書きされる。派生色(--accent-h等)はvar()参照なので他は書き換え不要。
    ダーク3種のbg2/bg3は、ユーザーからの「パネル背景とキー枠をもう少し明るく」という
    フィードバックを受けてモックアップの値より意図的に明るく調整済み（bg本体とアクセント色はモックアップ通り）。
@@ -147,6 +147,72 @@
   --border:     #e1dcee;
   --border2:    #ccc5e0;
   --on-accent:  #ffffff;
+}
+
+/* ===== クリスマステーマ（ダーク）（2026-11-19〜） =====
+   背景はもみの木の深い緑、アクセントは赤、注意色は金。
+   エラー色(--red)がアクセントの赤と紛らわしくならないよう、少しピンク寄りにずらしている */
+:root[data-accent="xmas"] {
+  --bg:         #0c1712;
+  --bg2:        #15261d;
+  --bg3:        #1a2e23;
+  --text:       #e6ece6;
+  --text-dim:   #9fb3a6;
+  --accent:     #e8545e;
+  --accent-soft: #3a1a1e;
+  --accent-line: #6a2a31;
+  --accent-dim: #d08389;
+  --glow:       rgba(232,84,94,.18);
+  --green:      #4fc27e;
+  --red:        #ff7a9c;
+  --warn:       #e8c25a;
+  --warn-soft:  #2e2812;
+  --warn-line:  #5f4f22;
+  --border:     #2c4436;
+  --border2:    #3a5746;
+  --on-accent:  #ffffff;
+}
+
+/* ===== クリスマステーマ（ライト） ===== */
+:root[data-theme="light"][data-accent="xmas"] {
+  --bg:         #f3f1ea;
+  --bg2:        #fffdf8;
+  --bg3:        #f8f6f0;
+  --text:       #1c231e;
+  --text-dim:   #5d6b61;
+  --accent:     #b8202e;
+  --accent-soft: #f8e0e2;
+  --accent-line: #e3a1a7;
+  --accent-dim: #a8545b;
+  --glow:       rgba(184,32,46,.14);
+  --green:      #1d7a45;
+  --red:        #c2306a;
+  --warn:       #8a6406;
+  --warn-soft:  #f9f0d6;
+  --warn-line:  #dcc27c;
+  --border:     #dfe3da;
+  --border2:    #c9d1c6;
+  --on-accent:  #ffffff;
+}
+
+/* クリスマステーマの時だけ、背景にうっすら雪を散らす（動かない模様。操作の邪魔にならない薄さ） */
+:root[data-accent="xmas"] body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.10) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 63% 9%,  rgba(255,255,255,.08) 0 1px,   transparent 1.5px),
+    radial-gradient(circle at 34% 72%, rgba(255,255,255,.09) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 86% 55%, rgba(255,255,255,.07) 0 1px,   transparent 1.5px),
+    radial-gradient(circle at 48% 38%, rgba(255,255,255,.06) 0 1px,   transparent 1.5px);
+  background-size: 180px 180px, 240px 240px, 210px 210px, 160px 160px, 270px 270px;
+}
+:root[data-theme="light"][data-accent="xmas"] body {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(29,122,69,.10) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 63% 9%,  rgba(184,32,46,.08) 0 1px,   transparent 1.5px),
+    radial-gradient(circle at 34% 72%, rgba(29,122,69,.09) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 86% 55%, rgba(184,32,46,.07) 0 1px,   transparent 1.5px),
+    radial-gradient(circle at 48% 38%, rgba(29,122,69,.06) 0 1px,   transparent 1.5px);
 }
 
 /* ===== アクセントカラー選択（ヘッダー） ===== */

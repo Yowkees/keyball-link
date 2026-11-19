@@ -31,7 +31,7 @@ type Tab = 'keymap' | 'macro' | 'trackball' | 'settings' | 'firmware' | 'typing'
 interface EditOp { layer: number; row: number; col: number; prev: number; next: number }
 type BallSide = 'left' | 'right';
 type Theme = 'dark' | 'light';
-type AccentTheme = 'mint' | 'amber' | 'violet';
+type AccentTheme = 'mint' | 'amber' | 'violet' | 'xmas';
 
 // レイヤータブの色分けドット（モックアップ準拠。5レイヤー目以降は無彩色にフォールバック）
 // 開発（rp2040.keyball-link.pages.dev）とローカル開発サーバーでだけ表示する開発用ツールの判定
@@ -53,6 +53,8 @@ const ACCENT_SWATCHES: { key: AccentTheme; dark: string; light: string }[] = [
   { key: 'mint',   dark: '#48d6a8', light: '#0e8f6c' },
   { key: 'amber',  dark: '#e8b44a', light: '#b4770a' },
   { key: 'violet', dark: '#a78bfa', light: '#6d48d6' },
+  // クリスマステーマ（2026-11-19〜）。見本の丸は赤と緑の2色にする
+  { key: 'xmas',   dark: 'linear-gradient(135deg, #e8545e 50%, #3fa66b 50%)', light: 'linear-gradient(135deg, #b8202e 50%, #1d7a45 50%)' },
 ];
 
 // LED設定(色相・彩度・明度)から実際に光る色を計算する。数式はLEDSettingsの色相バーと揃えている。

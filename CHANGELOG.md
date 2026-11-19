@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+### Added
+- 画面右上の色の選択に「クリスマス」テーマを追加（赤と緑の丸）。ダークはもみの木の深い緑の背景に赤のアクセント、ライトは生成り色の背景に深い赤。背景にうっすら雪の模様が入る（動かない）
 
 ## [1.11.5] - 2026-11-19
 ### Changed

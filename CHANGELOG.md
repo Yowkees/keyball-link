@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+
+## [1.13.1] - 2026-11-24
 ### Fixed
 - ファームを更新（RP2040版v0.6.9・AVR版v1.5.7・Keyball+ v1.2.7）。キーボードのKB SAVEキーで保存したトラックボール設定（速度など）が、電源を入れ直すと初期値に戻っていた不具合を修正。Keyball Linkの画面からの保存は元から正常
 

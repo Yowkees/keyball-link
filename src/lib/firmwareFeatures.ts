@@ -99,6 +99,13 @@ export function firmwareSupportsNames(chip: Chip | undefined, version: FirmwareV
 // それより前のRP2040版とKeyball+はキーマップだけ、AVR版(39/44/61)はキーマップとトラックボールなど一部だけが戻る。
 const FACTORY_RESET_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 6, patch: 7 };
 
+// LEDエフェクト「クリスマス2」（effect_id 20、RP2040版v0.6.8〜）。
+const CHRISTMAS2_MIN_VERSION_RP2040: FirmwareVersion = { major: 0, minor: 6, patch: 8 };
+
+export function firmwareSupportsChristmas2(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
+  return chip === 'rp2040' && !!version && !isOlderVersion(version, CHRISTMAS2_MIN_VERSION_RP2040);
+}
+
 export function firmwareSupportsFactoryReset(chip: Chip | undefined, version: FirmwareVersion | null): boolean {
   return chip === 'rp2040' && !!version && !isOlderVersion(version, FACTORY_RESET_MIN_VERSION_RP2040);
 }

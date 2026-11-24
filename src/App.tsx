@@ -14,8 +14,8 @@ import { WelcomeGuide } from './components/WelcomeGuide/WelcomeGuide';
 import { FeedbackTab } from './components/FeedbackTab/FeedbackTab';
 import type { KbSettings, MacroSlot, GestureConfig, GestureModeConfig, GestureThreshold, GestureWaveColor, ShakeConfig, DFlickConfig, ComboSlot, TdSlot, DpiCurveConfig, PrecisionConfig, ScrollInertiaConfig, LayerLedConfig } from './lib/protocol';
 import { gestureLabel } from './lib/names';
-import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
-import { latestFwVersion, firmwareFeaturesForChip, firmwareSupportsFactoryReset } from './lib/firmwareFeatures';
+import { MACRO_SLOT_COUNT, COMBO_MAX_KEYS, emptyMacroSlot, formatVersion, isOlderVersion, LED_EFFECT_IDS_AVR, LED_EFFECTS, macroBufferSizeForModel, GESTURE_MODE_COUNT_LEGACY } from './lib/protocol';
+import { latestFwVersion, firmwareFeaturesForChip, firmwareSupportsFactoryReset, firmwareSupportsChristmas2 } from './lib/firmwareFeatures';
 import { chipForProductId, RP2040_LED_COUNT } from './lib/deviceIds';
 import type { KeyLayout } from './lib/keycodes';
 import { setGestureDisplayNames, OS_ID_WINDOWS } from './lib/keycodes';
@@ -835,8 +835,12 @@ export default function App() {
   };
 
   // AVR接続時、LEDエフェクト選択肢をファームが実際に対応している4種のみに絞る
-  // （RGB_MATRIX限定エフェクトを選ぶとLEDが消灯してしまうため）。RP2040・未接続時は制限なし。
-  const ledAllowedEffectIds = chip === 'avr' ? LED_EFFECT_IDS_AVR : undefined;
+  // （RGB_MATRIX限定エフェクトを選ぶとLEDが消灯してしまうため）。未接続時は制限なし。
+  // RP2040版でもv0.6.8より前のファームはクリスマス2(20)を知らないので一覧から外す。
+  const ledAllowedEffectIds = chip === 'avr' ? LED_EFFECT_IDS_AVR
+    : chip === 'rp2040' && !firmwareSupportsChristmas2(chip, state.firmwareVersion)
+      ? LED_EFFECTS.map(e => e.id).filter(id => id !== 20)
+      : undefined;
 
   // 加速度: LED版（ジェスチャー非対応）の keyball44/61 のみ無効。
   // 39とkeyballplus（39ベースでkeymap.cを共用）はLED版でも有効。

@@ -690,6 +690,7 @@ export const EN: Record<string, string> = {
   'スワール': 'Swirl',
   'トゥインクル': 'Twinkle',
   'クリスマス': 'Christmas',
+  'クリスマス2': 'Christmas 2',
   'ハロウィン': 'Halloween',
   'イースター': 'Easter',
 

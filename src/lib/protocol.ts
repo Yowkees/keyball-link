@@ -322,6 +322,8 @@ export interface LedConfig {
 // - ナイトライダー(6)は旧RGBLIGHT版からの欠番のまま、こちらも復活時は要調整。
 // - 交互点灯(10)はRGB_MATRIX移行版で片側ハーフ内完結の実装に直り復活可能になったが、
 //   本家RGBLIGHT版と共有のリストのため一旦保留。
+// 20(クリスマス2)はRP2040版v0.6.8〜。暖色ホワイトだけのキャンドルの灯り＋雪（OLEDはクリスマスと同じ）。
+// それより前のファームでは選べないようにしている（App.tsxのledAllowedEffectIds）。
 // 11・13は季節限定エフェクト（クリスマスと同じ市松模様の交互点灯。色相固定なので
 // 色相スライダーは無効）。
 // 14・15・16・17はRGB_MATRIX版限定の追加エフェクト。AVR版（RGBLIGHT版）のファーム
@@ -351,6 +353,7 @@ export const LED_EFFECTS = [
   { id: 4,  label: tk('スワール') },
   { id: 9,  label: tk('トゥインクル') },
   { id: 7,  label: tk('クリスマス') },
+  { id: 20, label: tk('クリスマス2') },
   { id: 11, label: tk('ハロウィン') },
   { id: 13, label: tk('イースター') },
 ] as const;
@@ -371,7 +374,8 @@ export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 // 深緑・暖色ホワイト・赤の3色で固定（彩度・明度・速度は効く）。タイピングヒートマップ(15)は
 // 自作HEATMAP実装（rgb_matrix_user.inc）で、押した回数（蓄熱量）に応じて色相を
 // 寒色→暖色へ内部計算するため色相スライダーは効かない（彩度・明るさは設定値を使う）。
-export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
+// クリスマス2(20)は暖色ホワイト固定（彩度・明るさ・速度は効く）。
+export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15, 20] as const;
 
 // 速度パラメータを使わないエフェクト（速度スライダーを無効にする）。
 // グラデーション(8)は静止した配色で時間変化が無く、リアクティブ(14)はフェード時間が

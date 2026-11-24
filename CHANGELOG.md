@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+
+## [1.13.0] - 2026-11-24
 ### Added
 - RP2040版v0.6.8: LEDエフェクト「クリスマス2」を追加。暖色ホワイトだけで、キャンドルの灯り（LEDごとに違うリズムでゆっくり揺れる）の中を、雪の粒が上から下へふわふわ揺れながら落ちていく。底面LEDは灯りのみ。彩度・明度・速度は調整できる（色相は固定）。OLEDのアニメーションはクリスマスと同じ。v0.6.8より前のRP2040版ファームでは一覧に出さない
 

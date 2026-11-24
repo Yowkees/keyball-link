@@ -366,8 +366,8 @@ export const LED_EFFECT_IDS_AVR = [0, 1, 2, 3] as const;
 export const LED_SEASONAL_EFFECT_IDS = [11, 13] as const;
 
 // 色相を固定パレットで決め打ちしていて色相スライダーが効かないエフェクト。
-// クリスマス(7)・ハロウィン(11)・イースター(13)はrender_checkerboard()
-// （rgb_matrix_user.inc）で固定色相の配列を使っている。タイピングヒートマップ(15)は
+// ハロウィン(11)・イースター(13)はrender_checkerboard()（rgb_matrix_user.inc）で
+// 固定色相の配列を使っている。クリスマス(7)は色そのものが固定（下のLED_FIXED_COLOR_EFFECT_IDS）。タイピングヒートマップ(15)は
 // 自作HEATMAP実装（rgb_matrix_user.inc）で、押した回数（蓄熱量）に応じて色相を
 // 寒色→暖色へ内部計算するため色相スライダーは効かない（彩度・明るさは設定値を使う）。
 export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
@@ -378,7 +378,14 @@ export const LED_FIXED_HUE_EFFECT_IDS = [7, 11, 13, 15] as const;
 // タイピングヒートマップ(15)は2026-09-18に「赤くなる早さを調整したい」との要望を受け、
 // 速度スライダーを「1打鍵あたりの熱量増加（＝何回打つと赤くなるか）」に転用したため、
 // ここでは対象外にしている（減衰間隔自体は引き続きファーム側の固定値）。
-export const LED_NO_SPEED_EFFECT_IDS = [8, 14] as const;
+export const LED_NO_SPEED_EFFECT_IDS = [7, 8, 14] as const;
+
+// 色が完全に決まっていて、彩度も使わないエフェクト（明度だけ調整できる）。
+// クリスマス(7)は2026-11-24（RP2040版v0.6.8〜）に「Classic Christmas」として作り直し、
+// 深緑・暖色ホワイト・赤の3色を固定の配置で光らせ、一部をゆっくり明滅させる作りになった。
+// 色相・彩度・速度は使わず、設定の明度だけを明るさの基準にする。そのため速度(上の
+// LED_NO_SPEED_EFFECT_IDS)と彩度のスライダーも隠す。
+export const LED_FIXED_COLOR_EFFECT_IDS = [7] as const;
 
 // レイヤー連動LED: 指定レイヤーにいる間だけ適用する専用のLED設定
 export interface LayerLedConfig {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import type { LedConfig } from '../../lib/protocol';
-import { LED_EFFECTS, LED_FIXED_HUE_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
+import { LED_EFFECTS, LED_FIXED_COLOR_EFFECT_IDS, LED_FIXED_HUE_EFFECT_IDS, LED_NO_SPEED_EFFECT_IDS } from '../../lib/protocol';
 import { t } from '../../lib/i18n';
 
 interface LEDSettingsProps {
@@ -95,6 +95,9 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
   const isFixedHue = (LED_FIXED_HUE_EFFECT_IDS as readonly number[]).includes(view.effectId);
   const showColor = view.effectId !== 0;
   const showHue   = showColor && !isFixedHue;  // クリスマス・ハロウィン・イースターは色相固定
+  // 色が完全に決まっているエフェクト（クリスマス）は彩度も使わない（明度だけ調整できる）
+  const isFixedColor = (LED_FIXED_COLOR_EFFECT_IDS as readonly number[]).includes(view.effectId);
+  const showSat   = showColor && !isFixedColor;
   // 色相バーを直接クリック・ドラッグして色相を変えられる時（色相を使うエフェクトで、操作できる時だけ）
   const hueEditable = showHue && !previewing;
 
@@ -146,7 +149,7 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
         {/* 説明は選択欄の横に置く（下に置くと説明が無い時に空白ができ、出すと高さが変わるため） */}
         {(previewing || isFixedHue) && (
           <span className="settings-desc led-settings__note">
-            {previewing ? t('オフの間はレイヤー0の光り方で光ります') : t('色相固定のエフェクトです（彩度・明度は調整できます）')}
+            {previewing ? t('オフの間はレイヤー0の光り方で光ります') : isFixedColor ? t('色が決まっているエフェクトです（明度だけ調整できます）') : t('色相固定のエフェクトです（彩度・明度は調整できます）')}
           </span>
         )}
       </div>
@@ -173,7 +176,7 @@ export function LEDSettings({ config, onChange, headerLeft, extraRow, allowedEff
         <div className="led-panel__sliders">
           <LedSlider label={t('色相')} value={view.hue} max={255} hidden={!showHue} disabled={previewing}
             onChange={v => commitDebounced({ ...local, hue: v })} />
-          <LedSlider label={t('彩度')} value={view.sat} max={255} hidden={!showColor} disabled={previewing}
+          <LedSlider label={t('彩度')} value={view.sat} max={255} hidden={!showSat} disabled={previewing}
             onChange={v => commitDebounced({ ...local, sat: v })} />
           <LedSlider label={t('明度')} value={view.val} max={200} hidden={!showColor} disabled={previewing}
             onChange={v => commitDebounced({ ...local, val: v })} />

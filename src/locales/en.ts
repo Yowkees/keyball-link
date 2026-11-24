@@ -676,6 +676,7 @@ export const EN: Record<string, string> = {
   'LED設定': 'LED settings',
   '⚠ この版（通常版）ではLEDは使用できません。LED版のファームを書き込むと設定できます。': '⚠ LEDs are not available in this version (standard version). Flash the LED version of the firmware to set them up.',
   'オフの間はレイヤー0の光り方で光ります': 'While off, the LEDs use the layer 0 effect',
+  '色が決まっているエフェクトです（明度だけ調整できます）': 'This effect uses fixed colors (only brightness can be adjusted)',
   '色相固定のエフェクトです（彩度・明度は調整できます）': 'This effect has a fixed hue (saturation and brightness can be adjusted)',
   '明度': 'Brightness',
   '速度': 'Speed',

@@ -4,6 +4,8 @@ Keyball Link（Webアプリ）の変更履歴です。バージョンは [Semant
 ファームウェア側の変更履歴は [keyball-link-firmware](https://github.com/Yowkees/keyball-link-firmware/blob/main/CHANGELOG.md) を参照してください（バージョン番号は連動していません）。
 
 ## [Unreleased]
+
+## [1.13.2] - 2026-11-26
 ### Fixed
 - RP2040版v0.6.10: ボールのある側にUSBを挿していると、OLEDのアニメーションや起動時のロゴ演出のON/OFFがボールの無い側に届かず、切り替わらなかった不具合を修正（組み立て途中でセンサーを付ける前も同じ症状が出ていた）
 
